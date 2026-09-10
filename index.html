@@ -4195,8 +4195,15 @@ function openFicheKo(cid, ref, n, d){
       f("Service", SERVS[c.service].l) +
       f("KO restants", n0(reste) + (dejaFait ? " sur " + n0(total) : ""), true) +
       f("Postes connus", postes.length ? n0(postes.length) : "non — qualification par quantité", true) +
-      ((q && (q.ops || []).length) ? f("Opérateur", q.ops.join(", "), true) : "") +
+      (c.service === "recep"
+        ? f("Opérateur", (q && (q.ops || []).length) ? q.ops.join(", ")
+            : '<span class="muted">' + (colOp(c) ? "non renseigné pour ce flux"
+                : "absent de l'export chargé") + "</span>", true)
+        : "") +
       f("Poids dans la période", c.ko ? dec(reste / c.ko * 100, 1) + " % des KO" : "—", true) + "</div>" +
+    /* le détail de l'export : c'est là que se décide la cause, il doit être ici
+       autant que sur la fiche d'un retard déjà justifié */
+    ctxBloc(c, ref, postes.length ? postes : null) +
     bloc +
     '<div class="flab" style="margin-top:18px">Donner une cause</div>' +
     causeGridHtml(c.service, "kf-grid") +
@@ -4267,16 +4274,30 @@ function openFicheKo(cid, ref, n, d){
 /* Ce que l'export dit du flux, tel quel. Une justification se défend d'autant
    mieux qu'on lit à côté d'elle les colonnes qui l'ont motivée — sans avoir à
    rouvrir le fichier. Seules les colonnes réellement renseignées s'affichent. */
+/* ---- ce que l'export dit du flux ----
+   Une justification se défend d'autant mieux qu'on lit à côté d'elle les
+   colonnes qui l'ont motivée, sans rouvrir le fichier. Les colonnes qui comptent
+   viennent d'abord, sous un nom lisible ; **toutes les autres suivent**, telles
+   que l'export les nomme — un détail caché est un détail qui manque. */
 const CTX_FICHE = {
-  recep: [["Fournisseur", "nom fournisseur"], ["Emplacement", "emplacement cible"],
-    ["Arrivée du BR", "date debut"], ["Entrée marchandise", "date fin"],
+  recep: [["Arrivée du BR", "date debut"], ["Entrée marchandise", "date fin"],
+    ["Fournisseur", "nom fournisseur"], ["Article", "code objet"],
+    ["Emplacement", "emplacement cible"], ["Venant de", "emplacement origine"],
     ["Statut douane", "statut douane"], ["Statut litige", "statut litige"],
     ["Statut qualité", "statut qualite"]],
   distri: [["Demandée le", "date debut"], ["Échéance", "date fin prevue"],
     ["Confirmée le", "date fin"], ["Anticipation", "anticipation demande"],
-    ["Emplacement", "emplacement cible"], ["Priorité", "priorite"],
-    ["Statut litige", "statut litige"]]
+    ["Article", "code objet"], ["Emplacement", "emplacement cible"],
+    ["Venant de", "emplacement origine"], ["Priorité", "priorite"],
+    ["Statut douane", "statut douane"], ["Statut litige", "statut litige"]]
 };
+/* Colonnes que la fiche ne montre pas : soit elles sont déjà dites par l'en-tête
+   de la fiche (site, service, KPI), soit elles ne décrivent pas le flux. */
+const CTX_MUET = /^(code aire|activite|sous activite|type de flux|calcul|heure |regroupement)/;
+/* Une date et son heure se lisent ensemble : deux cases pour un seul instant
+   remplissent la fiche sans rien dire de plus. */
+const CTX_PAIRE = { "date reference":"heure reference", "date debut":"heure debut",
+  "date fin":"heure fin", "date fin prevue":"heure fin prevue" };
 /* L'anticipation est un nombre de jours ouvrés dans l'export ; écrite en clair
    elle dit d'un coup si la demande pouvait seulement être tenue. */
 function litAnticipation(v){
@@ -4290,39 +4311,78 @@ function litAnticipation(v){
 function ctxBloc(c, ref, postes){
   const x = c && c.koCtx;
   if (!x || !(x.c || []).length || !ref) return "";
-  const trouve = frag => (x.c || []).find(n => normCol(n) === frag) ||
-    (x.c || []).find(n => normCol(n).indexOf(frag) === 0) || "";
-  const items = [];
-  (CTX_FICHE[c.service] || []).forEach(([lbl, frag]) => {
-    const col = trouve(frag); if (!col) return;
+  const cols = x.c || [];
+  const trouve = frag => cols.find(n => normCol(n) === frag) ||
+    cols.find(n => normCol(n).indexOf(frag) === 0) || "";
+  const vus = new Set(), items = [];
+  /* l'opérateur est déjà en tête de la fiche en réception, et en distribution la
+     colonne porte un code d'emplacement : dans les deux cas elle ne va pas ici */
+  if (colOp(c)) vus.add(colOp(c));
+
+  /* Une valeur, l'heure accolée quand la colonne en a une. Un même jour avec
+     quarante heures différentes se dit « de 06:20 à 07:05 » : la liste laissait
+     croire que c'était la date qui variait. */
+  const valeur = col => {
     const v = ctxRef(c, ref, postes, col);
-    if (!v.length) return;
-    items.push([lbl, lbl === "Anticipation" ? v.map(litAnticipation).join(" · ")
-      : esc(v.slice(0, 3).join(" · ") + (v.length > 3 ? " …" : ""))]);
-  });
+    if (!v.length) return "";
+    const h = CTX_PAIRE[normCol(col)];
+    const colH = h ? cols.find(n => normCol(n) === h) : "";
+    let suf = "";
+    if (colH){
+      vus.add(colH);
+      const hv = ctxRef(c, ref, postes, colH);
+      if (hv.length === 1) suf = "  " + hv[0];
+      else if (hv.length > 1) suf = "  de " + hv[0] + " à " + hv[hv.length - 1];
+    }
+    return (v.length === 1 ? v[0] : abrege(v)) + (v.length === 1 ? suf : "");
+  };
+  /* Dire combien il y en a vaut mieux que trois valeurs et des points de
+     suspension : on sait alors si on regarde l'exception ou la règle. */
+  function abrege(v){
+    return v.slice(0, 2).join(" · ") + " … et " + n0(v.length - 2) + " autre" + sPl(v.length - 2);
+  }
+  const pose = (lbl, col) => {
+    if (!col || vus.has(col)) return;
+    vus.add(col);
+    const v = valeur(col); if (!v) return;
+    items.push([lbl, normCol(col).indexOf("anticipation") === 0
+      ? v.split(" · ").map(litAnticipation).join(" · ")
+      : esc(lbl === "Article" ? v.replace(/\b0+(\d{4,})/g, "$1") : v)]);
+  };
+  (CTX_FICHE[c.service] || []).forEach(([lbl, frag]) => pose(lbl, trouve(frag)));
   /* mesuré et objectif se lisent ensemble ou pas du tout ; l'unité vient du KPI,
      les codes en .2 étant les flux urgents, comptés en heures */
-  const mes = ctxRef(c, ref, postes, trouve("valeur kpi")),
-        obj = ctxRef(c, ref, postes, trouve("objectif")),
-        kpi = ctxRef(c, ref, postes, trouve("kpi ("));
+  const cMes = trouve("valeur kpi"), cObj = trouve("objectif"), cKpi = trouve("kpi");
+  const mes = ctxRef(c, ref, postes, cMes), obj = ctxRef(c, ref, postes, cObj),
+        kpi = ctxRef(c, ref, postes, cKpi);
+  vus.add(cMes); vus.add(cObj); vus.add(cKpi);
   if (mes.length){
     const u = kpi.some(k => /[25]\.2/.test(k)) ? "h" : "j";
+    /* L'export sort ses délais en flottant : « 3.8702999999999999 » n'est pas une
+       précision, c'est du bruit. Et quarante valeurs voisines se disent en plage. */
+    const num = v => { const n = parseFloat(String(v).replace(",", "."));
+      return !isFinite(n) ? String(v) : (Number.isInteger(n) ? n0(n) : dec(n, 2)); };
+    const plage = l => { const t = l.map(num); const u2 = [...new Set(t)];
+      return u2.length === 1 ? u2[0] : "de " + u2[0] + " à " + u2[u2.length - 1]; };
     /* Un objectif négatif n'est pas une faute de saisie : il veut dire que le
        flux devait être tenu AVANT son échéance. Écrit tel quel, « −1 j » se lit
        comme une anomalie ; écrit en clair, il dit la règle. */
     const litObj = v => {
       const n = parseFloat(String(v).replace(",", "."));
       if (!isFinite(n)) return String(v);
-      if (n < 0) return dec(-n, 0) + " " + u + " avant l'échéance";
+      if (n < 0) return num(-n) + " " + u + " avant l'échéance";
       if (n === 0) return "le jour de l'échéance";
-      return dec(n, 0) + " " + u;
+      return num(n) + " " + u;
     };
-    items.push(["Mesuré / objectif", esc(mes.join(" · ") + " " + u +
-      (obj.length ? " · objectif " + obj.map(litObj).join(" · ") : ""))]);
+    items.push(["Mesuré / objectif", esc(plage(mes) + " " + u +
+      (obj.length ? " · objectif " + [...new Set(obj.map(litObj))].join(" · ") : ""))]);
   }
+  if (kpi.length) items.push(["KPI", esc(kpi.join(" · "))]);
+  /* tout le reste de l'export, sous son propre nom */
+  cols.forEach(col => { if (!vus.has(col) && !CTX_MUET.test(normCol(col))) pose(col, col); });
   if (!items.length) return "";
   return '<div class="flab" style="margin-top:16px">Ce que l\'export en dit</div><div class="fgrid">' +
-    items.map(([k, v]) => '<div class="fi"><span class="k">' + k +
+    items.map(([k, v]) => '<div class="fi"><span class="k">' + esc(k) +
       '</span><span class="v mono">' + v + "</span></div>").join("") + "</div>";
 }
 function openFiche(cid, lid){
