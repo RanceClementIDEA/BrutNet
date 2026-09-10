@@ -1184,7 +1184,7 @@ const SRC = { auto:"Automatique", releve:"Relevé", manuel:"Manuel" };
 
 const CATS = [
   {k:"irrealisable", l:"Demande irréalisable",   p:"distri", s:"auto",   j:true,  d:"Créée le jour de son échéance ou après : la confirmation devait tomber la veille ouvrée."},
-  {k:"anomalie",     l:"Anomalie de calcul",     p:"distri", s:"auto",   j:true,  d:"Livrée avant l'échéance et pourtant comptée KO."},
+  {k:"anomalie",     l:"Anomalie de calcul",     p:"tous",   s:"auto",   j:true,  d:"Tenue avant son échéance et pourtant comptée KO."},
   {k:"reliquat",     l:"Reliquat",               p:"distri", s:"releve", j:true},
   {k:"reliquat_ant", l:"Reliquat antérieur",     p:"distri", s:"manuel", j:true,  d:"Backlog d'une période antérieure, soldé ici."},
   {k:"grues",        l:"Grues",                  p:"distri", s:"releve", j:true},
@@ -1196,11 +1196,19 @@ const CATS = [
   {k:"reedition",    l:"Litige BR réédité",      p:"recep",  s:"auto",   j:true,  d:"Délai réel depuis la recréation ≤ objectif (heures si urgent, jours ouvrés sinon)."},
   {k:"douane",       l:"Blocage douane",         p:"recep",  s:"auto",   j:true},
   {k:"ferie",        l:"Jour férié",             p:"recep",  s:"auto",   j:true},
-  {k:"fournisseur",  l:"Retard fournisseur",     p:"recep",  s:"manuel", j:true},
+  /* Les litiges de réception, tels que l'exploitation les nomme : le BR est
+     arrivé, mais quelque chose empêche l'entrée en stock. Ils manquaient — seul
+     le litige de BR réédité était proposé, et il ne couvre qu'un cas sur cinq. */
+  {k:"fournisseur",  l:"Litige fournisseur",     p:"recep",  s:"manuel", j:true,  d:"Litige ouvert avec le fournisseur : quantité, référence, commande."},
+  {k:"nonconf",      l:"Non-conformité",         p:"recep",  s:"manuel", j:true,  d:"Marchandise non conforme ou refusée au contrôle."},
+  {k:"docs",         l:"Documents manquants",    p:"recep",  s:"manuel", j:true,  d:"Documents ou identification manquants à l'arrivée."},
+  {k:"arbitrage",    l:"Arbitrage achats",       p:"recep",  s:"manuel", j:true,  d:"Entrée suspendue en attente d'un arbitrage achats ou fournisseur."},
   {k:"transport",    l:"Transport amont",        p:"tous",   s:"manuel", j:true},
   {k:"client",       l:"Demande client tardive", p:"tous",   s:"manuel", j:true},
   {k:"si",           l:"Indisponibilité SI/SAP", p:"tous",   s:"manuel", j:true},
   {k:"autre",        l:"Autre — justifié",       p:"tous",   s:"manuel", j:true,  d:"Commentaire obligatoire."},
+  {k:"fraction",     l:"Réception fractionnée",  p:"recep",  s:"manuel", j:false, d:"Livraison arrivée en plusieurs fois — à trancher avant de conclure."},
+  {k:"traitement",   l:"Retard de traitement",   p:"recep",  s:"manuel", j:false, d:"Le retard vient du traitement interne : il reste compté."},
   {k:"urgences",     l:"Urgences",               p:"tous",   s:"releve", j:false},
   {k:"retard",       l:"Retard",                 p:"tous",   s:"releve", j:false},
   {k:"nr",           l:"Non renseignée",         p:"tous",   s:"releve", j:false}
@@ -1217,7 +1225,13 @@ const CAT_ALIAS = (() => {
     "reliquats":"reliquat", "grue":"grues", "litige":"litiges", "dechets":"dechets", "flux dechet":"dechets",
     "mise a dispo":"mad", "mad":"mad", "irrecevable":"irrecevable", "demande irrecevable":"irrecevable",
     "urgence":"urgences", "retards":"retard", "non renseigne":"nr", "non renseignee":"nr", "":"nr",
-    "autre":"autre", "autres":"autre", "dtm":"dtm"
+    "autre":"autre", "autres":"autre", "dtm":"dtm",
+    /* libellés longs de l'ancien suivi, pour que ses saisies retombent juste */
+    "marchandise non conforme ou refusee":"nonconf", "non conforme":"nonconf",
+    "documents ou identification manquants":"docs", "document manquant":"docs",
+    "attente d arbitrage achats ou fournisseur":"arbitrage", "arbitrage":"arbitrage",
+    "reception fractionnee a trancher":"fraction", "retard d exploitation":"retard",
+    "litige de stock":"litiges"
   });
   return { map:m, norm };
 })();
@@ -4370,7 +4384,7 @@ function catOptions(service, sel){
   const grp = (title, list) => list.length ? '<optgroup label="' + title + '">' +
     list.map(c => '<option value="' + c.k + '"' + (c.k === sel ? " selected" : "") + ">" + esc(c.l) + "</option>").join("") + "</optgroup>" : "";
   const ok = CATS.filter(c => c.j && (c.p === "tous" || c.p === service));
-  const no = CATS.filter(c => !c.j);
+  const no = CATS.filter(c => !c.j && (c.p === "tous" || c.p === service));
   return grp("Retirent le KO du décompte", ok) + grp("Gardées pour la trace — le KO reste compté", no);
 }
 function modalJustif(cellId_, ligneId){
