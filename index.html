@@ -101,47 +101,42 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 /* ---------- mur d'indicateurs ---------- */
 .wall{display:grid;gap:14px}
 .wrow{display:grid;gap:14px}
-.wrow.a{grid-template-columns:minmax(300px,1.15fr) minmax(240px,1fr) minmax(260px,1.05fr)}
+.wrow.g{grid-template-columns:minmax(230px,.85fr) minmax(230px,.85fr) minmax(280px,1.3fr)}
 .wrow.b{grid-template-columns:repeat(4,1fr)}
 .wrow.c{grid-template-columns:repeat(4,1fr)}
-@media (max-width:1180px){.wrow.a{grid-template-columns:1fr}.wrow.b,.wrow.c{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:1180px){.wrow.g{grid-template-columns:repeat(2,1fr)}.wrow.b,.wrow.c{grid-template-columns:repeat(2,1fr)}
+  .wrow.g > .wt:last-child{grid-column:1/-1}}
+@media (max-width:560px){.wrow.g{grid-template-columns:1fr}}
 @media (max-width:560px){.wrow.b,.wrow.c{grid-template-columns:1fr}}
 .wt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
   padding:16px 18px 15px;display:flex;flex-direction:column;min-width:0}
 .wt h3{font-family:var(--f-disp);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .wt h3 .btag{margin-left:auto;text-transform:none;letter-spacing:0;font-size:11px;font-weight:600}
+/* jauge en demi-cercle */
+.wt.gt{align-items:center;text-align:center;justify-content:center}
+.wt.gt h3{width:100%}
+.gg{display:block;width:100%;max-width:230px;margin:8px auto 2px;height:auto}
+.gsub{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin-top:2px}
+.gsub b{color:var(--ink)}
 /* le chiffre de tête */
 .wnum{font-family:var(--f-disp);font-weight:700;font-size:clamp(44px,6vw,68px);line-height:1;
   letter-spacing:-.04em;margin:10px 0 2px;color:var(--s3)}
 .wnum small{font-size:.34em;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:0}
 .wnum-l{font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
 .wnum-l b{color:var(--ink)}
-/* meter : un ratio face à une limite, avec le repère de cible */
-.meter{position:relative;height:12px;border-radius:7px;background:var(--surface-3);border:1px solid var(--line);
-  margin:22px 0 7px;overflow:visible}
-.meter i{position:absolute;top:0;bottom:0;border-radius:7px 0 0 7px;display:block}
-.meter i.n{border-radius:0 7px 7px 0}
-.meter .tgt{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);border-radius:2px}
-.meter .tgt::after{content:attr(data-l);position:absolute;top:-17px;left:50%;transform:translateX(-50%);
-  font-family:var(--f-mono);font-size:10px;color:var(--ink);white-space:nowrap}
-.mscale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--f-mono);margin-bottom:12px}
 /* tuiles de périmètre, colorées par l'état */
-.kt{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line-2);
+.kt{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--s3);
   border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;
   gap:2px;min-width:0;cursor:pointer;transition:.12s}
 .kt:hover{border-color:var(--line-2);transform:translateY(-1px)}
 .kt.on{outline:2px solid var(--accent);outline-offset:-1px}
-.kt .ktt{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
-.kt .ktt .ic{margin-left:auto;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
-  font-size:11px;font-weight:700;color:#fff;flex:none}
+.kt .ktt{font-size:11.5px;color:var(--muted);font-weight:600}
 .kt .ktv{font-family:var(--f-disp);font-weight:700;font-size:clamp(26px,3vw,34px);line-height:1.05;
   letter-spacing:-.03em;white-space:nowrap}
 .kt .ktd{font-size:11.5px;color:var(--ink-2);font-family:var(--f-mono);white-space:nowrap}
 .kt .ktr{font-size:11.5px;color:var(--muted);margin-top:5px;padding-top:6px;border-top:1px solid var(--line);white-space:nowrap}
-.kt.good{border-left-color:var(--good)} .kt.good .ktv{color:var(--good-ink)} .kt.good .ic{background:var(--good)}
-.kt.serious{border-left-color:var(--serious)} .kt.serious .ktv{color:var(--ink)} .kt.serious .ic{background:var(--serious)}
-.kt.crit{border-left-color:var(--crit)} .kt.crit .ktv{color:var(--crit-ink)} .kt.crit .ic{background:var(--crit)}
+.kt .ktv{color:var(--s3)}
 .kt.vide{cursor:default;opacity:.6} .kt.vide .ktv{color:var(--muted)}
 /* barres horizontales : comparer des grandeurs */
 .hbars{display:flex;flex-direction:column;gap:9px;margin-top:9px;flex:1}
@@ -151,14 +146,6 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .hb .hbt{grid-column:1/-1;height:6px;border-radius:4px;background:var(--surface-3)}
 .hb .hbt i{display:block;height:100%;border-radius:4px;background:var(--s2)}
 .hb:hover .hbl{color:var(--ink)}
-/* liste classée */
-.rank{margin-top:8px;flex:1}
-.rank .rk{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;cursor:pointer}
-.rank .rk:last-child{border-bottom:0}
-.rank .rk .rkn{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:600}
-.rank .rk .rkl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
-.rank .rk .rkv{font-family:var(--f-mono);font-weight:700;color:var(--ink)}
-.rank .rk:hover .rkl{color:var(--ink)}
 .wt .bcta{padding-top:12px}
 .wempty{color:var(--muted);font-size:12.5px;padding:14px 0}
 /* brut → net, deux chiffres côte à côte */
@@ -167,6 +154,9 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .blist{margin-top:7px;border-top:1px solid var(--line)}
 .bl .nm .chip-c{vertical-align:0}
 .bl{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+/* les trois niveaux du mur : le détail passe à la ligne, jamais tronqué */
+.blist.niv .bl{align-items:flex-start}
+.blist.niv .nm{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.45}
 .bl:last-child{border-bottom:0}
 .bl .nm{flex:1;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bl .vl{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
@@ -1296,15 +1286,6 @@ const S = {
   backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
 };
 const LSCIBLE = "taux-net-cible";
-/* Trois bandes plutôt que deux : à 99 % de cible, tout serait rouge et le mur
-   ne dirait plus rien. « proche » distingue ce qui est à portée de ce qui ne l'est pas. */
-function etatTaux(v){
-  if (v == null) return "vide";
-  const c = (+S.cible || 99) / 100;
-  if (v >= c - 1e-9) return "good";
-  if (v >= c - 0.02) return "serious";
-  return "crit";
-}
 const LSKEY = "brut-net-taux-service-v1";
 const CFGKEY = "brut-net-firebase-config";
 const BACKEND_LBL = { local:"Navigateur seul", db:"Base Claude", firebase:"Base partagée Firebase",
@@ -2766,7 +2747,33 @@ function drawEvo(){
   hit.addEventListener("mouseleave", () => { tip.style.opacity = "0"; cross.setAttribute("opacity", "0"); });
 }
 
-/* ---------------------------- tableau de bord ---------------------------- */
+/* ---------------------------- tableau de bord ----------------------------
+   Jauge en demi-cercle. Les deux jauges d'un écran partagent la même échelle —
+   sans quoi 94,0 et 95,5 pourraient paraître identiques, ou inversés. L'échelle
+   ne part pas de zéro : à 93-97 %, tout se jouerait sur le dernier degré. */
+function demiCercle(val, lo, col, lbl){
+  const R = 82, CX = 100, CY = 100, W = 14;
+  const f = val == null ? 0 : Math.max(0, Math.min(1, (val * 100 - lo) / (100 - lo)));
+  const pt = fr => { const th = Math.PI * (1 - fr);
+    return [(CX + R * Math.cos(th)).toFixed(2), (CY - R * Math.sin(th)).toFixed(2)]; };
+  const [x2, y2] = pt(f);
+  return '<svg class="gg" viewBox="0 0 200 128" role="img" aria-label="' + esc(lbl) + " " + pf(val) +
+      ", échelle " + dec(lo, 0) + ' à 100 %">' +
+    '<path d="M' + (CX - R) + "," + CY + " A" + R + "," + R + " 0 0 1 " + (CX + R) + "," + CY +
+      '" fill="none" stroke="var(--surface-3)" stroke-width="' + W + '" stroke-linecap="round"/>' +
+    (f > 0.002
+      ? '<path d="M' + (CX - R) + "," + CY + " A" + R + "," + R + " 0 0 1 " + x2 + "," + y2 +
+        '" fill="none" stroke="' + col + '" stroke-width="' + W + '" stroke-linecap="round"/>'
+      : "") +
+    '<text x="' + CX + '" y="' + (CY - 14) + '" text-anchor="middle" fill="var(--ink)" ' +
+      'font-family="var(--f-disp)" font-weight="700" font-size="38" letter-spacing="-1.4">' +
+      dec(val * 100, 1) + '<tspan font-size="17" fill="var(--ink-2)" dx="2"> %</tspan></text>' +
+    '<text x="' + (CX - R) + '" y="' + (CY + 20) + '" text-anchor="middle" fill="var(--muted)" ' +
+      'font-family="var(--f-mono)" font-size="11">' + dec(lo, 0) + "</text>" +
+    '<text x="' + (CX + R) + '" y="' + (CY + 20) + '" text-anchor="middle" fill="var(--muted)" ' +
+      'font-family="var(--f-mono)" font-size="11">100</text></svg>';
+}
+
 function perimAgg(){
   const out = [], eff = effCells();
   Object.keys(SITES).forEach(si => Object.keys(SERVS).forEach(sv => {
@@ -2806,41 +2813,25 @@ function renderDash(){
   const lo = Math.max(0, Math.floor((bas - 1) / 2) * 2);
   const px = v => v == null ? 0 : Math.max(0, Math.min(100, (v * 100 - lo) / (100 - lo) * 100));
 
-  const ICO = { good:"✓", serious:"!", crit:"!" };
-  const etatNet = etatTaux(a.net);
-  const ecart = a.net == null ? null : (a.net - cible) * 100;
+  /* ---- deux cases côte à côte : le brut, puis le net ---- */
+  const jauge = (titre, val, col, sous, tag) =>
+    '<div class="wt gt"><h3><i class="chip-c" style="background:' + col + '"></i>' + titre +
+      (tag ? '<span class="btag">' + esc(tag) + "</span>" : "") + "</h3>" +
+    demiCercle(val, lo, col, titre) +
+    '<div class="gsub">' + sous + "</div></div>";
 
-  /* ---- tuile 1 : le taux, face à la cible ---- */
-  const t1 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s3)"></i>Taux de service net' +
-      '<span class="btag">' + esc(rangeLabel()) + "</span></h3>" +
-    '<div class="wnum">' + dec(a.net * 100, 1) + "<small>%</small></div>" +
-    '<div class="wnum-l">Brut <b>' + pf(a.brut) + "</b> · " + ptf(a.net - a.brut) + " expliqués · " +
-      (ecart >= 0 ? "<b>cible atteinte</b>" : "<b>" + dec(Math.abs(ecart), 1) + " pt</b> sous la cible de " +
-        dec(S.cible, 0) + " %") + "</div>" +
-    '<div class="meter" role="img" aria-label="Taux brut ' + pf(a.brut) + ", net " + pf(a.net) +
-      ", cible " + dec(S.cible, 0) + ' %">' +
-      '<i title="brut" style="left:0;width:' + px(a.brut).toFixed(1) + '%;background:var(--s1)"></i>' +
-      '<i class="n" title="part expliquée" style="left:' + px(a.brut).toFixed(1) + '%;width:' +
-        Math.max(0, px(a.net) - px(a.brut)).toFixed(1) + '%;background:var(--s3)"></i>' +
-      '<span class="tgt" data-l="cible ' + dec(S.cible, 0) + ' %" style="left:' + px(cible).toFixed(1) + '%"></span></div>' +
-    '<div class="mscale"><span>' + dec(lo, 0) + " %</span><span>100 %</span></div>" +
-    '<div class="blist" style="margin-top:2px">' +
-      [["Brut", a.brut, "var(--s1)", n0(a.flux) + " flux · " + n0(a.ko) + " KO"],
-       ["Documenté", a.docu, "var(--s2)", n0(a.jdoc) + " KO prouvés par les données"],
-       ["Net", a.net, "var(--s3)", a.jtot - a.jdoc < 0.5
-          ? "aucune saisie manuelle en plus"
-          : "+ " + n0(a.jtot - a.jdoc) + " KO justifiés à la main"]
-      ].map(([k, v, col, d]) =>
-        '<div class="bl"><span class="nm"><i class="chip-c" style="background:' + col + '"></i> ' + k +
-        ' <span class="muted" style="font-size:11.5px">' + esc(d) + "</span></span>" +
-        '<span class="vl mono">' + pf(v) + "</span></div>").join("") + "</div>" +
-    '<div class="bcta"><button class="btn sm" id="btn-defs">Que veulent dire brut, documenté et net&nbsp;?</button></div></div>';
+  const t1 = jauge("Taux brut", a.brut, "var(--s1)",
+    n0(a.flux) + " flux · <b>" + n0(a.ko) + " KO</b> comptés en retard", rangeLabel());
+  const t2 = jauge("Taux net", a.net, "var(--s3)",
+    "<b>" + ptf(a.net - a.brut) + "</b> d'écart expliqué · " + n0(a.jtot) + " KO justifiés" +
+    (a.jtot - a.jdoc < 0.5 ? " sans aucune saisie" : ", dont " + n0(a.jtot - a.jdoc) + " à la main"),
+    n0(a.reste) + " restent");
 
-  /* ---- tuile 2 : les causes, en barres ---- */
+  /* ---- les causes, en barres ---- */
   const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man }))
     .filter(r => r.n > 0.5).sort((x, y) => y.n - x.n).slice(0, 6);
   const maxC = cats.length ? cats[0].n : 1;
-  const t2 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s2)"></i>Retards expliqués' +
+  const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s2)"></i>Retards expliqués' +
       '<span class="btag">' + n0(a.jtot) + " KO</span></h3>" +
     (cats.length
       ? '<div class="hbars">' + cats.map(c =>
@@ -2848,48 +2839,24 @@ function renderDash(){
           '<span class="hbl">' + esc(c.l) + '</span><span class="hbv">' + n0(c.n) + "</span>" +
           '<span class="hbt"><i style="width:' + Math.max(2, c.n / maxC * 100).toFixed(1) + '%"></i></span></div>').join("") + "</div>"
       : '<div class="wempty">Aucune cause enregistrée sur cette plage.</div>') +
-    '<div class="bcta"><button class="btn sm" data-tabgo="qualif">Voir le registre</button></div></div>';
-
-  /* ---- tuile 3 : les plus gros lots encore sans décision ---- */
-  const q = toQualify();
-  const qKo = q.reduce((s, r) => s + r.n, 0);
-  const ecartees = Math.max(0, Math.round(a.reste) - qKo);
-  const top = q.slice().sort((x, y) => y.n - x.n || String(x.ref).localeCompare(String(y.ref))).slice(0, 7);
-  const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--muted)"></i>Les plus gros lots à traiter' +
-      '<span class="btag">' + n0(a.reste) + " KO</span></h3>" +
-    (top.length
-      ? '<div class="rank">' + top.map(r =>
-          '<div class="rk" data-ko="' + esc(r.cell.id) + "|" + esc(r.ref) + "|" + r.n + "|" + esc(r.d || "") + '"' +
-          ' title="Ouvrir la fiche de ' + esc(r.ref) + '">' +
-          '<span class="rkn">' + esc(r.ref) + "</span>" +
-          '<span class="rkl">' + esc(perLabel(r.cell.periode) + " · " + SITES[r.cell.site].l + " · " +
-            (r.cell.service === "distri" ? "Distri" : "Récep")) +
-            ((r.ops || []).length ? " · " + esc(r.ops.slice(0, 2).join(", ")) : "") + "</span>" +
-          '<span class="rkv">' + n0(r.n) + "</span></div>").join("") + "</div>"
-      : '<div class="wempty">Rien en attente sur cette plage.</div>') +
-    '<div class="wnum-l" style="margin:10px 0 0">' + (q.length
-        ? n0(qKo) + " KO sans décision sur " + n0(q.length) + " demande" + sPl(q.length) +
-          (ecartees ? " · " + n0(ecartees) + " examinés et écartés" : "")
-        : "Importez un export pour les faire apparaître.") + "</div>" +
-    '<div class="bcta"><button class="btn pri sm" data-tabgo="justif">Ouvrir la liste</button></div></div>';
+    '<div class="bcta"><button class="btn sm" data-tabgo="qualif">Voir le registre</button>' +
+      ' <button class="btn sm" id="btn-defs">Brut, documenté, net&nbsp;?</button></div></div>';
 
   /* ---- rangée de tuiles : un périmètre chacune ---- */
   const actif = (si, sv) => S.ui.site === si && S.ui.serv === sv;
   const tuiles = per.map(p => {
     if (!p.a.flux) return '<div class="kt vide"><span class="ktt">' + esc(p.l) + "</span>" +
       '<span class="ktv">—</span><span class="ktd">aucun flux</span></div>';
-    const e = etatTaux(p.a.net);
-    const d = (p.a.net - cible) * 100;
-    return '<div class="kt ' + e + (actif(p.si, p.sv) ? " on" : "") + '" data-drill="perim|' + p.si + "|" + p.sv + '|dash"' +
+    return '<div class="kt' + (actif(p.si, p.sv) ? " on" : "") + '" data-drill="perim|' + p.si + "|" + p.sv + '|dash"' +
       ' title="N\'afficher que ' + esc(p.l) + '">' +
-      '<span class="ktt">' + esc(p.l) + '<span class="ic" aria-hidden="true">' + ICO[e] + "</span></span>" +
+      '<span class="ktt">' + esc(p.l) + "</span>" +
       '<span class="ktv">' + dec(p.a.net * 100, 1) + " %</span>" +
-      '<span class="ktd">' + (d >= 0 ? "cible atteinte" : dec(d, 1) + " pt / cible") + "</span>" +
-      '<span class="ktr">brut ' + pf(p.a.brut) + " · " + n0(p.a.reste) + " à justifier</span></div>";
+      '<span class="ktd">brut ' + pf(p.a.brut) + " · " + ptf(p.a.net - p.a.brut) + "</span>" +
+      '<span class="ktr">' + n0(p.a.ko) + " KO · " + n0(p.a.reste) + " à justifier</span></div>";
   }).join("");
 
   $("#board").innerHTML =
-    '<div class="wrow a">' + t1 + t2 + t3 + "</div>" +
+    '<div class="wrow g">' + t1 + t2 + t3 + "</div>" +
     '<div class="wrow b">' + tuiles + "</div>";
   $("#ctrl-sub").textContent = crit ? crit + " point(s) à corriger" : warn ? warn + " point(s) à trancher" : "Rien à signaler";
   $("#ctrls").innerHTML = ctr.map(c =>
