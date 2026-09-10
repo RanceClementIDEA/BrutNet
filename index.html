@@ -437,6 +437,42 @@ th.n{font-family:var(--f-disp)}
 .pill.releve{background:var(--s2-soft);color:var(--s2);border-color:color-mix(in srgb,var(--s2) 32%,transparent)}
 .pill.manuel{background:var(--s3-soft);color:var(--s3);border-color:color-mix(in srgb,var(--s3) 32%,transparent)}
 .pill.rejet{background:var(--surface-3);color:var(--muted);border-color:var(--line-2)}
+/* ---------- règles automatiques ---------- */
+.rlist{display:flex;flex-direction:column;gap:10px}
+.rcard{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:13px 15px;display:flex;gap:13px;align-items:flex-start;flex-wrap:wrap}
+.rcard.off{opacity:.55}
+.rcard .rmain{flex:1 1 240px;min-width:0}
+@media (max-width:560px){.rcard .ract{width:100%;justify-content:flex-end}}
+.rcard b{font-family:var(--f-disp);font-size:14px}
+.rcond{font-size:12.5px;color:var(--ink-2);margin-top:3px;line-height:1.5}
+.rcond code{background:var(--surface-3);border-radius:4px;padding:1px 5px;font-family:var(--f-mono);font-size:11.5px}
+.rmeta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px;font-size:11.5px;color:var(--muted)}
+.rcard .ract{display:flex;gap:6px;align-items:center;flex:none}
+.rimpact{font-family:var(--f-mono);font-size:12px;color:var(--s3);font-weight:600;white-space:nowrap}
+.mlist{display:flex;flex-direction:column;gap:8px;margin:10px 0 18px}
+.mcard{border:1px dashed var(--line-2);border-radius:10px;padding:11px 14px;display:flex;gap:13px;
+  align-items:center;flex-wrap:wrap}
+.mcard .mmain{flex:1 1 260px;min-width:0}
+.mcard b{font-family:var(--f-disp);font-size:13.5px}
+.mcard .ract{display:flex;gap:8px;align-items:center;flex:none;margin-left:auto}
+.mcard.fixe{align-items:flex-start;border-style:solid;background:var(--surface-2)}
+.wtxt{color:var(--warn-ink);font-weight:600}
+.wban{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin:0 0 16px;padding:13px 16px;
+  border:1px solid var(--crit);border-left-width:4px;border-radius:10px;background:var(--surface-2);font-size:13px}
+.wban .wb-main{flex:1 1 300px;min-width:0;line-height:1.55}
+.wban .wb-d{color:var(--ink-2);margin-top:5px}
+.wban .wb-d code{background:var(--surface-3);border-radius:4px;padding:1px 5px;font-family:var(--f-mono);font-size:11.5px}
+.wban .wb-c{color:var(--muted);font-family:var(--f-mono);font-size:11px;margin-top:6px}
+.wban .wb-act{display:flex;gap:8px;flex:none;margin-left:auto}
+@media (max-width:560px){.wban .wb-act{width:100%;margin-left:0}}
+@media print{.wban{display:none}}
+@media (max-width:560px){.mcard .ract{width:100%;justify-content:space-between;margin-left:0}}
+.sw{position:relative;width:38px;height:21px;flex:none;cursor:pointer}
+.sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;background:var(--line-2);border-radius:20px;transition:.15s}
+.sw i::after{content:"";position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.15s}
+.sw input:checked+i{background:var(--s3)}
+.sw input:checked+i::after{transform:translateX(17px)}
 /* en-têtes de tableau triables */
 th[data-tri]{cursor:pointer;user-select:none;white-space:nowrap}
 th[data-tri]:hover{color:var(--ink);background:var(--surface-3)}
@@ -579,6 +615,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
 
 <main>
 <div id="print-head"><b>Taux de service — brut vers net</b><span id="print-sub"></span></div>
+  <div id="wbanner"></div>
   <!-- ============ TABLEAU DE BORD ============ -->
   <section class="view on" id="v-dash">
     <div class="stack">
@@ -668,7 +705,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         </div>
       </details>
 
-      <details class="panel">
+      <details class="panel" id="pan-sap">
         <summary class="ph"><h2>2 · Extraction SAP</h2><span class="sub">Réception — la colonne que PowerBI n'a pas</span></summary>
         <div class="pb">
           <p class="gp" style="margin:0 0 8px">Collez l'extraction, ou ouvrez le <code>.xlsx</code> tel que SAP le sort.</p>
@@ -713,10 +750,14 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         <summary class="ph"><h2>3 · Relevé journalier Distri MG</h2><span class="sub">Les causes déclarées chaque jour par l'exploitation</span></summary>
         <div class="pb">
           <div class="form" style="margin-bottom:12px">
-            <div class="f"><label for="r-date">Semaine concernée</label><input type="date" id="r-date"><span class="hint" id="r-week">—</span></div>
             <div class="f"><label for="r-site">Site</label><select id="r-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>
             <div class="f"><label for="r-serv">Service</label><select id="r-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>
+            <div class="f"><label for="r-date">Semaine, si besoin</label><input type="date" id="r-date"><span class="hint" id="r-week">facultatif</span></div>
           </div>
+          <p class="gp" style="margin:0 0 10px">Le relevé apporte <b>la cause</b>, pas les chiffres. L'outil cherche
+          chaque DT parmi les KO déjà importés du périmètre choisi et les documente là où ils sont réellement,
+          à leur vraie date. Une DT que l'export ne porte pas n'est <b>jamais ajoutée</b> — elle est signalée.
+          La date ne sert qu'à départager si une même DT a des KO dans plusieurs semaines.</p>
           <textarea id="ta-releve" rows="5" placeholder="4512345 ; Reliquat ; attente appro&#10;4512346 ; Grues ; grue indisponible"></textarea>
           <div class="actions">
             <button class="btn pri" id="btn-parse-releve">Analyser</button>
@@ -733,6 +774,12 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
               <code>.csv</code> plutôt qu'un tableau dans le corps du mail, c'est le plus fiable : même bouton.</p>
               <p class="gp"><b>3 · Le collage.</b> Une ligne par DT&nbsp;: <code>n° ; catégorie ; commentaire</code>.
               Tabulation, <code>;</code> ou <code>|</code>. La ligne d'en-têtes est ignorée toute seule.</p>
+              <p class="gp"><b>Les colonnes sont reconnues par leur nom.</b> Si le tableau porte des en-têtes,
+              l'ordre des colonnes n'a plus d'importance&nbsp;: il suffit d'un libellé contenant <code>DT</code>
+              (ou <i>demande</i>, <i>référence</i>) et d'un autre contenant <code>Catégorie</code> (ou <i>cause</i>,
+              <i>motif</i>). <code>Commentaire</code>, <code>Date rapport</code> et <code>Nb lignes</code> sont lus
+              en plus s'ils existent. Les préfixes de circuit — <code>G&nbsp;7551829</code>, <code>U&nbsp;7562083</code> —
+              sont retirés tout seuls. Sans en-tête, l'outil retombe sur les trois champs dans l'ordre ci-dessus.</p>
               <div class="chips">
                 <div class="chline"><span class="clab ok">Justifient</span>
                   <span class="chip good">Reliquat</span><span class="chip good">Grues</span><span class="chip good">Litiges</span><span class="chip good">Flux déchets</span><span class="chip good">DTM</span><span class="chip good">Mise à disposition</span><span class="chip good">Demande irrecevable</span><span class="chip good">Autre</span>
@@ -745,6 +792,23 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
             </div>
           </details>
           <div id="releve-out"></div>
+        </div>
+      </details>
+
+      <details class="panel" id="pan-regles">
+        <summary class="ph"><h2>Vos règles automatiques</h2><span class="sub" id="reg-sub">Justifier tout seul ce que les données montrent</span></summary>
+        <div class="pb">
+          <p class="gp">Une règle lit les colonnes de l'export conservées avec chaque KO et pose une cause
+          à votre place — comme le fait déjà la réédition de poste BR. Elle s'applique aux périodes déjà
+          chargées <b>et</b> aux prochains imports, et se retire aussi simplement.</p>
+          <div class="actions" style="margin:12px 0">
+            <button class="btn pri" id="btn-regle-new">Nouvelle règle</button>
+            <button class="btn" id="btn-regles-run">Rejouer sur tout l'historique</button>
+            <span class="hint muted" id="regles-msg"></span>
+          </div>
+          <div id="regles-fournies"></div>
+          <div id="regles-modeles"></div>
+          <div id="regles-liste"></div>
         </div>
       </details>
 
@@ -926,6 +990,7 @@ const FIREBASE_CONFIG = {
 };
 const FIREBASE_SDK_VERSION = "12.18.0";
 const FB_COLLECTION = "suivi";
+const DOC_REGLES = "__regles";          /* les règles partagent la collection des périodes */
 
 const SITES = { mag:{l:"MG", d:"aires MG, LGB, BAK et DAN"}, log:{l:"Logistiport", d:"aire LOG"} };
 const SERVS = { distri:{l:"Distribution", d:"KPI 5.1 / 5.2 — livraison à date"}, recep:{l:"Réception", d:"KPI 2.1 / 2.2 — arrivée → entrée en stock"} };
@@ -986,6 +1051,8 @@ const $ = (s, r) => (r || document).querySelector(s);
 const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const nf = new Intl.NumberFormat("fr-FR");
 const n0 = v => nf.format(Math.round(v || 0));
+/* Le « s » du pluriel : « 1 DT lue », « 3 DT lues ». */
+const sPl = n => (Math.abs(Math.round(n || 0)) > 1 ? "s" : "");
 const dec = (v, d) => (v == null || !isFinite(v)) ? "—" : v.toLocaleString("fr-FR", {minimumFractionDigits:d, maximumFractionDigits:d});
 const pf = r => (r == null || !isFinite(r)) ? "—" : dec(r * 100, 1) + " %";
 const ptf = r => (r == null || !isFinite(r)) ? "—" : (r < 0 ? "−" : "+") + dec(Math.abs(r) * 100, 2) + " pt";
@@ -1071,7 +1138,8 @@ const S = {
   ui: { tab:"dash", site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null,
         q:"", qcat:"", qsrc:"", qst:"", vue:"simple", qscope:"", qshow:40,
         ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
-  backend: "local", db: null, fb: null, ready: false, pending: 0
+  regles: [],
+  backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
 };
 const LSKEY = "brut-net-taux-service-v1";
 const CFGKEY = "brut-net-firebase-config";
@@ -1104,13 +1172,114 @@ function normCell(c){
     koPostes: Array.isArray(c.koPostes) ? c.koPostes.slice(0, LIMREF).map(x => x == null ? "" : String(x)) : [],
     postesOk: !!c.postesOk,
     jours: normJours(c.jours),
+    koCtx: (c.koCtx && Array.isArray(c.koCtx.c))
+      ? { c:c.koCtx.c, k:c.koCtx.k, d:c.koCtx.d || [], v:c.koCtx.v || [] } : null,
     lignes: (Array.isArray(c.lignes) ? c.lignes : []).map(l => ({
       id: l.id || uid(), ref: l.ref || "", cat: CAT[l.cat] ? l.cat : "autre",
       postes: Array.isArray(l.postes) ? l.postes.map(String).filter(Boolean) : [],
       nb: Math.max(0, +l.nb || 0), src: SRC[l.src] ? l.src : "manuel",
-      d: l.d || "", com: l.com || "", st: l.st === "rejet" ? "rejet" : "ok"
+      d: l.d || "", com: l.com || "", st: l.st === "rejet" ? "rejet" : "ok",
+      /* Marque de la règle qui a posé la ligne : c'est elle qui rend le rejeu
+         défaisable. La perdre ici figerait les justifications automatiques et
+         les ferait passer pour des saisies à la main. */
+      regle: l.regle || ""
     }))
   };
+}
+
+/* ------------------------- contexte des KO -------------------------
+   Pour qu'une règle écrite aujourd'hui puisse juger une semaine d'il y a deux
+   mois, chaque KO garde les colonnes de son export. Stockage colonnaire avec
+   dictionnaire : les valeurs se répètent beaucoup, on ne les écrit qu'une fois.
+     c : noms des colonnes
+     d : valeurs distinctes, colonne par colonne
+     v : par colonne, l'indice de la valeur de chaque KO (−1 = vide)          */
+const CTX_HORS = /^(annee|mois|annee mois|annee semaine|business unit|centre organisationnel|client|resultat|statut avancement|nombre de flux|unite de mesure|identifiant flux|date heure)/;
+const CTX_MAXCOL = 32, CTX_MAXVAL = 60;
+const normCol = s => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+/* Une colonne de date / d'heure, d'après son nom. Sert à remettre en clair les
+   numéros de série que le tableur écrit à la place des dates (46204 = 01/07/2026)
+   et les fractions de journée à la place des heures (0,6441 = 15:27). Sans ça la
+   règle afficherait « Date fin est 46204 », illisible, et les suggestions du
+   champ seraient inutilisables. */
+const CTX_EST_DATE = /(^| )date( |$)|^date|echeance|jour de/;
+const CTX_EST_HEURE = /(^| )heure( |$)|^heure/;
+function serieVersDate(n){
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 864e5);
+  const p = x => String(x).padStart(2, "0");
+  return p(d.getUTCDate()) + "/" + p(d.getUTCMonth() + 1) + "/" + d.getUTCFullYear();
+}
+function fractionVersHeure(f){
+  let s = Math.round(f * 86400); if (s >= 86400) s -= 86400;
+  const p = x => String(x).padStart(2, "0");
+  return p(Math.floor(s / 3600)) + ":" + p(Math.floor(s / 60) % 60);
+}
+function ctxLisible(brut, kind){
+  if (!kind) return brut;
+  if (kind === "date" && /^\d{5}(\.\d+)?$/.test(brut)){
+    const n = parseFloat(brut);
+    if (n > 20000 && n < 80000) return serieVersDate(n);
+  }
+  if (kind === "heure" && /^0?\.\d+$/.test(brut)) return fractionVersHeure(parseFloat(brut));
+  if (kind === "date" && /^(\d{4})-(\d{2})-(\d{2})/.test(brut))
+    return brut.slice(8, 10) + "/" + brut.slice(5, 7) + "/" + brut.slice(0, 4);
+  return brut;
+}
+function ctxNew(colonnes){
+  const c = colonnes.filter(h => h && !CTX_HORS.test(normCol(h))).slice(0, CTX_MAXCOL);
+  const k = c.map(h => { const n = normCol(h);
+    return CTX_EST_DATE.test(n) ? "date" : CTX_EST_HEURE.test(n) ? "heure" : ""; });
+  return { c, k, d: c.map(() => []), v: c.map(() => []), idx: c.map(() => ({})), src: colonnes };
+}
+function ctxPush(ctx, ligne, indexParNom){
+  ctx.c.forEach((nom, k) => {
+    const i = indexParNom[nom];
+    let brut = i == null ? "" : String(ligne[i] == null ? "" : ligne[i]).trim().slice(0, CTX_MAXVAL);
+    if (!brut || brut === "None"){ ctx.v[k].push(-1); return; }
+    brut = ctxLisible(brut, ctx.k[k]);
+    let pos = ctx.idx[k][brut];
+    if (pos == null){ pos = ctx.d[k].length; ctx.d[k].push(brut); ctx.idx[k][brut] = pos; }
+    ctx.v[k].push(pos);
+  });
+}
+function ctxFin(ctx){ return ctx ? { c: ctx.c, k: ctx.k, d: ctx.d, v: ctx.v } : null; }
+/* Les colonnes de date d'une période (pour proposer le bon choix dans une règle). */
+function ctxKind(colonne){
+  let k = "";
+  Object.values(S.cells).forEach(c => {
+    const x = c.koCtx; if (!x || !x.c || k) return;
+    const j = x.c.indexOf(colonne);
+    if (j >= 0 && x.k && x.k[j]) k = x.k[j];
+  });
+  if (k) return k;
+  const n = normCol(colonne);
+  return CTX_EST_DATE.test(n) ? "date" : CTX_EST_HEURE.test(n) ? "heure" : "";
+}
+/* Valeur d'une colonne pour le i-ème KO d'une période. */
+function ctxVal(cell, i, colonne){
+  const x = cell && cell.koCtx;
+  if (!x || !x.c) return "";
+  const k = x.c.indexOf(colonne);
+  if (k < 0) return "";
+  const p = (x.v[k] || [])[i];
+  return p == null || p < 0 ? "" : ((x.d[k] || [])[p] || "");
+}
+/* Colonnes disponibles sur l'ensemble des périodes chargées. */
+function ctxColonnes(){
+  const s = new Set();
+  Object.values(S.cells).forEach(c => (c.koCtx && c.koCtx.c ? c.koCtx.c : []).forEach(n => s.add(n)));
+  return Array.from(s).sort((a, b) => a.localeCompare(b, "fr"));
+}
+/* Valeurs vues pour une colonne, les plus fréquentes d'abord. */
+function ctxValeurs(colonne, max){
+  const n = {};
+  Object.values(S.cells).forEach(c => {
+    const x = c.koCtx; if (!x || !x.c) return;
+    const k = x.c.indexOf(colonne); if (k < 0) return;
+    (x.v[k] || []).forEach(p => { if (p >= 0){ const val = (x.d[k] || [])[p]; if (val) n[val] = (n[val] || 0) + 1; } });
+  });
+  return Object.entries(n).sort((a, b) => b[1] - a[1]).slice(0, max || 40);
 }
 
 /* ---------------------------- stockage ---------------------------- */
@@ -1133,6 +1302,10 @@ function setStatus(kind, txt){
   d.className = "dot " + kind; t.textContent = txt;
 }
 function remoteSet(n){
+  /* La base n'accepte qu'un objet : mieux vaut une erreur qui se lit qu'un
+     refus opaque venu d'un undefined arrivé jusqu'ici. */
+  if (!n || typeof n !== "object" || !n.id)
+    return Promise.reject(new Error("période introuvable au moment d'écrire"));
   if (S.backend === "db") return S.db.doc(FB_COLLECTION + "/" + n.id).set(n);
   if (S.backend === "firebase") return S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, n.id), n);
   return Promise.resolve();
@@ -1169,8 +1342,8 @@ async function putCell(c){
   if (S.backend === "local"){ setStatus("local", "Enregistré sur ce navigateur"); }
   else {
     S.pending++; setStatus("busy", "Enregistrement…");
-    try { await remoteSet(n); setStatus("ok", "Enregistré dans la base"); }
-    catch(e){ setStatus("local", "Écriture refusée — copie locale conservée"); toast("Écriture refusée : " + errCode(e), true); }
+    try { await remoteSet(n); S.writeErr = null; setStatus("ok", "Enregistré dans la base"); }
+    catch(e){ writeFail(1, 1, e); }
     finally { S.pending--; }
   }
   render();
@@ -1181,17 +1354,40 @@ async function dropCell(id){
   render();
 }
 async function bulkPut(list){
-  const ids = [];
-  list.forEach(c => { const n = normCell(c); n.maj = new Date().toISOString(); S.cells[n.id] = n; ids.push(n.id); });
+  /* Les objets à écrire sont figés ici. Les relire dans S.cells au fil de la
+     boucle était un piège : chaque écriture réussie déclenche un instantané de
+     la base qui remplace S.cells, et une période toute neuve — celle que
+     l'import vient de créer — en disparaît le temps que le serveur la renvoie.
+     remoteSet recevait alors undefined et la base refusait l'écriture. */
+  const aEcrire = (Array.isArray(list) ? list : []).filter(c => c && typeof c === "object")
+    .map(c => { const n = normCell(c); n.maj = new Date().toISOString();
+      S.cells[n.id] = n; return n; });
+  if (!aEcrire.length){ render(); return; }
   saveLocal();
   if (S.backend === "local"){ setStatus("local", "Enregistré sur ce navigateur"); }
   else {
-    setStatus("busy", "Enregistrement…"); let ko = 0;
-    for (const id of ids){ try { await remoteSet(S.cells[id]); } catch(e){ ko++; } }
-    if (ko){ setStatus("local", ko + " écriture(s) refusée(s)"); toast(ko + " écriture(s) refusée(s) par la base", true); }
-    else setStatus("ok", "Enregistré dans la base");
+    S.pending++; setStatus("busy", "Enregistrement…");
+    let ko = 0, premiere = null;
+    try {
+      for (const n of aEcrire){
+        try { await remoteSet(n); }
+        catch(e){ ko++; if (!premiere) premiere = e; }
+      }
+    } finally { S.pending--; }
+    if (ko) writeFail(ko, aEcrire.length, premiere);
+    else { S.writeErr = null; setStatus("ok", "Enregistré dans la base"); }
   }
   render();
+}
+/* Une écriture refusée doit dire pourquoi et quoi faire. Le compte seul —
+   « 3 écritures refusées » — n'apprend rien et laisse croire à une perte. */
+function writeFail(ko, total, err){
+  const code = errCode(err);
+  const d = fbDiag(code);
+  S.writeErr = { ko, total, code, t: d ? d.t : "La base a refusé l'écriture", d: d ? d.d : "",
+    when: new Date().toISOString() };
+  setStatus("local", n0(ko) + " écriture(s) refusée(s) — copie locale conservée");
+  toast(n0(ko) + " sur " + n0(total) + " refusée(s) : " + code, true);
 }
 
 
@@ -1246,9 +1442,54 @@ function migratePostes(){
   });
   return changed;
 }
+/* Numéros enregistrés avec les zéros de tête de SAP : on les ramène à la forme
+   courte, sans quoi la même DT existe en deux exemplaires selon sa provenance. */
+function migrateZeros(){
+  const changed = [];
+  const pad = x => /^0\d+$/.test(String(x == null ? "" : x).trim());
+  Object.values(S.cells).forEach(c => {
+    let touched = false;
+    (c.koRefs || []).forEach((r, i) => {
+      if (pad(r)){ c.koRefs[i] = sansZeros(r); touched = true; }
+      const p = (c.koPostes || [])[i];
+      if (pad(p)){ c.koPostes[i] = sansZeros(p); touched = true; }
+    });
+    (c.lignes || []).forEach(l => {
+      if (pad(l.ref)){ l.ref = sansZeros(l.ref); touched = true; }
+      (l.postes || []).forEach((p, j) => { if (pad(p)){ l.postes[j] = sansZeros(p); touched = true; } });
+    });
+    if (touched) changed.push(c);
+  });
+  return changed;
+}
+/* Contextes enregistrés avant la mise en clair des dates : on réécrit le
+   dictionnaire une fois pour toutes plutôt que de traduire à chaque lecture. */
+function migrateCtx(){
+  const changed = [];
+  Object.values(S.cells).forEach(c => {
+    const x = c.koCtx;
+    if (!x || !Array.isArray(x.c) || x.k) return;
+    x.k = x.c.map(h => { const n = normCol(h);
+      return CTX_EST_DATE.test(n) ? "date" : CTX_EST_HEURE.test(n) ? "heure" : ""; });
+    x.c.forEach((nom, j) => {
+      if (!x.k[j]) return;
+      const vieux = x.d[j] || [], neuf = [], vu = {}, remap = [];
+      vieux.forEach(v => {
+        const lis = ctxLisible(v, x.k[j]);
+        let p = vu[lis];
+        if (p == null){ p = neuf.length; neuf.push(lis); vu[lis] = p; }
+        remap.push(p);
+      });
+      x.d[j] = neuf;
+      x.v[j] = (x.v[j] || []).map(p => (p == null || p < 0 ? -1 : remap[p]));
+    });
+    changed.push(c);
+  });
+  return changed;
+}
 function afterLoad(){
-  const a = migrateDates(), b = migratePostes();
-  const ids = {}; a.concat(b).forEach(c => { ids[c.id] = c; });
+  const a = migrateDates(), b = migratePostes(), d = migrateCtx(), z = migrateZeros();
+  const ids = {}; a.concat(b).concat(d).concat(z).forEach(c => { ids[c.id] = c; });
   const chg = Object.values(ids);
   if (chg.length){ bulkPut(chg); return true; }
   return false;
@@ -1432,16 +1673,25 @@ function filtersActive(){
      réception     90139790-10        → BR 90139790, poste 10
                    90139790-10-2      → BR 90139790, poste 10-2
    La demande sert de regroupement, le poste distingue les flux à l'intérieur. */
+/* SAP écrit ses numéros sur une largeur fixe (0090142762, poste 00010), l'export
+   PowerBI parfois aussi, le relevé jamais. Sans forme unique, « 90142762-10 »
+   déjà justifié et « 0090142762-00010 » fraîchement importé sont deux postes
+   différents pour l'outil : la justification se décroche et le poste réapparaît
+   à justifier. On ramène donc tout numéro purement chiffré à sa forme courte. */
+function sansZeros(x){
+  const s = String(x == null ? "" : x).trim();
+  return /^0\d+$/.test(s) ? s.replace(/^0+/, "") || "0" : s;
+}
 function splitRefPoste(raw, service){
   const s = String(raw || "").trim();
   if (!s) return { ref:"", poste:"" };
   const p = s.split("-").map(x => x.trim()).filter(x => x !== "");
-  if (p.length <= 1) return { ref:s, poste:"" };
+  if (p.length <= 1) return { ref:sansZeros(s), poste:"" };
   if (service === "distri"){
-    if (p.length === 2) return { ref:p[0], poste:p[1] };
-    return { ref:p[1], poste:p.slice(2).join("-") };
+    if (p.length === 2) return { ref:sansZeros(p[0]), poste:sansZeros(p[1]) };
+    return { ref:sansZeros(p[1]), poste:sansZeros(p.slice(2).join("-")) };
   }
-  return { ref:p[0], poste:p.slice(1).join("-") };
+  return { ref:sansZeros(p[0]), poste:sansZeros(p.slice(1).join("-")) };
 }
 /* Tri naturel des numéros de poste : 10 avant 100, et le texte à la fin. */
 function cmpPoste(a, b){
@@ -1932,6 +2182,218 @@ async function lireFichierRows(file){
   return parseTable(await file.text());
 }
 /* =========================================================================
+   Bloc 3 : règles automatiques
+   Une règle lit les colonnes de l'export conservées avec chaque KO et pose
+   une cause à sa place. Elle s'applique aux périodes déjà chargées comme aux
+   prochains imports, et se défait aussi bien qu'elle se pose.
+   ========================================================================= */
+
+const OPS_COL = [
+  { k:"est",       l:"est exactement",      val:true },
+  { k:"nest",      l:"n'est pas",           val:true },
+  { k:"contient",  l:"contient",            val:true },
+  { k:"ncontient", l:"ne contient pas",     val:true },
+  { k:"vide",      l:"est vide",            val:false },
+  { k:"nvide",     l:"n'est pas vide",      val:false },
+  { k:"sup",       l:"est supérieur à",     val:true, num:true },
+  { k:"inf",       l:"est inférieur à",     val:true, num:true }
+];
+const OPS_ECART = [
+  { k:"le", l:"au plus" }, { k:"lt", l:"moins de" },
+  { k:"ge", l:"au moins" }, { k:"gt", l:"plus de" }, { k:"eq", l:"exactement" }
+];
+
+const normVal = s => String(s == null ? "" : s).trim().toLowerCase()
+  .normalize("NFD").replace(/[̀-ͯ]/g, "");
+const nombre = s => { const n = parseFloat(String(s).replace(",", ".")); return isFinite(n) ? n : null; };
+
+/* Une condition sur une colonne, pour un KO donné. */
+function condVraie(cond, cell, i){
+  const v = ctxVal(cell, i, cond.col);
+  const a = normVal(v), b = normVal(cond.val);
+  switch (cond.op){
+    case "est":       return a === b;
+    case "nest":      return a !== b;
+    case "contient":  return !!a && a.includes(b);
+    case "ncontient": return !a || !a.includes(b);
+    case "vide":      return !a;
+    case "nvide":     return !!a;
+    case "sup":       { const x = nombre(v), y = nombre(cond.val); return x != null && y != null && x > y; }
+    case "inf":       { const x = nombre(v), y = nombre(cond.val); return x != null && y != null && x < y; }
+    default:          return false;
+  }
+}
+/* Écart de la première date à la seconde, en jours ouvrés ou calendaires.
+   Négatif quand la seconde précède la première — joursOuvres ne compte que vers
+   l'avant, on l'appelle donc dans le bon sens et on rend le signe. */
+function ecartJours(cell, i, colA, colB, ouvres){
+  const a = parseDate(ctxVal(cell, i, colA)), b = parseDate(ctxVal(cell, i, colB));
+  if (!a || !b) return null;
+  const ja = toUTCDay(a), jb = toUTCDay(b);
+  if (!ouvres) return Math.round((jb - ja) / 864e5);
+  return jb >= ja ? joursOuvres(ja, jb) : -joursOuvres(jb, ja);
+}
+function compare(x, op, n){
+  switch (op){
+    case "le": return x <= n; case "lt": return x < n;
+    case "ge": return x >= n; case "gt": return x > n;
+    case "eq": return x === n; default: return false;
+  }
+}
+/* La règle vise-t-elle ce KO ? */
+function regleVise(r, cell, i, ref){
+  if (!r.actif) return false;
+  if (r.service && r.service !== "tous" && r.service !== cell.service) return false;
+  if (r.type === "liste"){
+    const set = r.refsSet || (r.refsSet = new Set((r.refs || []).map(x => String(x).trim()).filter(Boolean)));
+    const p = (cell.koPostes || [])[i] || "";
+    return set.has(String(ref)) || (p && set.has(String(ref) + "-" + p));
+  }
+  if (r.type === "dates"){
+    const e = ecartJours(cell, i, r.dateA, r.dateB, r.ouvres !== false);
+    if (e == null) return false;
+    if (!compare(e, r.opD, +r.nD || 0)) return false;
+    return (r.conds || []).every(c => condVraie(c, cell, i));
+  }
+  return (r.conds || []).length > 0 && r.conds.every(c => condVraie(c, cell, i));
+}
+/* Les KO déjà couverts par une justification qui n'est pas d'une règle. */
+function dejaCouverts(cell){
+  const parPoste = new Set(), parRef = {};
+  (cell.lignes || []).forEach(l => {
+    if (l.regle) return;                       /* posé par une règle : rejouable */
+    const ps = (l.postes || []).map(String);
+    if (ps.length) ps.forEach(p => parPoste.add(String(l.ref) + "|" + p));
+    else parRef[String(l.ref)] = (parRef[String(l.ref)] || 0) + Math.max(0, +l.nb || 0);
+  });
+  return { parPoste, parRef };
+}
+/* Passe les règles sur une liste de périodes.
+   Idempotent : les lignes déjà posées par une règle sont refaites, les autres
+   ne sont jamais touchées. `simule` n'écrit rien et rend seulement le compte. */
+function passerRegles(cells, regles, simule){
+  const actives = (regles || []).filter(r => r.actif);
+  const stats = { total:0, parRegle:{}, cellules:0 };
+  const out = [];
+  cells.forEach(cell => {
+    const avant = (cell.lignes || []).filter(l => !l.regle);
+    const cov = dejaCouverts(cell);
+    const reste = Object.assign({}, cov.parRef);
+    const ajout = [];
+    (cell.koRefs || []).forEach((refBrut, i) => {
+      const ref = String(refBrut), poste = String((cell.koPostes || [])[i] || "");
+      if (poste && cov.parPoste.has(ref + "|" + poste)) return;
+      if (!poste && reste[ref] > 0){ reste[ref]--; return; }
+      if (!poste && cov.parRef[ref] > 0 && reste[ref] === 0) return;
+      for (const r of actives){
+        if (!regleVise(r, cell, i, ref)) continue;
+        ajout.push({ id: uid(), ref, postes: poste ? [poste] : [], cat: r.cause,
+          nb: 1, src: r.src || "auto", com: r.nom, d: (cell.koDates || [])[i] || "",
+          st: CAT[r.cause] && CAT[r.cause].j ? "ok" : "rejet", regle: r.id });
+        stats.total++; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + 1;
+        break;                                  /* une seule cause par KO */
+      }
+    });
+    const avaitDesRegles = (cell.lignes || []).some(l => l.regle);
+    if (ajout.length || avaitDesRegles){
+      stats.cellules++;
+      if (!simule) out.push(Object.assign({}, cell, { lignes: avant.concat(ajout) }));
+    }
+  });
+  return { cellules: out, stats };
+}
+/* Ce qu'une règle changerait sur les périodes affichées, sans rien écrire. */
+function simuleRegle(r){
+  const cells = selCells().map(c => realCell(c) || c);
+  const vues = {}; cells.forEach(c => { vues[c.id] = c; });
+  const { stats } = passerRegles(Object.values(vues), [Object.assign({}, r, { actif:true })], true);
+  return stats.total;
+}
+/* L'effet réellement obtenu, règles déjà en place comprises. Compter les KO
+   visés ne suffit pas : un KO déjà couvert par une justification de lot ne
+   rapporte rien de plus, et le taux affiché plafonne au nombre de KO de la
+   période. On recalcule donc le taux comme le tableau de bord le fera. */
+function simuleEffet(r){
+  const reels = {};
+  selCells().forEach(c => { const x = realCell(c) || c; reels[x.id] = x; });
+  const base = Object.values(reels);
+  const autres = S.regles.filter(x => x.id !== r.id);
+  const avec = autres.concat([Object.assign({}, r, { actif:true })]);
+  const app = (regles) => {
+    const { cellules } = passerRegles(base, regles, false);
+    const parId = {}; cellules.forEach(c => { parId[c.id] = c; });
+    return agg(base.map(c => parId[c.id] || c));
+  };
+  const { stats } = passerRegles(base, avec, true);
+  return { n: stats.parRegle[r.id] || 0, avant: app(autres), apres: app(avec) };
+}
+
+/* ---------------------------- modèles de règles ----------------------------
+   Les trois causes que l'aide annonce comme lues dans les données mais que rien
+   ne posait encore. Chacune ouvre l'éditeur pré-rempli avec son effet chiffré :
+   c'est vous qui décidez de l'enregistrer, pas l'outil. */
+const MODELES = [
+  { k:"irr", titre:"Demande créée après son échéance",
+    pour:"La date de début est postérieure — ou égale — à la date de fin prévue : la confirmation devait tomber avant que la demande n'existe.",
+    besoin:["Date début", "Date fin prévue"],
+    r:{ nom:"Demande irréalisable", service:"distri", type:"dates", dateA:"Date début",
+        dateB:"Date fin prévue", opD:"le", nD:0, ouvres:false, cause:"irrealisable", src:"auto", conds:[] } },
+  { k:"ano", titre:"Livrée avant son échéance et pourtant KO",
+    pour:"La date de fin précède la date de fin prévue. Le KPI a compté un retard là où le flux était à l'heure.",
+    besoin:["Date fin", "Date fin prévue"],
+    r:{ nom:"Anomalie de calcul", service:"distri", type:"dates", dateA:"Date fin",
+        dateB:"Date fin prévue", opD:"ge", nD:1, ouvres:false, cause:"anomalie", src:"auto", conds:[] } },
+  { k:"dou", titre:"Blocage douane levé",
+    pour:"La colonne Statut douane est passée à « Terminé » : le flux a attendu la douane, pas le magasin.",
+    besoin:["Statut douane"],
+    r:{ nom:"Blocage douane", service:"tous", type:"colonne", cause:"douane", src:"auto",
+        conds:[{ col:"Statut douane", op:"est", val:"Terminé" }] } }
+];
+/* Un modèle n'est proposé que si l'export chargé porte ses colonnes. */
+function modeleDispo(m){
+  const cols = ctxColonnes();
+  return m.besoin.every(c => cols.indexOf(c) >= 0);
+}
+function modeleRegle(m){
+  return normRegles([Object.assign({ id:uid(), actif:true }, m.r)])[0];
+}
+
+/* ---------------------------- stockage des règles ---------------------------- */
+const LSREGLES = "taux-net-regles";
+function normRegles(list){
+  if (!Array.isArray(list)) return [];
+  return list.filter(r => r && r.cause && CAT[r.cause]).map(r => ({
+    id: r.id || uid(), nom: String(r.nom || "Règle").slice(0, 80), actif: r.actif !== false,
+    service: ["tous", "distri", "recep"].indexOf(r.service) >= 0 ? r.service : "tous",
+    cause: r.cause, src: SRC[r.src] ? r.src : "auto",
+    type: ["colonne", "dates", "liste"].indexOf(r.type) >= 0 ? r.type : "colonne",
+    conds: (Array.isArray(r.conds) ? r.conds : []).slice(0, 4).map(c => ({
+      col: String(c.col || ""), op: String(c.op || "est"), val: String(c.val == null ? "" : c.val).slice(0, 80) })),
+    dateA: String(r.dateA || ""), dateB: String(r.dateB || ""),
+    opD: String(r.opD || "le"), nD: +r.nD || 0, ouvres: r.ouvres !== false,
+    refs: (Array.isArray(r.refs) ? r.refs : []).slice(0, 5000).map(String)
+  }));
+}
+function chargeReglesLocal(){
+  try { const raw = localStorage.getItem(LSREGLES); if (raw) S.regles = normRegles(JSON.parse(raw)); } catch(e){}
+}
+async function sauveRegles(){
+  S.regles = normRegles(S.regles);
+  try { localStorage.setItem(LSREGLES, JSON.stringify(S.regles)); } catch(e){}
+  const doc = { regles: S.regles, maj: new Date().toISOString() };
+  try {
+    if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
+    else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+  } catch(e){ toast("Règles enregistrées sur ce navigateur seulement", true); }
+}
+/* Rejoue toutes les règles sur les périodes enregistrées. */
+async function rejouerRegles(silencieux){
+  const { cellules, stats } = passerRegles(Object.values(S.cells), S.regles, false);
+  if (cellules.length) await bulkPut(cellules);
+  if (!silencieux) toast(stats.total ? n0(stats.total) + " KO documentés par vos règles" : "Aucun KO ne correspond aux règles");
+  return stats;
+}
+/* =========================================================================
    Bloc 2 : rendu, graphiques, interactions
    ========================================================================= */
 
@@ -2186,7 +2648,8 @@ function renderQualifies(){
 
   const flat = [];
   cs.forEach(c => c.lignes.forEach(l => flat.push({ c, l })));
-  const qs = S.ui.q.toLowerCase();
+  /* Un numéro tapé avec ses zéros de tête doit retrouver la DT enregistrée sans. */
+  const qs = sansZeros(S.ui.q).toLowerCase();
   const sel = flat.filter(({ c, l }) =>
     (!S.ui.qsrc || l.src === S.ui.qsrc) && (!S.ui.qst || l.st === S.ui.qst) && (!S.ui.qcat || l.cat === S.ui.qcat) &&
     (!qs || (l.ref + " " + (l.postes || []).join(" ") + " " + (CAT[l.cat] ? CAT[l.cat].l : l.cat) +
@@ -2268,7 +2731,7 @@ function renderAJustifier(){
           esc(perLabel(c.periode) + " · " + SITES[c.site].l + " · " + (c.service === "distri" ? "Distri" : "Récep")) +
           " — " + n0(lots[id]) + " KO</option>"; }).join("");
   }
-  const ajq = (S.ui.ajq || "").trim().toLowerCase();
+  const ajq = sansZeros(S.ui.ajq || "").toLowerCase();
   qList = (S.ui.qscope ? qAll.filter(r => r.cell.id === S.ui.qscope) : qAll)
     .filter(r => !ajq || (String(r.ref) + " " + r.postes.join(" ")).toLowerCase().includes(ajq))
     .slice().sort(triAJ);
@@ -2322,6 +2785,114 @@ function renderCellsTable(){
           '<td class="nowrap"><button class="btn sm" data-cedit="' + c.id + '">Éditer</button> <button class="btn sm danger" data-cdel="' + c.id + '">×</button></td></tr>'; }).join("") +
       "</tbody></table>"
     : '<div class="empty"><b>Aucune période enregistrée</b>Collez un export, ou saisissez le brut ci-dessus.</div>';
+}
+
+/* ---------------------------- règles ---------------------------- */
+function phraseRegle(r){
+  const op = k => (OPS_COL.find(o => o.k === k) || {}).l || k;
+  if (r.type === "liste")
+    return "les références d'une liste de " + n0((r.refs || []).length) + " numéro(s)";
+  if (r.type === "dates"){
+    const o = (OPS_ECART.find(x => x.k === r.opD) || {}).l || r.opD;
+    return "l'écart entre <code>" + esc(r.dateA) + "</code> et <code>" + esc(r.dateB) + "</code> est " +
+      o + " " + n0(r.nD) + (r.ouvres !== false ? " jour(s) ouvré(s)" : " jour(s)") +
+      ((r.conds || []).length ? ", et " + r.conds.map(c => "<code>" + esc(c.col) + "</code> " + op(c.op) +
+        (c.val ? " « " + esc(c.val) + " »" : "")).join(", et ") : "");
+  }
+  return (r.conds || []).map(c => "<code>" + esc(c.col) + "</code> " + op(c.op) +
+    (c.val ? " « " + esc(c.val) + " »" : "")).join(", et ") || "aucune condition";
+}
+/* La réédition de poste BR : une justification automatique, mais fournie par
+   l'outil et non par une règle. Elle a sa carte ici pour que les deux mécanismes
+   se voient au même endroit — en lecture seule, elle ne se règle pas. */
+function renderFournies(){
+  const host = $("#regles-fournies"); if (!host) return;
+  const cs = selCells();
+  const a = agg(cs);
+  const r = a.cat.reedition || { doc:0, man:0 };
+  const n = Math.round(r.doc + r.man);
+  /* Périodes de réception qui ont des KO mais aucune réédition enregistrée :
+     c'est le signe que l'extraction SAP n'a pas encore été passée dessus. */
+  const manquantes = cs.map(c => realCell(c) || c)
+    .filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
+    .filter(c => c.service === "recep" && c.ko > 0 &&
+      !(c.lignes || []).some(l => l.cat === "reedition"));
+  host.innerHTML = '<div class="flab">Règle fournie par l\'outil</div>' +
+    '<div class="mlist"><div class="mcard fixe"><div class="mmain">' +
+      "<b>Litige BR réédité</b>" +
+      '<div class="rcond">Quand SAP recrée un poste BR après un litige, le KPI continue de compter ' +
+        "depuis la première création. L'outil recalcule le délai réel depuis la recréation et " +
+        "documente les postes qui tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon.</div>" +
+      '<div class="rmeta"><span>Réception</span><span>Compte comme : Automatique</span>' +
+        "<span>retire les KO du décompte</span></div>" +
+      '<div class="rcond" style="margin-top:7px"><b>Ne part pas toute seule.</b> La date de recréation ' +
+        "n'existe que dans SAP : il faut charger l'extraction, puis valider. Une règle ne peut pas la " +
+        "remplacer — elle lit l'export PowerBI, qui ne porte pas cette colonne." +
+        (manquantes.length
+          ? ' <span class="wtxt">' + n0(manquantes.length) + " période(s) de réception de la plage n'ont " +
+            "aucune réédition enregistrée</span> — " +
+            esc(manquantes.slice(0, 3).map(c => perLabel(c.periode) + " · " + SITES[c.site].l).join(", ")) +
+            (manquantes.length > 3 ? " et " + n0(manquantes.length - 3) + " autre(s)" : "") +
+            ". Soit l'extraction SAP n'y est pas encore passée, soit il n'y avait rien à corriger : " +
+            "seule l'extraction tranche."
+          : "") +
+      "</div></div>" +
+      '<div class="ract"><span class="rimpact">' + (n ? n0(n) + " KO" : "aucun KO") + "</span>" +
+        '<button class="btn sm" id="btn-go-sap">Charger l\'extraction SAP</button></div></div></div>';
+}
+function renderModeles(){
+  const host = $("#regles-modeles"); if (!host) return;
+  const posees = {}; S.regles.forEach(r => { posees[normVal(r.nom)] = 1; });
+  const list = MODELES.filter(m => modeleDispo(m) && !posees[normVal(m.r.nom)]);
+  if (!list.length){ host.innerHTML = ""; return; }
+  host.innerHTML = '<div class="flab">Règles prêtes à l\'emploi</div>' +
+    '<p class="gp">Mesurées sur les périodes affichées. Le bouton ouvre la règle pré-remplie : ' +
+    'rien n\'est enregistré avant que vous validiez.</p>' +
+    '<div class="mlist">' + list.map(m => {
+      const e = simuleEffet(modeleRegle(m));
+      const pt = e.n && e.avant.net != null && e.apres.net != null
+        ? (e.apres.net - e.avant.net) * 100 : 0;
+      return '<div class="mcard"><div class="mmain"><b>' + esc(m.titre) + "</b>" +
+        '<div class="rcond">' + esc(m.pour) + "</div></div>" +
+        '<div class="ract"><span class="rimpact">' +
+          (e.n ? n0(e.n) + " KO" + (pt > 0.004 ? " · +" + dec(pt, 2) + " pt" : " · déjà couverts") : "aucun KO") +
+        "</span>" +
+        '<button class="btn sm" data-rmod="' + m.k + '"' + (e.n ? "" : " disabled") + ">Voir la règle</button></div></div>";
+    }).join("") + "</div>";
+}
+function renderRegles(){
+  renderFournies();
+  renderModeles();
+  const host = $("#regles-liste"); if (!host) return;
+  const sub = $("#reg-sub");
+  const dispo = ctxColonnes().length;
+  if (sub) sub.textContent = S.regles.length
+    ? n0(S.regles.filter(r => r.actif).length) + " active(s) sur " + n0(S.regles.length)
+    : "Justifier tout seul ce que les données montrent";
+  if (!dispo){
+    host.innerHTML = '<div class="note" style="border-left-color:var(--warn)"><b>Aucune colonne disponible pour l\'instant.</b> ' +
+      "Les règles lisent les colonnes de l'export conservées avec chaque KO. Importez un export PowerBI pour les rendre accessibles.</div>";
+    return;
+  }
+  if (!S.regles.length){
+    host.innerHTML = '<div class="empty"><b>Aucune règle pour l\'instant</b>' +
+      n0(dispo) + " colonnes de l'export sont disponibles pour en écrire une.</div>";
+    return;
+  }
+  host.innerHTML = '<div class="rlist">' + S.regles.map(r => {
+    const n = simuleRegle(r);
+    return '<div class="rcard' + (r.actif ? "" : " off") + '">' +
+      '<label class="sw" title="' + (r.actif ? "Désactiver" : "Activer") + '"><input type="checkbox" data-ract="' + r.id + '"' +
+        (r.actif ? " checked" : "") + '><i></i></label>' +
+      '<div class="rmain"><b>' + esc(r.nom) + "</b>" +
+        '<div class="rcond">Quand ' + phraseRegle(r) + " → <b>" + esc(CAT[r.cause] ? CAT[r.cause].l : r.cause) + "</b></div>" +
+        '<div class="rmeta"><span>' + (r.service === "tous" ? "Les deux services" : SERVS[r.service].l) + "</span>" +
+        "<span>Compte comme : " + esc(SRC[r.src] || r.src) + "</span>" +
+        "<span>" + (CAT[r.cause] && CAT[r.cause].j ? "retire les KO du décompte" : "écartée — trace seulement") + "</span></div></div>" +
+      '<div class="ract"><span class="rimpact" title="sur la plage affichée">' + (n ? n0(n) + " KO" : "—") + "</span>" +
+        '<button class="btn sm" data-redit="' + r.id + '">Modifier</button>' +
+        '<button class="btn sm danger" data-rdel="' + r.id + '">×</button></div></div>';
+  }).join("") + "</div>";
 }
 
 /* ---------------------------- données ---------------------------- */
@@ -2405,15 +2976,37 @@ function render(){
   if (rafPending) return; rafPending = true;
   requestAnimationFrame(() => {
     rafPending = false;
+    renderBanner();
     renderRange();
     document.body.classList.toggle("simple", S.ui.vue === "simple");
     $("#rail").style.display = (S.ui.tab === "reglages" || S.ui.tab === "import") ? "none" : "";
     if (S.ui.tab === "dash") renderDash();
     if (S.ui.tab === "justif") renderAJustifier();
     if (S.ui.tab === "qualif") renderQualifies();
-    if (S.ui.tab === "import") renderCellsTable();
+    if (S.ui.tab === "import"){ renderCellsTable(); renderRegles(); }
     if (S.ui.tab === "reglages") renderDonnees();
     renderCounts();
+  });
+}
+/* Bandeau d'écriture refusée : il reste tant que le problème n'est pas passé,
+   dit ce qui n'a pas été écrit, où sont les données, et le geste qui répare. */
+function renderBanner(){
+  const host = $("#wbanner"); if (!host) return;
+  const e = S.writeErr;
+  if (!e){ host.innerHTML = ""; return; }
+  host.innerHTML = '<div class="wban"><div class="wb-main"><b>' + esc(e.t) + "</b> — " +
+    n0(e.ko) + " période(s) sur " + n0(e.total) + " n'ont pas été écrites dans la base." +
+    '<div class="wb-d">' + (e.d || "") +
+      " <b>Rien n'est perdu</b> : tout est enregistré sur ce navigateur. Réessayez une fois le " +
+      "problème réglé, ou exportez la sauvegarde JSON depuis les réglages." + "</div>" +
+      '<div class="wb-c">' + esc(e.code) + "</div></div>" +
+    '<div class="wb-act"><button class="btn sm" id="wb-retry">Réessayer</button>' +
+      '<button class="btn sm" id="wb-hide">Masquer</button></div></div>';
+  $("#wb-hide").addEventListener("click", () => { S.writeErr = null; render(); });
+  $("#wb-retry").addEventListener("click", async () => {
+    S.writeErr = null; render();
+    await bulkPut(Object.values(S.cells));
+    if (!S.writeErr) toast("Base à jour");
   });
 }
 function renderCounts(){
@@ -2592,6 +3185,7 @@ function analyseExport(src){
   const rows = Array.isArray(src) ? src : parseTable(src);
   if (rows.length < 2){ $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px">Collage vide ou illisible : il faut la ligne d\'en-têtes puis les lignes de flux.</div>'; return; }
   const heads = rows[0].map(norm);
+  const colIndex = {}; rows[0].forEach((h, i) => { if (h != null && colIndex[String(h)] == null) colIndex[String(h)] = i; });
   const ci = {
     id:     findCol(heads, [h => h.includes("identifiant flux"), h => h.includes("identifiant"), h => h.includes("flux debut")]),
     aire:   findCol(heads, [h => h === "code aire", h => h.includes("code aire"), h => h.includes("aire"), h => h.includes("type magasin")]),
@@ -2643,7 +3237,8 @@ function analyseExport(src){
       if (lt && !/non concerne/.test(lt)){ rej.litige++; continue; }
     }
     const per = weekKey(d), id = cellId(per, site, service);
-    const cell = acc[id] || (acc[id] = { periode:per, site, service, flux:0, ko:0, litiges:0, refs:[], dates:[], postes:[], jours:{} });
+    const cell = acc[id] || (acc[id] = { periode:per, site, service, flux:0, ko:0, litiges:0,
+      refs:[], dates:[], postes:[], jours:{}, ctx: ctxNew(rows[0]) });
     cell.flux++;
     const dk = isoDay(d);
     const j = cell.jours[dk] || (cell.jours[dk] = { f:0, k:0 });
@@ -2651,8 +3246,9 @@ function analyseExport(src){
     if (ko){
       cell.ko++; j.k++;
       const rp = splitRefPoste(ident, service);
-      if (rp.ref && cell.refs.length < 6000){
+      if (rp.ref && cell.refs.length < LIMREF){
         cell.refs.push(rp.ref); cell.dates.push(isoDay(d)); cell.postes.push(rp.poste);
+        ctxPush(cell.ctx, r, colIndex);          /* le contexte suit le KO, index par index */
       }
     }
   }
@@ -2707,13 +3303,15 @@ async function applyExport(){
       litiges: c.service === "recep" ? exportDraft.litiges : null,
       note: "Export du " + new Date().toLocaleDateString("fr-FR"),
       demo: false, koRefs: c.refs, koDates: c.dates, koPostes: c.postes || [], postesOk: true,
-      jours: c.jours || {},
+      jours: c.jours || {}, koCtx: ctxFin(c.ctx),
       lignes: ex ? ex.lignes : []
     };
   });
   await bulkPut(out);
   exportDraft = null;
-  $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + out.length + " période(s) enregistrée(s).</b> Le tableau de bord est à jour.</div>";
+  const st = S.regles.length ? await rejouerRegles(true) : { total:0 };
+  $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + out.length + " période(s) enregistrée(s).</b> Le tableau de bord est à jour." +
+    (st.total ? " <b>" + n0(st.total) + " KO</b> documentés par vos règles." : "") + "</div>";
   toast(out.length + " période(s) enregistrée(s)");
 }
 $("#btn-parse-export").addEventListener("click", () => analyseExport($("#ta-export").value));
@@ -2758,60 +3356,193 @@ bindWeekHint("r-date", "r-week");
 let releveDraft = null;
 /* Le relevé arrive collé, ou lu depuis un fichier / un mail : dans les deux cas
    on retombe sur des lignes « référence ; catégorie ; commentaire ». */
+/* Le numéro de DT tel que le relevé l'écrit : « G 7551829 », « U 7562083 »,
+   « n° 7555482 ». La lettre est un marqueur de circuit, pas le numéro. */
+function refReleve(raw){
+  const s = String(raw == null ? "" : raw).trim().replace(/^n[°o]\s*/i, "");
+  const m = s.match(/\d{4,}/);
+  return m ? sansZeros(m[0]) : sansZeros(s);
+}
+/* Reconnaissance des colonnes du relevé par leur en-tête. Un relevé converti en
+   tableur porte ses libellés ; se fier à l'ordre des colonnes revient à lire la
+   date à la place de la DT. Rend null si aucun en-tête n'est trouvé — on repasse
+   alors au format libre « n° ; cause ; commentaire ». */
+function releveCols(lignes){
+  const veut = {
+    ref:  h => /(^|\b)(n ?[°o] ?)?(dt|dts|demande|demandes|reference|references)(\b|$)/.test(h) && !/date/.test(h),
+    cat:  h => /(categorie|cause|motif|type de retard)/.test(h),
+    com:  h => /(commentaire|statut|observation|remarque)/.test(h),
+    date: h => /(date rapport|date du releve|date releve|date jour|^date$|^jour$)/.test(h),
+    nb:   h => /(nb ligne|nombre de ligne|nb ko|ko a justifier|lignes en retard|^lignes$|^nb$)/.test(h)
+  };
+  for (let i = 0; i < Math.min(lignes.length, 12); i++){
+    const h = lignes[i].map(x => normLbl(x));
+    const ci = {};
+    for (const k in veut){ const j = h.findIndex(veut[k]); if (j >= 0) ci[k] = j; }
+    if (ci.ref != null && ci.cat != null) return { ligne:i, ci };
+  }
+  return null;
+}
+/* Les KO chargés, indexés par référence, pour un site et un service donnés.
+   C'est cette table que le relevé interroge : il apporte la cause, jamais les
+   données. Une DT que l'export ne porte pas n'est pas inventée. */
+function indexKo(site, service){
+  const m = {};
+  Object.values(S.cells).forEach(c => {
+    if (c.site !== site || c.service !== service) return;
+    (c.koRefs || []).forEach((r, i) => {
+      const k = String(r);
+      (m[k] = m[k] || []).push({ cell:c, d:(c.koDates || [])[i] || "" });
+    });
+  });
+  return m;
+}
 function analyseReleve(src){
-  const txt = Array.isArray(src)
-    ? src.map(r => r.join(" ; ")).join("\n").trim()
-    : $(RELEVE_SRC.ta).value.replace(/\r\n?/g, "\n").trim();
   const out = $(RELEVE_OUT);
-  if (!txt){ out.innerHTML = '<div class="note" style="margin-top:14px">Collez d\'abord les lignes du relevé.</div>'; return; }
-  const d = $(RELEVE_SRC.date).value;
-  if (!d){ toast("Choisissez une date", true); return; }
-  const per = weekKey(new Date(d + "T12:00:00")), site = $(RELEVE_SRC.site).value, service = $(RELEVE_SRC.serv).value;
-  const id = cellId(per, site, service), cell = S.cells[id];
-  if (!cell){
-    out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Le brut de cette période n\'est pas encore enregistré.</b> Collez l\'export ou saisissez ' + perLabel(per) + " · " + SITES[site].l + " · " + SERVS[service].l + " d'abord : une justification sans volume ne veut rien dire.</div>";
+  const brut = Array.isArray(src) ? src : null;
+  const txt = brut ? "" : $(RELEVE_SRC.ta).value.replace(/\r\n?/g, "\n").trim();
+  if (!brut && !txt){ out.innerHTML = '<div class="note" style="margin-top:14px">Collez d\'abord les lignes du relevé.</div>'; return; }
+  const site = $(RELEVE_SRC.site).value, service = $(RELEVE_SRC.serv).value;
+  const dForm = $(RELEVE_SRC.date).value;
+
+  /* 1. lecture : en-têtes si le fichier en a, sinon les trois champs libres */
+  const lignes = brut || txt.split("\n").map(l => l.split(/[\t;|]/).map(s => s.trim()));
+  const tete = releveCols(lignes);
+  const lues = [];
+  let inconnues = 0;
+  const prendre = (ref, catRaw, com, dateRaw, nbRaw) => {
+    const r = refReleve(ref);
+    if (!/^\d/.test(r)) return;
+    let ck = CAT_ALIAS.map[CAT_ALIAS.norm(catRaw || "")];
+    if (!ck){ ck = "nr"; if (catRaw) inconnues++; }
+    const dd = parseDate(dateRaw);
+    lues.push({ ref:r, cat:ck, com:String(com || "").trim(),
+      d: dd ? isoDay(dd) : "", nb: Math.max(0, parseInt(nbRaw, 10) || 0) });
+  };
+  if (tete){
+    const c = tete.ci;
+    for (let i = tete.ligne + 1; i < lignes.length; i++){
+      const l = lignes[i];
+      prendre(l[c.ref], l[c.cat], c.com != null ? l[c.com] : "",
+        c.date != null ? l[c.date] : "", c.nb != null ? l[c.nb] : "");
+    }
+  } else {
+    lignes.forEach(l => prendre(l[0], l[1], l[2], "", ""));
+  }
+  if (!lues.length){
+    out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Aucune DT reconnue.</b> ' +
+      "Il faut soit un tableau avec des en-têtes (<code>N° DT</code> et <code>Catégorie</code> au minimum), " +
+      "soit une ligne par DT au format <code>n° ; catégorie ; commentaire</code>." +
+      (tete ? "" : " Aucun en-tête n'a été trouvé dans les 12 premières lignes.") + "</div>";
     return;
   }
-  const byDT = {}; let unknown = 0;
-  txt.split("\n").forEach(line => {
-    const parts = line.split(/[\t;|]/).map(s => s.trim());
-    if (!parts[0]) return;
-    const ref = parts[0].replace(/^n[°o]\s*/i, "");
-    if (!/\d/.test(ref)) return;
-    const catRaw = parts[1] || "";
-    let ck = CAT_ALIAS.map[CAT_ALIAS.norm(catRaw)];
-    if (!ck){ ck = "nr"; if (catRaw) unknown++; }
-    (byDT[ref] = byDT[ref] || { cats:[], com:[] }).cats.push(ck);
-    if (parts[2]) byDT[ref].com.push(parts[2]);
+
+  /* 2. regroupement par DT : une catégorie non justifiante l'emporte (§ règles) */
+  const parDT = {};
+  lues.forEach(l => {
+    const g = parDT[l.ref] || (parDT[l.ref] = { ref:l.ref, cats:[], com:[], dates:[], nb:0 });
+    g.cats.push(l.cat);
+    if (l.com) g.com.push(l.com);
+    if (l.d) g.dates.push(l.d);
+    if (l.nb) g.nb = Math.max(g.nb, l.nb);
   });
-  const keys = Object.keys(byDT);
-  if (!keys.length){ out.innerHTML = '<div class="note" style="margin-top:14px">Aucune ligne reconnue : une ligne par DT, <code>n° ; catégorie ; commentaire</code>.</div>'; return; }
-  const lignes = keys.map(ref => {
-    const e = byDT[ref];
-    const bad = e.cats.find(c => SANS.includes(c));
-    const good = e.cats.find(c => !SANS.includes(c));
-    return { id:uid(), ref, cat: bad ? bad : (good || "autre"), nb:1, src:"releve",
-      d: dateOfRef(cell, ref), com: e.com.join(" · ").slice(0, 200), st: bad ? "rejet" : "ok" };
+
+  /* 3. rapprochement avec les KO chargés */
+  const idx = indexKo(site, service);
+  const perFallback = dForm ? weekKey(new Date(dForm + "T12:00:00")) : null;
+  const plan = {}, trouvees = [], absentes = [];
+  let koVises = 0;
+  Object.values(parDT).forEach(g => {
+    const hits = idx[g.ref] || [];
+    if (!hits.length){ absentes.push(g); return; }
+    /* la date du relevé ne sert qu'à trancher entre plusieurs périodes */
+    let ret = hits;
+    if (g.dates.length){
+      const f = hits.filter(h => g.dates.indexOf(h.d) >= 0);
+      if (f.length) ret = f;
+    } else if (perFallback){
+      const f = hits.filter(h => h.cell.periode === perFallback);
+      if (f.length) ret = f;
+    }
+    const bad = g.cats.find(c => SANS.indexOf(c) >= 0);
+    const good = g.cats.find(c => SANS.indexOf(c) < 0);
+    const cat = bad ? bad : (good || "autre");
+    const parCell = {};
+    ret.forEach(h => { (parCell[h.cell.id] = parCell[h.cell.id] || { cell:h.cell, n:0, d:h.d })
+      .n++; });
+    let reste = g.nb || 0;                    /* Nb Lignes plafonné par le réel */
+    Object.values(parCell).forEach(p => {
+      let n = p.n;
+      if (g.nb){ n = Math.min(p.n, reste); reste -= n; }
+      if (n <= 0) return;
+      (plan[p.cell.id] = plan[p.cell.id] || []).push({ id:uid(), ref:g.ref, postes:[],
+        cat, nb:n, src:"releve", d:p.d, com:g.com.join(" · ").slice(0, 200),
+        st: bad ? "rejet" : "ok" });
+      koVises += n;
+    });
+    trouvees.push({ ref:g.ref, cat, ko:Object.values(parCell).reduce((s, p) => s + p.n, 0),
+      cells:Object.keys(parCell), ecart: g.nb && g.nb !== Object.values(parCell).reduce((s, p) => s + p.n, 0) ? g.nb : 0 });
   });
-  const ok = lignes.filter(l => l.st === "ok").length;
-  releveDraft = { id, lignes };
-  const cnt = {}; lignes.forEach(l => cnt[l.cat] = (cnt[l.cat] || 0) + 1);
-  out.innerHTML = '<div class="note" style="margin:16px 0 12px"><b>' + keys.length + " DT lues</b> — " + ok + " justifiées, " + (keys.length - ok) +
-    " écartées (catégorie non justifiante)." + (unknown ? " " + unknown + " catégorie(s) non reconnue(s), classées « Non renseignée »." : "") +
-    '<div class="muted" style="margin-top:5px">' + Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k, v]) => (CAT[k] ? CAT[k].l : k) + " " + v).join(" · ") + "</div></div>" +
-    (RELEVE_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-releve">Ajouter au registre de ' + perLabel(per) + "</button>" +
-      '<span class="muted" style="font-size:12px">Les DT déjà présentes dans le registre sont remplacées.</span></div>' : "");
-  if (RELEVE_APPLY) $("#btn-apply-releve").addEventListener("click", applyReleve);
+
+  releveDraft = { plan, site, service };
+  const nCell = Object.keys(plan).length;
+  const justifs = Object.values(plan).flat();
+  const ok = justifs.filter(l => l.st === "ok").reduce((s, l) => s + l.nb, 0);
+  const rejet = koVises - ok;
+  const cnt = {}; justifs.forEach(l => cnt[l.cat] = (cnt[l.cat] || 0) + l.nb);
+  const ecarts = trouvees.filter(t => t.ecart);
+  const nLues = Object.keys(parDT).length;
+  const perAbs = {};
+  absentes.forEach(g => { const p = g.dates.length ? weekKey(new Date(g.dates[0] + "T12:00:00")) : "?";
+    perAbs[p] = (perAbs[p] || 0) + 1; });
+
+  out.innerHTML = '<div class="note" style="margin:16px 0 12px">' +
+    "<b>" + n0(nLues) + " DT lue" + sPl(nLues) + "</b> dans le relevé · <b>" + n0(trouvees.length) +
+    " retrouvée" + sPl(trouvees.length) + "</b> parmi les KO chargés de " + SITES[site].l + " · " + SERVS[service].l +
+    ", soit <b>" + n0(koVises) + " KO</b> — " + n0(ok) + " justifié" + sPl(ok) + ", " + n0(rejet) + " écarté" + sPl(rejet) + "." +
+    (inconnues ? " " + n0(inconnues) + " catégorie(s) non reconnue(s), classées « Non renseignée »." : "") +
+    (tete ? "" : ' <span class="muted">Lu au format libre : aucun en-tête reconnu.</span>') +
+    '<div class="muted" style="margin-top:5px">' +
+      Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k, v]) => (CAT[k] ? CAT[k].l : k) + " " + n0(v)).join(" · ") +
+    "</div>" +
+    (nCell ? '<div class="muted" style="margin-top:5px">Réparti' + (koVises > 1 ? "s" : "") + " sur " + n0(nCell) + " période" + sPl(nCell) + " : " +
+      esc(Object.keys(plan).map(id => perLabel(S.cells[id].periode)).sort().join(", ")) + "</div>" : "") +
+    "</div>" +
+    (absentes.length
+      ? '<div class="note" style="margin-bottom:12px;border-left-color:var(--warn)"><b>' + n0(absentes.length) +
+        " DT sans KO correspondant</b> — " + (absentes.length > 1 ? "elles ne sont pas ajoutées" : "elle n'est pas ajoutée") +
+        " : le relevé pose une cause, il n'invente pas de flux. " +
+        esc(absentes.slice(0, 8).map(g => g.ref).join(", ")) + (absentes.length > 8 ? "…" : "") +
+        '<div class="muted" style="margin-top:5px">Le plus souvent : la semaine n\'est pas encore importée' +
+        (Object.keys(perAbs).length ? " (" + esc(Object.entries(perAbs).map(([p, n]) => (p === "?" ? "sans date" : perLabel(p)) + " : " + n0(n)).join(" · ")) + ")" : "") +
+        ", ou la DT n'est pas en KO dans l'export.</div></div>"
+      : "") +
+    (ecarts.length
+      ? '<div class="note" style="margin-bottom:12px;border-left-color:var(--warn)"><b>' + n0(ecarts.length) +
+        " écart" + sPl(ecarts.length) + " entre le relevé et les données</b> — le relevé annonce un nombre de lignes différent de ce que porte l'export. " +
+        "Le chiffre des données fait foi : " +
+        esc(ecarts.slice(0, 6).map(t => t.ref + " (relevé " + t.ecart + ", données " + t.ko + ")").join(" · ")) + "</div>"
+      : "") +
+    (RELEVE_APPLY && koVises
+      ? '<div class="actions"><button class="btn pri" id="btn-apply-releve">Documenter ' + n0(koVises) + " KO</button>" +
+        '<span class="muted" style="font-size:12px">Les DT déjà documentées par un relevé sont remplacées.</span></div>'
+      : RELEVE_APPLY ? '<div class="note" style="border-left-color:var(--warn)">Rien à documenter : aucune DT du relevé ne correspond à un KO chargé.</div>' : "");
+  if (RELEVE_APPLY && koVises) $("#btn-apply-releve").addEventListener("click", applyReleve);
   if (typeof wizReady === "function") wizReady(true);
 }
 async function applyReleve(){
-  if (!releveDraft) return;
-  const c = S.cells[releveDraft.id]; if (!c) return;
-  const refs = new Set(releveDraft.lignes.map(l => l.ref));
-  const kept = c.lignes.filter(l => !(l.src === "releve" && refs.has(l.ref)));
-  await putCell(Object.assign({}, c, { lignes: kept.concat(releveDraft.lignes) }));
-  $(RELEVE_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + releveDraft.lignes.length + " ligne(s) ajoutée(s) au registre.</b></div>";
-  toast("Relevé enregistré"); releveDraft = null;
+  if (!releveDraft || !releveDraft.plan) return;
+  const out = Object.entries(releveDraft.plan).map(([cid, add]) => {
+    const c = S.cells[cid]; if (!c) return null;
+    const refs = new Set(add.map(l => String(l.ref)));
+    const kept = (c.lignes || []).filter(l => !(l.src === "releve" && refs.has(String(l.ref))));
+    return Object.assign({}, c, { lignes: kept.concat(add) });
+  }).filter(Boolean);
+  const gain = Object.values(releveDraft.plan).flat().reduce((s, l) => s + l.nb, 0);
+  await bulkPut(out);
+  $(RELEVE_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' +
+    n0(gain) + " KO documenté" + sPl(gain) + "</b> sur " + n0(out.length) + " période" + sPl(out.length) + ".</div>";
+  toast(n0(gain) + " KO documentés"); releveDraft = null;
 }
 $("#btn-parse-releve").addEventListener("click", analyseReleve);
 $("#file-releve").addEventListener("change", e => {
@@ -2877,7 +3608,9 @@ function analyseSap(src){
     const anc = String(r[ci.ref] == null ? "" : r[ci.ref]).trim();
     if (!anc || anc === "0") continue;
     stat.reed++;
-    const br = String(r[ci.br] == null ? "" : r[ci.br]).trim(), ps = String(r[ci.ps] == null ? "" : r[ci.ps]).trim();
+    /* SAP remplit ses numéros de zéros à gauche : on les enlève pour retomber
+       sur la même écriture que l'export PowerBI et que les saisies. */
+    const br = sansZeros(r[ci.br]), ps = sansZeros(r[ci.ps]);
     if (!br || !ps) continue;
     const cre = parseDT(r[ci.cre], ci.hcre >= 0 ? r[ci.hcre] : null);
     const em  = parseDT(r[ci.em],  ci.hem  >= 0 ? r[ci.hem]  : null);
@@ -2948,11 +3681,11 @@ async function applySap(){
     /* on ne remplace que les justifications portant exactement ce poste :
        les autres postes de la même demande gardent leur cause */
     const vises = {};
-    list.forEach(({ it }) => { vises[it.key] = 1; vises[it.ref + " " + it.poste] = 1; });
+    list.forEach(({ it }) => { vises[it.key] = 1; vises[it.ref + "\u0000" + it.poste] = 1; });
     const vise = l => {
       if (!l.ref) return false;
       if (vises[String(l.ref)]) return true;
-      return (l.postes || []).some(p => vises[String(l.ref) + " " + String(p)]);
+      return (l.postes || []).some(p => vises[String(l.ref) + "\u0000" + String(p)]);
     };
     const add = list.map(({ it, n }) => ({ id:uid(), ref:it.ref, postes:[it.poste], cat:"reedition", nb:n, src:"auto",
       d: it.em.toISOString().slice(0, 10),
@@ -3196,8 +3929,8 @@ function modalJustif(cellId_, ligneId){
     const cat = $("#j-cat").value, nb = Math.max(1, +$("#j-nb").value || 1);
     const com = $("#j-com").value.trim();
     if (cat === "autre" && !com){ toast("La cause « Autre » demande un commentaire", true); return; }
-    const rf = $("#j-ref").value.trim();
-    const ps = $("#j-postes").value.split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+    const rf = sansZeros($("#j-ref").value);
+    const ps = $("#j-postes").value.split(/[,;\s]+/).map(x => sansZeros(x)).filter(Boolean);
     if (ps.length && ps.length !== nb){ toast(ps.length + " poste(s) list\u00e9(s) pour " + nb + " KO — alignez les deux", true); return; }
     const row = { id: l ? l.id : uid(), ref: rf, postes: ps, cat, nb, src: $("#j-src").value, com,
       d: (l && l.d) || dateOfRef(target, rf), st: CAT[cat].j ? "ok" : "rejet" };
@@ -3447,7 +4180,9 @@ async function connectFirebase(cfg){
     }
     S.fbUnsub = fsMod.onSnapshot(col, s => {
       const m = {};
-      s.forEach(d => { const o = d.data(); if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
+      s.forEach(d => { const o = d.data();
+        if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+        if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
       S.cells = m; saveLocal();
       if (!S.pending) setStatus("ok", "Enregistré dans la base");
       if (!afterLoad()) render();
@@ -3635,7 +4370,7 @@ async function readFilled(file){
   const plan = {}, res = { lues:0, remplies:0, inconnues:{}, horsBase:0, ok:0, ecart:0, auPoste:0 };
   for (let i = 1; i < rows.length; i++){
     const r = rows[i];
-    const ref = String(r[ci.ref] == null ? "" : r[ci.ref]).trim();
+    const ref = sansZeros(r[ci.ref]);
     if (!ref) continue;
     res.lues++;
     const lbl = String(r[ci.cause] == null ? "" : r[ci.cause]).trim();
@@ -3646,7 +4381,7 @@ async function readFilled(file){
     const cid = String(r[ci.cle] == null ? "" : r[ci.cle]).trim();
     const c = S.cells[cid];
     if (!c){ res.horsBase++; continue; }
-    const poste = ci.poste >= 0 ? String(r[ci.poste] == null ? "" : r[ci.poste]).trim() : "";
+    const poste = ci.poste >= 0 ? sansZeros(r[ci.poste]) : "";
     let n = Math.max(1, +String(r[ci.ko] == null ? 1 : r[ci.ko]).replace(",", ".") || 1);
     if (poste) n = 1;                       /* une ligne au poste vaut un KO */
     const com = ci.com >= 0 ? String(r[ci.com] == null ? "" : r[ci.com]).trim().slice(0, 220) : "";
@@ -3700,6 +4435,253 @@ async function applyFilled(){
 $("#file-xls-in").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
   readFilled(f); e.target.value = "";
+});
+
+/* ---------------------------- éditeur de règle ----------------------------
+   Trois formes, un seul écran : on choisit la forme, on remplit, et l'aperçu
+   dit combien de KO la règle prendrait avant d'enregistrer quoi que ce soit. */
+function optCols(sel){
+  return ctxColonnes().map(c => '<option value="' + esc(c) + '"' + (c === sel ? " selected" : "") + ">" + esc(c) + "</option>").join("");
+}
+/* Les colonnes de date seulement : un écart entre « Activité » et « Priorité »
+   n'a pas de sens, autant ne pas le proposer. */
+function colsDate(){
+  const d = ctxColonnes().filter(c => ctxKind(c) === "date");
+  return d.length ? d : ctxColonnes();
+}
+function optDates(sel){
+  return colsDate().map(c => '<option value="' + esc(c) + '"' + (c === sel ? " selected" : "") + ">" + esc(c) + "</option>").join("");
+}
+/* Une condition à qui il manque sa valeur : « est » sans rien à comparer ne
+   prend aucun KO. On le dit plutôt que de rendre « 0 KO » sans explication. */
+function condIncomplete(c){
+  const o = OPS_COL.find(x => x.k === c.op);
+  return !c.col || (o && o.val && !String(c.val || "").trim());
+}
+function regleIncomplete(r){
+  if (!r.nom) return "Donnez un nom à la règle.";
+  if (r.type === "liste") return (r.refs || []).length ? "" : "Collez au moins une référence.";
+  if (r.type === "colonne" && !(r.conds || []).length) return "Ajoutez au moins une condition.";
+  if (r.type === "dates" && (!r.dateA || !r.dateB))
+    return "Choisissez les deux colonnes de date.";
+  if (r.type === "dates" && r.dateA === r.dateB)
+    return "Les deux dates sont la même colonne : l'écart vaudrait toujours zéro.";
+  const mauvaise = (r.conds || []).findIndex(condIncomplete);
+  if (mauvaise >= 0){
+    const c = r.conds[mauvaise];
+    return "La condition sur « " + (c.col || "?") + " » attend une valeur à comparer" +
+      (r.type === "dates" ? " — retirez-la si vous n'en voulez pas." : ".");
+  }
+  return "";
+}
+function optCauses(service, sel){
+  return CATS.filter(c => c.p === "tous" || c.p === service || service === "tous")
+    .map(c => '<option value="' + c.k + '"' + (c.k === sel ? " selected" : "") + ">" + esc(c.l) + (c.j ? "" : " (n'excuse pas)") + "</option>").join("");
+}
+function ligneCond(i, c){
+  const cols = optCols(c.col);
+  return '<div class="form" data-cond="' + i + '" style="margin-bottom:8px">' +
+    '<div class="f"><label>Colonne</label><select class="c-col">' + cols + "</select></div>" +
+    '<div class="f"><label>Test</label><select class="c-op">' +
+      OPS_COL.map(o => '<option value="' + o.k + '"' + (o.k === c.op ? " selected" : "") + ">" + o.l + "</option>").join("") + "</select></div>" +
+    '<div class="f"><label>Valeur</label><input type="text" class="c-val" list="rg-vals" value="' + esc(c.val || "") + '" placeholder="laisser vide si le test n\'en demande pas"></div>' +
+    (i > 0 ? '<div class="f" style="align-self:end"><button class="btn sm danger" data-condel="' + i + '">Retirer</button></div>' : "") +
+    "</div>";
+}
+function modalRegle(id, preset){
+  const dispo = ctxColonnes();
+  if (!dispo.length){ toast("Importez d'abord un export : les règles lisent ses colonnes", true); return; }
+  const base = preset || S.regles.find(r => r.id === id);
+  const dts = colsDate();
+  const r = base ? JSON.parse(JSON.stringify(base))
+    : { id:uid(), nom:"", actif:true, service:"tous", cause:"irrealisable", src:"auto",
+        type:"colonne", conds:[{ col:dispo[0], op:"est", val:"" }],
+        dateA:dts[0], dateB:dts[1] || dts[0],
+        opD:"le", nD:0, ouvres:true, refs:[] };
+  if (!r.conds) r.conds = [];
+  /* La forme « colonne » a besoin d'au moins une ligne ; la forme « écart de
+     dates » n'en veut aucune par défaut — une ligne vide y exigerait « colonne
+     vide » et la règle ne prendrait plus rien. */
+  if (r.type === "colonne" && !r.conds.length) r.conds = [{ col:dispo[0], op:"est", val:"" }];
+
+  openModal('<div class="ph"><h2>' + (preset ? "Règle prête à l'emploi" : base ? "Modifier la règle" : "Nouvelle règle") + '</h2>' +
+    '<span class="sub">Elle s\'appliquera aux périodes déjà chargées comme aux prochains imports</span></div>' +
+    '<div class="pb">' +
+    '<div class="form"><div class="f wide"><label for="rg-nom">Nom de la règle</label>' +
+      '<input type="text" id="rg-nom" value="' + esc(r.nom) + '" placeholder="ex. Blocage douane terminé"></div>' +
+      '<div class="f"><label for="rg-serv">Service concerné</label><select id="rg-serv">' +
+        '<option value="tous"' + (r.service === "tous" ? " selected" : "") + ">Les deux</option>" +
+        '<option value="distri"' + (r.service === "distri" ? " selected" : "") + ">Distribution</option>" +
+        '<option value="recep"' + (r.service === "recep" ? " selected" : "") + ">Réception</option></select></div>" +
+      '<div class="f"><label for="rg-type">Forme de la règle</label><select id="rg-type">' +
+        '<option value="colonne"' + (r.type === "colonne" ? " selected" : "") + ">Une ou plusieurs colonnes</option>" +
+        '<option value="dates"' + (r.type === "dates" ? " selected" : "") + ">Un écart entre deux dates</option>" +
+        '<option value="liste"' + (r.type === "liste" ? " selected" : "") + ">Une liste de références</option></select></div></div>" +
+    '<datalist id="rg-vals"></datalist>' +
+    '<div class="flab" style="margin-top:16px">La condition</div><div id="rg-corps"></div>' +
+    '<div class="flab" style="margin-top:16px">Ce qu\'on en fait</div>' +
+    '<div class="form"><div class="f"><label for="rg-cause">Cause posée</label><select id="rg-cause"></select></div>' +
+      '<div class="f"><label for="rg-src">Ce que vaut la justification</label><select id="rg-src">' +
+        '<option value="auto"' + (r.src === "auto" ? " selected" : "") + ">Lue dans les données — compte dans le documenté</option>" +
+        '<option value="releve"' + (r.src === "releve" ? " selected" : "") + ">Déclarée — compte dans le documenté</option>" +
+        '<option value="manuel"' + (r.src === "manuel" ? " selected" : "") + ">Mon analyse — compte dans le net seulement</option></select></div></div>" +
+    '<div class="note" id="rg-apercu" style="margin-top:16px">Complétez la règle pour voir son effet.</div>' +
+    '<div class="actions"><button class="btn pri big" id="rg-save">Enregistrer la règle</button>' +
+      '<button class="btn" id="rg-test">Mesurer l\'effet</button>' +
+      '<button class="btn" id="dl-close">Annuler</button></div></div>');
+
+  const corps = $("#rg-corps");
+  const dessineCorps = () => {
+    if (r.type === "liste"){
+      corps.innerHTML = '<p class="gp">Collez les numéros de DT ou de BR, un par ligne. Un numéro suivi d\'un tiret et d\'un poste ne vise que ce poste.</p>' +
+        '<textarea id="rg-refs" rows="6" placeholder="7484785&#10;90140105-20">' + esc((r.refs || []).join("\n")) + "</textarea>";
+    } else if (r.type === "dates"){
+      corps.innerHTML = '<div class="form">' +
+        '<div class="f"><label for="rg-da">Première date</label><select id="rg-da">' + optDates(r.dateA) + "</select></div>" +
+        '<div class="f"><label for="rg-db">Seconde date</label><select id="rg-db">' + optDates(r.dateB) + "</select></div>" +
+        '<div class="f"><label for="rg-opd">L\'écart est</label><select id="rg-opd">' +
+          OPS_ECART.map(o => '<option value="' + o.k + '"' + (o.k === r.opD ? " selected" : "") + ">" + o.l + "</option>").join("") + "</select></div>" +
+        '<div class="f"><label for="rg-nd">Jours</label><input type="number" id="rg-nd" value="' + (+r.nD || 0) + '"></div>' +
+        '<div class="f"><label for="rg-ouv">Décompte</label><select id="rg-ouv">' +
+          '<option value="1"' + (r.ouvres !== false ? " selected" : "") + ">Jours ouvrés</option>" +
+          '<option value="0"' + (r.ouvres === false ? " selected" : "") + ">Jours calendaires</option></select></div></div>" +
+        '<p class="gp">L\'écart se compte de la première date vers la seconde : il est <b>négatif</b> si la seconde ' +
+        'est la plus ancienne. Un retard livré après son échéance donne donc un écart négatif de « Date fin » vers ' +
+        '« Date fin prévue ». Ajoutez au besoin une condition sur une colonne :</p>' +
+        '<div id="rg-conds">' + (r.conds || []).map((c, i) => ligneCond(i, c)).join("") + "</div>" +
+        '<button class="btn sm" id="rg-addcond">+ Condition</button>';
+    } else {
+      corps.innerHTML = '<div id="rg-conds">' + r.conds.map((c, i) => ligneCond(i, c)).join("") + "</div>" +
+        '<button class="btn sm" id="rg-addcond">+ Condition</button>' +
+        '<p class="gp" style="margin-top:8px">Toutes les conditions doivent être vraies en même temps.</p>';
+    }
+    const add = $("#rg-addcond");
+    if (add) add.addEventListener("click", () => { lis(); r.conds.push({ col:dispo[0], op:"est", val:"" }); dessineCorps(); });
+    majValeurs();
+  };
+  const majValeurs = () => {
+    const sel = corps.querySelector(".c-col");
+    const dl = $("#rg-vals");
+    if (!sel || !dl) return;
+    dl.innerHTML = ctxValeurs(sel.value, 40).map(([v, n]) => '<option value="' + esc(v) + '">' + esc(v) + " — " + n0(n) + " KO</option>").join("");
+  };
+  /* Lit ce que le formulaire montre à cet instant : au changement de forme,
+     les champs de l'ancienne forme ont déjà disparu. */
+  const lis = () => {
+    const v = (sel, def) => { const e = $(sel); return e ? e.value : def; };
+    r.nom = (v("#rg-nom", r.nom) || "").trim();
+    r.service = v("#rg-serv", r.service); r.type = v("#rg-type", r.type);
+    r.cause = v("#rg-cause", r.cause); r.src = v("#rg-src", r.src);
+    const ta = $("#rg-refs");
+    if (ta) r.refs = ta.value.split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+    if ($("#rg-da")){
+      r.dateA = v("#rg-da", r.dateA); r.dateB = v("#rg-db", r.dateB);
+      r.opD = v("#rg-opd", r.opD); r.nD = +v("#rg-nd", r.nD) || 0;
+      r.ouvres = v("#rg-ouv", "1") === "1";
+    }
+    const lignes = $$("#rg-conds [data-cond]");
+    if (lignes.length) r.conds = lignes.map(d => ({
+      col: $(".c-col", d).value, op: $(".c-op", d).value, val: $(".c-val", d).value.trim() }));
+    delete r.refsSet;
+    return r;
+  };
+  const majCauses = () => { $("#rg-cause").innerHTML = optCauses($("#rg-serv").value, r.cause); };
+  const apercu = () => {
+    lis();
+    const pb = regleIncomplete(r);
+    const box = $("#rg-apercu");
+    box.style.borderLeftColor = "";
+    if (pb && r.nom){ box.style.borderLeftColor = "var(--warn)"; box.innerHTML = "<b>À compléter.</b> " + esc(pb); return; }
+    if (pb){ box.innerHTML = "Complétez la règle pour voir son effet."; return; }
+    const e = simuleEffet(r);
+    if (!e.n){
+      box.innerHTML = "Aucun KO ne correspond à cette règle sur la plage affichée. Vérifiez la colonne et la valeur — la liste de suggestions du champ montre ce qui existe vraiment.";
+      return;
+    }
+    const av = e.avant.net == null ? 0 : e.avant.net * 100;
+    const ap = e.apres.net == null ? 0 : e.apres.net * 100;
+    const dj = e.apres.jtot - e.avant.jtot;
+    let s = "<b>" + n0(e.n) + " KO</b> correspondent à cette règle sur " + esc(rangeLabel()) + ".";
+    if (!(CAT[r.cause] && CAT[r.cause].j)){
+      s += " Cette cause n'excuse rien : ils seraient marqués « écartée », pour la trace.";
+    } else if (ap > av + 0.004){
+      s += " Le taux net passerait de <b>" + dec(av, 2) + " %</b> à <b>" + dec(ap, 2) +
+        " %</b>, soit <b>+" + dec(ap - av, 2) + " pt</b>.";
+      if (dj < e.n){
+        const k = e.n - dj;
+        s += " " + n0(k) + (k > 1 ? " d'entre eux sont déjà couverts" : " d'entre eux est déjà couvert") +
+          " par une justification existante : " +
+          (k > 1 ? "ils ne rapportent rien de plus, ils changent seulement de cause."
+                 : "il ne rapporte rien de plus, il change seulement de cause.");
+      }
+    } else {
+      s += " Le taux net ne bougerait pas : ces KO sont déjà tous couverts par une justification existante. " +
+        "La règle ne ferait que leur donner cette cause.";
+    }
+    box.innerHTML = s;
+  };
+  $("#dl-close").addEventListener("click", closeModal);
+  $("#rg-type").addEventListener("change", () => {
+    lis();
+    if (r.type === "colonne" && !r.conds.length) r.conds = [{ col:dispo[0], op:"est", val:"" }];
+    else if (r.type === "dates") r.conds = r.conds.filter(c => !condIncomplete(c));
+    dessineCorps();
+  });
+  $("#rg-serv").addEventListener("change", majCauses);
+  corps.addEventListener("change", e => { if (e.target.classList.contains("c-col")) majValeurs(); });
+  corps.addEventListener("click", e => {
+    const d = e.target.closest("[data-condel]"); if (!d) return;
+    lis(); r.conds.splice(+d.dataset.condel, 1); dessineCorps();
+  });
+  $("#rg-test").addEventListener("click", apercu);
+  $("#rg-save").addEventListener("click", async () => {
+    lis();
+    const pb = regleIncomplete(r);
+    if (pb){ toast(pb, true); apercu(); return; }
+    const i = S.regles.findIndex(x => x.id === r.id);
+    if (i >= 0) S.regles[i] = r; else S.regles.push(r);
+    await sauveRegles();
+    const st = await rejouerRegles(true);
+    closeModal();
+    toast("Règle enregistrée — " + n0(st.total) + " KO documentés au total");
+  });
+  majCauses(); dessineCorps(); apercu();
+}
+$("#btn-regle-new").addEventListener("click", () => modalRegle(null));
+$("#btn-regles-run").addEventListener("click", async () => {
+  if (!S.regles.length){ toast("Aucune règle enregistrée", true); return; }
+  const st = await rejouerRegles(false);
+  $("#regles-msg").textContent = n0(st.total) + " KO documentés sur " + n0(st.cellules) + " période(s)";
+});
+document.addEventListener("click", async e => {
+  if (e.target.closest("#btn-go-sap")){
+    const p = $("#pan-sap");
+    if (p){ p.open = true; p.scrollIntoView({ behavior:"smooth", block:"start" });
+      setTimeout(() => { const t = $("#ta-sap"); if (t) t.focus(); }, 400); }
+    return;
+  }
+  const mo = e.target.closest("[data-rmod]");
+  if (mo){
+    const m = MODELES.find(x => x.k === mo.dataset.rmod);
+    if (m) modalRegle(null, modeleRegle(m));
+    return;
+  }
+  const ed = e.target.closest("[data-redit]");
+  if (ed){ modalRegle(ed.dataset.redit); return; }
+  const de = e.target.closest("[data-rdel]");
+  if (de){
+    const r = S.regles.find(x => x.id === de.dataset.rdel);
+    if (!r || !confirm("Supprimer la règle « " + r.nom + " » ? Les justifications qu'elle a posées disparaissent.")) return;
+    S.regles = S.regles.filter(x => x.id !== de.dataset.rdel);
+    await sauveRegles(); await rejouerRegles(true);
+    toast("Règle supprimée"); render();
+  }
+});
+document.addEventListener("change", async e => {
+  const sw = e.target.closest("[data-ract]"); if (!sw) return;
+  const r = S.regles.find(x => x.id === sw.dataset.ract); if (!r) return;
+  r.actif = sw.checked;
+  await sauveRegles(); await rejouerRegles(true); render();
 });
 
 /* ---------------------------- assistant de mise à jour ---------------------------- */
@@ -3788,9 +4770,9 @@ function wiz2(){
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
     '<div class="wq">Le relevé journalier Distri MG</div>' +
-    '<p class="wh">Une ligne par DT&nbsp;: <code>numéro ; catégorie ; commentaire</code>. Collez les relevés de toute la semaine d\'un coup. Les catégories <i>Urgences</i>, <i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
+    '<p class="wh">Collez les relevés de toute la semaine d\'un coup, ou ouvrez le mail. L\'outil cherche chaque DT parmi les KO déjà importés et les documente là où ils sont — il n\'ajoute jamais une DT que l\'export ne porte pas. Une ligne par DT&nbsp;: <code>numéro ; catégorie ; commentaire</code>, ou un tableau avec ses en-têtes. Les catégories <i>Urgences</i>, <i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
     '<div class="form" style="margin-bottom:11px">' +
-    '<div class="f"><label for="wz-date">Semaine concernée</label><input type="date" id="wz-date" value="' + mid + '"><span class="hint" id="wz-week">' + esc(perLong(last)) + "</span></div>" +
+    '<div class="f"><label for="wz-date">Semaine, si besoin</label><input type="date" id="wz-date" value="' + mid + '"><span class="hint" id="wz-week">' + esc(perLong(last)) + "</span></div>" +
     '<div class="f"><label for="wz-site">Site</label><select id="wz-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>' +
     '<div class="f"><label for="wz-serv">Service</label><select id="wz-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>' +
     "</div>" +
@@ -3848,6 +4830,7 @@ function wiz3(){
   const local = loadLocal();
   if (local && Object.keys(local).length) S.cells = local;
   else { S.cells = seedCells(); saveLocal(); }
+  chargeReglesLocal();
   setStatus("local", "Enregistré sur ce navigateur");
   if (!afterLoad()) render();
   connectStore();
@@ -3869,7 +4852,13 @@ async function connectStore(){
       }
       db.collection(FB_COLLECTION).onSnapshot(snap => {
         const m = {};
-        snap.docs.forEach(d => { const o = d.data(); if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
+        snap.docs.forEach(d => { const o = d.data();
+          if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+          if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
+        /* Tant qu'une écriture est en vol, l'instantané peut être antérieur :
+           il compléterait alors la base mais ferait disparaître la période que
+           l'import vient tout juste de créer. On garde le local dans ce cas. */
+        if (S.pending) Object.values(S.cells).forEach(c => { if (!m[c.id]) m[c.id] = c; });
         S.cells = m; saveLocal();
         if (!S.pending) setStatus("ok", "Enregistré en ligne");
         if (!afterLoad()) render();
