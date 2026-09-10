@@ -437,6 +437,12 @@ th.n{font-family:var(--f-disp)}
 .pill.releve{background:var(--s2-soft);color:var(--s2);border-color:color-mix(in srgb,var(--s2) 32%,transparent)}
 .pill.manuel{background:var(--s3-soft);color:var(--s3);border-color:color-mix(in srgb,var(--s3) 32%,transparent)}
 .pill.rejet{background:var(--surface-3);color:var(--muted);border-color:var(--line-2)}
+/* en-têtes de tableau triables */
+th[data-tri]{cursor:pointer;user-select:none;white-space:nowrap}
+th[data-tri]:hover{color:var(--ink);background:var(--surface-3)}
+th[data-tri] .tri{margin-left:5px;font-size:9.5px;color:var(--muted);opacity:.45}
+th[data-tri]:hover .tri{opacity:.9}
+th[data-tri] .tri.on{opacity:1;color:var(--accent)}
 .pill.po{background:var(--surface-3);color:var(--ink-2);border-color:var(--line);font-family:var(--f-mono);font-weight:500;font-size:10.5px;padding:1px 7px}
 /* choix des postes dans une fiche */
 .postes{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;max-height:186px;overflow:auto;padding:2px}
@@ -562,10 +568,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       <option value="l4">4 dernières</option>
       <option value="l1">Dernière</option>
       <option value="custom">Plage personnalisée</option>
-      <option value="dates">Du jour au jour…</option>
     </select>
     <span class="rng"><select id="f-from" aria-label="Depuis la période"></select><i aria-hidden="true">→</i><select id="f-to" aria-label="Jusqu'à la période"></select></span>
-    <span class="rng off" id="f-dates"><input type="date" id="f-d1" aria-label="Du jour"><i aria-hidden="true">→</i><input type="date" id="f-d2" aria-label="Au jour"></span>
   </div>
   <div class="rail-right">
     <button class="btn sm" id="btn-reset" hidden>Réinitialiser</button>
@@ -608,7 +612,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         <ol class="hero-steps">
           <li><b>1</b><span>Export PowerBI<i>donne le brut</i></span></li>
           <li><b>2</b><span>Extraction SAP<i>rééditions de BR</i></span></li>
-          <li><b>3</b><span>Relevé quotidien<i>causes déclarées</i></span></li>
+          <li><b>3</b><span>Relevé journalier<i>Distri MG — causes déclarées</i></span></li>
           <li><b>4</b><span>Bilan<i>ce qui a changé</i></span></li>
         </ol>
       </div>
@@ -621,7 +625,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
               <div class="fcap">Vos fichiers</div>
               <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span></div>
               <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span></div>
-              <div class="fbox s2"><b>Relevé quotidien</b><span>causes déclarées par l'exploitation</span></div>
+              <div class="fbox s2"><b>Relevé journalier Distri MG</b><span>causes déclarées par l'exploitation</span></div>
             </div>
             <div class="farr" aria-hidden="true">
               <svg viewBox="0 0 40 120" width="40" height="120"><path d="M2 60h30" stroke="var(--line-2)" stroke-width="2" fill="none"/><path d="M28 54l8 6-8 6" stroke="var(--line-2)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -639,10 +643,11 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       <details class="panel" open>
         <summary class="ph"><h2>1 · Export PowerBI</h2><span class="sub">Donne le brut</span></summary>
         <div class="pb">
+          <p class="gp" style="margin:0 0 8px">Collez l'export, ou ouvrez directement le fichier <code>.xlsx</code> ou <code>.csv</code> — aucun besoin de le convertir.</p>
           <textarea id="ta-export" rows="5" placeholder="Collez ici, en-têtes comprises&#10;Identifiant flux début&#9;Code aire&#9;KPI (Code - Libellé)&#9;Résultat&#9;Date fin&#9;Statut litige"></textarea>
           <div class="actions">
             <button class="btn pri" id="btn-parse-export">Analyser</button>
-            <label class="btn" style="cursor:pointer">Fichier CSV…<input type="file" id="file-export" accept=".csv,.tsv,.txt" hidden></label>
+            <label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="file-export" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
             <button class="btn" id="btn-clear-export">Effacer</button>
           </div>
           <details class="mini"><summary>À quoi ça ressemble</summary>
@@ -666,10 +671,11 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       <details class="panel">
         <summary class="ph"><h2>2 · Extraction SAP</h2><span class="sub">Réception — la colonne que PowerBI n'a pas</span></summary>
         <div class="pb">
+          <p class="gp" style="margin:0 0 8px">Collez l'extraction, ou ouvrez le <code>.xlsx</code> tel que SAP le sort.</p>
           <textarea id="ta-sap" rows="5" placeholder="Collez SUIVI_BR_DATE_EM tel quel, en-têtes comprises"></textarea>
           <div class="actions">
             <button class="btn pri" id="btn-parse-sap">Analyser</button>
-            <label class="btn" style="cursor:pointer">Fichier CSV…<input type="file" id="file-sap" accept=".csv,.tsv,.txt" hidden></label>
+            <label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="file-sap" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
             <button class="btn" id="btn-clear-sap">Effacer</button>
           </div>
           <details class="mini"><summary>Pourquoi cette étape change tout</summary>
@@ -704,7 +710,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       </details>
 
       <details class="panel">
-        <summary class="ph"><h2>3 · Relevé quotidien</h2><span class="sub">Distribution — causes déclarées</span></summary>
+        <summary class="ph"><h2>3 · Relevé journalier Distri MG</h2><span class="sub">Les causes déclarées chaque jour par l'exploitation</span></summary>
         <div class="pb">
           <div class="form" style="margin-bottom:12px">
             <div class="f"><label for="r-date">Semaine concernée</label><input type="date" id="r-date"><span class="hint" id="r-week">—</span></div>
@@ -714,11 +720,19 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
           <textarea id="ta-releve" rows="5" placeholder="4512345 ; Reliquat ; attente appro&#10;4512346 ; Grues ; grue indisponible"></textarea>
           <div class="actions">
             <button class="btn pri" id="btn-parse-releve">Analyser</button>
+            <label class="btn" style="cursor:pointer">Ouvrir le mail ou un fichier…<input type="file" id="file-releve" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
             <button class="btn" id="btn-clear-releve">Effacer</button>
           </div>
-          <details class="mini"><summary>Format et règle des catégories</summary>
+          <details class="mini"><summary>Trois façons de l'intégrer, et la règle des catégories</summary>
             <div>
-              <p class="gp">Une ligne par DT&nbsp;: <code>n° ; catégorie ; commentaire</code>. Tabulation, <code>;</code> ou <code>|</code>.</p>
+              <p class="gp"><b>1 · Le mail directement.</b> Dans Outlook, <i>Fichier → Enregistrer sous</i> en
+              <code>.mht</code> ou <code>.htm</code>, puis <i>Ouvrir le mail ou un fichier…</i> : l'outil retrouve le
+              tableau dans le message, accents compris. Vous pouvez aussi sélectionner le tableau dans le mail,
+              le copier et le coller ci-dessus — cela marche aussi.</p>
+              <p class="gp"><b>2 · Un fichier.</b> Si l'émetteur peut joindre un <code>.xlsx</code> ou un
+              <code>.csv</code> plutôt qu'un tableau dans le corps du mail, c'est le plus fiable : même bouton.</p>
+              <p class="gp"><b>3 · Le collage.</b> Une ligne par DT&nbsp;: <code>n° ; catégorie ; commentaire</code>.
+              Tabulation, <code>;</code> ou <code>|</code>. La ligne d'en-têtes est ignorée toute seule.</p>
               <div class="chips">
                 <div class="chline"><span class="clab ok">Justifient</span>
                   <span class="chip good">Reliquat</span><span class="chip good">Grues</span><span class="chip good">Litiges</span><span class="chip good">Flux déchets</span><span class="chip good">DTM</span><span class="chip good">Mise à disposition</span><span class="chip good">Demande irrecevable</span><span class="chip good">Autre</span>
@@ -731,28 +745,6 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
             </div>
           </details>
           <div id="releve-out"></div>
-        </div>
-      </details>
-
-      <details class="panel">
-        <summary class="ph"><h2>4 · Saisir à la main</h2><span class="sub">Quand vous n'avez que les chiffres</span></summary>
-        <div class="pb">
-          <div class="form">
-            <div class="f"><label for="m-date">Semaine concernée</label><input type="date" id="m-date"><span class="hint" id="m-week">—</span></div>
-            <div class="f"><label for="m-site">Site</label><select id="m-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>
-            <div class="f"><label for="m-serv">Service</label><select id="m-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>
-            <div class="f"><label for="m-flux">Flux comptés</label><input type="number" id="m-flux" min="0" step="1" placeholder="0"></div>
-            <div class="f"><label for="m-ko">Dont KO</label><input type="number" id="m-ko" min="0" step="1" placeholder="0"></div>
-            <div class="f"><label for="m-lit">Litiges exclus</label><input type="number" id="m-lit" min="0" step="1" placeholder="0"></div>
-            <div class="f wide"><label for="m-note">Note de source</label><input type="text" id="m-note" placeholder="ex. export PowerBI du 08/09"></div>
-          </div>
-          <div class="actions">
-            <button class="btn pri" id="btn-save-cell">Enregistrer</button>
-            <span class="hint muted" id="m-msg"></span>
-          </div>
-          <details class="mini"><summary>Ce que cette saisie ne donne pas</summary>
-            <div>Aucune référence de flux&nbsp;: la liste «&nbsp;à justifier&nbsp;» restera vide pour cette période. Préférez le collage d'export dès que vous l'avez.</div>
-          </details>
         </div>
       </details>
 
@@ -813,6 +805,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
           <span class="sp"></span>
           <span class="flab">Lot</span>
           <select id="q-scope"><option value="">Tout le périmètre affiché</option></select>
+          <span class="sp"></span>
+          <input type="text" id="aj-search" placeholder="Chercher une DT, un BR, un poste…" style="width:210px">
         </div>
         <div class="pb tight" id="aqualifier"></div>
       </div>
@@ -832,10 +826,11 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
           <h2>Détail</h2>
           <span class="sub">Chaque ligne doit pouvoir se défendre</span>
           <div class="tools">
-            <input type="text" id="q-search" placeholder="Rechercher" style="width:150px">
+            <input type="text" id="q-search" placeholder="Chercher une DT, un poste, un mot…" style="width:210px">
             <select id="q-cat"><option value="">Toutes causes</option></select>
             <select id="q-src"><option value="">Toutes sources</option><option value="auto">Automatique</option><option value="releve">Relevé</option><option value="manuel">Manuel</option></select>
             <select id="q-st"><option value="">Tous statuts</option><option value="ok">Retenue</option><option value="rejet">Écartée</option></select>
+            <button class="btn sm" id="btn-xls-just" title="Le fichier suit la plage de périodes et les filtres affichés">Excel</button>
             <button class="btn pri sm" id="btn-add-j">+ Justification</button>
           </div>
         </div>
@@ -921,7 +916,14 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
                              storageBucket: "…", messagingSenderId: "…", appId: "…" };
    Laissé à null, l'outil fonctionne en local (données dans le navigateur).
    ═══════════════════════════════════════════════════════════════════════ */
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDExOc5kwwJ5Frt5xO4X3dKdUgQdl5qxYs",
+  authDomain: "taux-net.firebaseapp.com",
+  projectId: "taux-net",
+  storageBucket: "taux-net.firebasestorage.app",
+  messagingSenderId: "261454698272",
+  appId: "1:261454698272:web:521d2aed6afb880d69a945"
+};
 const FIREBASE_SDK_VERSION = "12.18.0";
 const FB_COLLECTION = "suivi";
 
@@ -1066,8 +1068,9 @@ function joursOuvres(a, b){
 /* ---------------------------- état ---------------------------- */
 const S = {
   cells: {},
-  ui: { tab:"dash", site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null, d1:"", d2:"",
-        q:"", qcat:"", qsrc:"", qst:"", vue:"simple", qscope:"", qshow:40 },
+  ui: { tab:"dash", site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null,
+        q:"", qcat:"", qsrc:"", qst:"", vue:"simple", qscope:"", qshow:40,
+        ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
   backend: "local", db: null, fb: null, ready: false, pending: 0
 };
 const LSKEY = "brut-net-taux-service-v1";
@@ -1139,7 +1142,27 @@ function remoteDel(id){
   if (S.backend === "firebase") return S.fb.m.deleteDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, id));
   return Promise.resolve();
 }
-const errCode = e => (e && (e.code || e.message)) ? String(e.code || e.message).slice(0, 60) : "erreur";
+const errCode = e => (e && (e.code || e.message)) ? String(e.code || e.message).slice(0, 90) : "erreur";
+/* Traduit l'échec de connexion en geste à faire, plutôt qu'en code d'erreur. */
+function fbDiag(code){
+  const c = String(code || "").toLowerCase();
+  if (/permission-denied|missing or insufficient/.test(c))
+    return { t:"Les règles Firestore refusent l'accès",
+      d:"Console Firebase → Firestore Database → Règles. Il faut autoriser la collection <code>suivi</code> aux sessions authentifiées, puis <b>Publier</b>." };
+  if (/operation-not-allowed|admin-restricted|configuration-not-found/.test(c))
+    return { t:"L'authentification anonyme n'est pas activée",
+      d:"Console Firebase → Authentication → Sign-in method → activer <b>Anonyme</b>. Sans elle, aucune session n'est ouverte et les règles refusent tout." };
+  if (/not-found|database.*does not exist/.test(c))
+    return { t:"La base Firestore n'existe pas encore",
+      d:"Console Firebase → Firestore Database → <b>Créer une base de données</b>, en région <code>europe-west</code>." };
+  if (/failed to fetch|importing|network|unavailable|dynamically imported/.test(c))
+    return { t:"Le réseau bloque Firebase",
+      d:"La page charge le SDK depuis <code>gstatic.com</code> et écrit sur <code>firestore.googleapis.com</code>. Sur un poste d'entreprise, ces deux domaines doivent être autorisés." };
+  if (/api-key|invalid.*key/.test(c))
+    return { t:"Clé d'API refusée",
+      d:"Vérifiez que la configuration collée est bien celle de l'application Web du projet." };
+  return null;
+}
 async function putCell(c){
   const n = normCell(c); n.maj = new Date().toISOString();
   S.cells[n.id] = n; saveLocal();
@@ -1326,7 +1349,7 @@ function dayCells(c){
     lignes: parJour[d].lignes
   }));
 }
-const auJour = () => S.ui.maille === "jour" || S.ui.preset === "dates";
+const auJour = () => S.ui.maille === "jour";
 /* Une cellule découpée au jour porte un identifiant virtuel « id@date » ;
    toute écriture doit viser la période réelle, qui seule existe en base. */
 function realId(id){ const s = String(id || ""); const i = s.indexOf("@"); return i < 0 ? s : s.slice(0, i); }
@@ -1352,18 +1375,16 @@ function spanOf(c){
   const a = weekMonday(c.periode), b = new Date(a); b.setUTCDate(a.getUTCDate() + 6);
   return [ymd(a), ymd(b)];
 }
-function inDates(c){
-  if (S.ui.preset !== "dates") return true;
-  const [a, b] = spanOf(c);
-  return (!S.ui.d1 || b >= S.ui.d1) && (!S.ui.d2 || a <= S.ui.d2);
-}
+/* conservé pour un filtrage éventuel par dates ; la plage se règle aujourd'hui
+   par la maille Jour et les deux bornes de période */
+function inDates(){ return true; }
 /* Les périodes que la plage libre ne peut pas découper faute de détail au jour. */
 function sansDetail(){
   if (!auJour()) return [];
   return Object.values(S.cells).filter(c =>
     (S.ui.site === "tous" || c.site === S.ui.site) &&
     (S.ui.serv === "tous" || c.service === S.ui.serv) &&
-    !Object.keys(c.jours || {}).length && inDates(c));
+    !Object.keys(c.jours || {}).length);
 }
 /* Premier et dernier jour couverts par les périodes enregistrées. */
 function bornesJours(){
@@ -1379,10 +1400,10 @@ function bornesJours(){
 }
 const PRESET_N = { l12:12, l8:8, l4:4, l1:1 };
 function syncRange(){
-  const keys = periodKeys(scopeCells().filter(inDates));
+  const keys = periodKeys(scopeCells());
   if (!keys.length){ S.ui.from = S.ui.to = null; return keys; }
   const n = PRESET_N[S.ui.preset];
-  if (S.ui.preset === "all" || S.ui.preset === "dates"){ S.ui.from = keys[0]; S.ui.to = keys[keys.length - 1]; }
+  if (S.ui.preset === "all"){ S.ui.from = keys[0]; S.ui.to = keys[keys.length - 1]; }
   else if (n){ S.ui.from = keys[Math.max(0, keys.length - n)]; S.ui.to = keys[keys.length - 1]; }
   else {
     if (!S.ui.from || keys.indexOf(S.ui.from) < 0) S.ui.from = keys[0];
@@ -1392,14 +1413,11 @@ function syncRange(){
   return keys;
 }
 function inRange(k){ return (!S.ui.from || k >= S.ui.from) && (!S.ui.to || k <= S.ui.to); }
-function selCells(){ return scopeCells().filter(c => inDates(c) && inRange(pkey(c))); }
-function rangeKeys(){ return periodKeys(scopeCells().filter(inDates)).filter(inRange); }
+function selCells(){ return scopeCells().filter(c => inRange(pkey(c))); }
+function rangeKeys(){ return periodKeys(scopeCells()).filter(inRange); }
 function rangeLabel(){
   const k = rangeKeys();
   if (!k.length) return "aucune période";
-  if (S.ui.preset === "dates" && S.ui.d1 && S.ui.d2)
-    return "du " + frDay(S.ui.d1) + " au " + frDay(S.ui.d2) +
-      (sansDetail().length ? " · semaines entières" : "");
   if (k.length === 1) return perLong(k[0]);
   const unite = S.ui.maille === "mois" ? " mois" : S.ui.maille === "jour" ? " jours" : " semaines";
   return perLabel(k[0]) + " → " + perLabel(k[k.length - 1]) + " · " + k.length + unite;
@@ -1499,9 +1517,7 @@ function controls(){
   const sd = sdVide;
   if (sd.length) raw.push({ k:"warn", t:"Semaines sans détail au jour",
     tag: n0(sd.length) + (sd.length > 1 ? " périodes" : " période"),
-    why: S.ui.maille === "jour"
-      ? "Elles sont écartées de cette vue : leur export a été chargé avant que l'outil compte les flux par date. Réimportez-le pour les faire apparaître au jour."
-      : "Elles sont comptées en entier, la plage ne peut pas les découper : leur export a été chargé avant que l'outil compte les flux par date. Réimportez-le pour un découpage exact." });
+    why: "Elles sont écartées de cette vue : leur export a été chargé avant que l'outil compte les flux par date. Réimportez-le pour les faire apparaître au jour." });
   const byCouple = {};
   scopeCells().forEach(c => { const k = c.site + "|" + c.service; (byCouple[k] = byCouple[k] || []).push(c); });
   Object.entries(byCouple).forEach(([k, list]) => {
@@ -1675,71 +1691,245 @@ function xlsxBuild(sheets){
 
 /* ---------------------------- relecture ---------------------------- */
 async function inflateRaw(u8){
-  if (typeof DecompressionStream === "undefined") throw new Error("nodeflate");
+  if (typeof DecompressionStream === "undefined") throw new Error("Ce navigateur ne sait pas décompresser les .xlsx — utilisez un export CSV.");
   const ds = new DecompressionStream("deflate-raw");
   const stream = new Blob([u8]).stream().pipeThrough(ds);
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
-async function unzip(buf){
+/* Répertoire du zip : on note où se trouve chaque entrée sans rien décompresser. */
+function zipIndex(buf){
   const u8 = new Uint8Array(buf), dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
   let eo = -1;
   for (let i = u8.length - 22; i >= 0 && i > u8.length - 65558; i--){ if (dv.getUint32(i, true) === 0x06054b50){ eo = i; break; } }
-  if (eo < 0) throw new Error("zip illisible");
+  if (eo < 0) throw new Error("Ce fichier n'est pas un classeur lisible.");
   const n = dv.getUint16(eo + 10, true);
   let p = dv.getUint32(eo + 16, true);
-  const out = {};
-  const dec = new TextDecoder();
+  const out = {}, dec = new TextDecoder();
   for (let i = 0; i < n; i++){
     const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), cmtLen = dv.getUint16(p + 32, true);
-    const method = dv.getUint16(p + 10, true), comp = dv.getUint32(p + 20, true), lo = dv.getUint32(p + 42, true);
+    const method = dv.getUint16(p + 10, true), comp = dv.getUint32(p + 20, true);
+    const taille = dv.getUint32(p + 24, true), lo = dv.getUint32(p + 42, true);
     const name = dec.decode(u8.subarray(p + 46, p + 46 + nameLen));
     const lNameLen = dv.getUint16(lo + 26, true), lExtra = dv.getUint16(lo + 28, true);
     const start = lo + 30 + lNameLen + lExtra;
-    out[name] = { method, data: u8.subarray(start, start + comp) };
+    out[name] = { method, taille, data: u8.subarray(start, start + comp) };
     p += 46 + nameLen + extraLen + cmtLen;
   }
-  const res = {};
-  for (const k in out){
-    const f = out[k];
-    res[k] = f.method === 0 ? f.data : await inflateRaw(f.data);
-  }
-  return res;
+  return out;
 }
-function xmlText(s){ return s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d)).replace(/&amp;/g, "&"); }
+async function zipEntry(e){ return e.method === 0 ? e.data : await inflateRaw(e.data); }
+/* Flux de texte d'une entrée : une feuille de 200 Mo ne tient pas en mémoire. */
+function zipStream(e){
+  const src = new Blob([e.data]).stream();
+  const bin = e.method === 0 ? src : src.pipeThrough(new DecompressionStream("deflate-raw"));
+  return bin.pipeThrough(new TextDecoderStream("utf-8"));
+}
+
+/* Entités XML : le texte des cellules revient échappé. */
+function xmlText(s){
+  return String(s == null ? "" : s)
+    .replace(/&#(\d+);/g, (m, d) => String.fromCharCode(+d))
+    .replace(/&#x([0-9a-fA-F]+);/g, (m, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/* ---------------------------- lecture d'un classeur ----------------------------
+   Deux libertés que prennent les exports réels et qu'il faut accepter :
+   les balises peuvent être préfixées (<x:row>, <x:c>), et les cellules peuvent
+   n'avoir aucune référence A1 — leur place est alors donnée par leur ordre. */
+const LIM_LIGNES = 300000;
+const T = n => "(?:[A-Za-z0-9_.-]+:)?" + n;      /* balise avec ou sans préfixe */
+
+function celluleVal(attr, inner, shared){
+  const ty = (attr.match(/\bt="([^"]+)"/) || [])[1] || "";
+  if (ty === "inlineStr"){
+    const ts = inner.match(new RegExp("<" + T("t") + "[^>]*>([\\s\\S]*?)</" + T("t") + ">", "g")) || [];
+    return xmlText(ts.map(x => x.replace(/<[^>]+>/g, "")).join(""));
+  }
+  const v = inner.match(new RegExp("<" + T("v") + "[^>]*>([\\s\\S]*?)</" + T("v") + ">"));
+  if (!v) return "";
+  if (ty === "s") return shared[+v[1]] || "";
+  return ty === "str" ? xmlText(v[1]) : v[1];
+}
+/* Balayage des cellules d'une ligne. Une cellule vide s'écrit « <c /> » : il faut
+   la distinguer d'une cellule ouverte, sinon elle avale la suivante et toute la
+   fin de la ligne glisse d'un cran. */
+function ligneCellules(xml, shared, compte){
+  const cells = [];
+  const ouvre = new RegExp("<" + T("c") + "((?:\"[^\"]*\"|[^>\"])*)>", "g");
+  const ferme = new RegExp("</" + T("c") + ">", "g");
+  let m, auto = 0;
+  while ((m = ouvre.exec(xml))){
+    let attr = m[1] || "", inner = "";
+    const seule = /\/\s*$/.test(attr);          /* <c ... /> */
+    if (seule) attr = attr.replace(/\/\s*$/, "");
+    else {
+      ferme.lastIndex = ouvre.lastIndex;
+      const f = ferme.exec(xml);
+      if (!f) break;
+      inner = xml.slice(ouvre.lastIndex, f.index);
+      ouvre.lastIndex = ferme.lastIndex;
+    }
+    const r = (attr.match(/\br="([A-Z]+)\d+"/) || [])[1];
+    let ci;
+    if (r){ ci = 0; for (const ch of r) ci = ci * 26 + (ch.charCodeAt(0) - 64); ci--; if (compte) compte.avecRef++; }
+    else { ci = auto; if (compte) compte.sansRef++; }
+    auto = ci + 1;
+    cells[ci] = celluleVal(attr, inner, shared);
+  }
+  for (let i = 0; i < cells.length; i++) if (cells[i] === undefined) cells[i] = "";
+  return cells;
+}
 async function xlsxRead(buf){
-  const files = await unzip(buf);
+  const files = zipIndex(buf);
   const dec = new TextDecoder();
   const shared = [];
   if (files["xl/sharedStrings.xml"]){
-    const x = dec.decode(files["xl/sharedStrings.xml"]);
-    const re = /<si>([\s\S]*?)<\/si>/g; let m;
-    while ((m = re.exec(x))) shared.push(xmlText((m[1].match(/<t[^>]*>([\s\S]*?)<\/t>/g) || []).map(t => t.replace(/<[^>]+>/g, "")).join("")));
-  }
-  const key = Object.keys(files).find(k => /^xl\/worksheets\/sheet1\.xml$/.test(k));
-  if (!key) throw new Error("feuille introuvable");
-  const xml = dec.decode(files[key]);
-  const rows = [];
-  const rowRe = /<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
-  let rm;
-  while ((rm = rowRe.exec(xml))){
-    const ri = +rm[1] - 1, cells = [];
-    const cRe = /<c\s+r="([A-Z]+)(\d+)"([^>]*)(?:\/>|>([\s\S]*?)<\/c>)/g;
-    let cm;
-    while ((cm = cRe.exec(rm[2]))){
-      let ci = 0; for (const ch of cm[1]) ci = ci * 26 + (ch.charCodeAt(0) - 64); ci--;
-      const attr = cm[3] || "", inner = cm[4] || "";
-      let val = "";
-      if (/t="inlineStr"/.test(attr)){ const t = inner.match(/<t[^>]*>([\s\S]*?)<\/t>/); val = t ? xmlText(t[1]) : ""; }
-      else if (/t="s"/.test(attr)){ const v = inner.match(/<v>([\s\S]*?)<\/v>/); val = v ? (shared[+v[1]] || "") : ""; }
-      else if (/t="str"/.test(attr)){ const v = inner.match(/<v>([\s\S]*?)<\/v>/); val = v ? xmlText(v[1]) : ""; }
-      else { const v = inner.match(/<v>([\s\S]*?)<\/v>/); val = v ? v[1] : ""; }
-      cells[ci] = val;
+    const x = dec.decode(await zipEntry(files["xl/sharedStrings.xml"]));
+    const re = new RegExp("<" + T("si") + "[^>]*>([\\s\\S]*?)</" + T("si") + ">", "g");
+    let m;
+    while ((m = re.exec(x))){
+      const ts = m[1].match(new RegExp("<" + T("t") + "[^>]*>([\\s\\S]*?)</" + T("t") + ">", "g")) || [];
+      shared.push(xmlText(ts.map(t => t.replace(/<[^>]+>/g, "")).join("")));
     }
-    for (let i = 0; i < cells.length; i++) if (cells[i] === undefined) cells[i] = "";
-    rows[ri] = cells;
   }
-  for (let i = 0; i < rows.length; i++) if (!rows[i]) rows[i] = [];
-  return rows.filter(r => r.some(c => String(c).trim() !== ""));
+  const key = Object.keys(files).find(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
+  if (!key) throw new Error("Aucune feuille trouvée dans le classeur.");
+  const e = files[key];
+  const rows = [];
+  const finRow = new RegExp("</" + T("row") + ">");
+  const debRow = new RegExp("<" + T("row") + "(?:\\s[^>]*)?>");
+
+  const compte = { avecRef:0, sansRef:0 };
+  const reader = zipStream(e).getReader();
+  let buffer = "", fini = false;
+  while (!fini){
+    const { value, done } = await reader.read();
+    if (done) fini = true; else buffer += value;
+    /* on ne garde en mémoire que la ligne en cours de lecture */
+    let i;
+    while ((i = buffer.search(finRow)) >= 0){
+      const bloc = buffer.slice(0, i);
+      const j = bloc.search(debRow);
+      if (j >= 0) rows.push(ligneCellules(bloc.slice(j), shared, compte));
+      buffer = buffer.slice(i + bloc.slice(i).length + (buffer.slice(i).match(finRow) || [""])[0].length);
+      if (rows.length >= LIM_LIGNES){ try { await reader.cancel(); } catch(err){} fini = true; break; }
+    }
+    if (buffer.length > 4e6) buffer = buffer.slice(-2e6);   /* garde-fou */
+  }
+  const utiles = rows.filter(r => r.some(c => String(c).trim() !== ""));
+  if (!utiles.length) throw new Error("Le classeur ne contient aucune ligne lisible.");
+  /* Sans référence de cellule, une cellule vide omise décale tout ce qui suit :
+     l'appelant doit le savoir avant de faire confiance aux colonnes. */
+  utiles.sansReperes = compte.sansRef > 0 && compte.avecRef === 0;
+  return utiles;
+}
+
+/* =========================================================================
+   Lecture d'un fichier déposé : tableur, texte, ou mail enregistré.
+   Tout revient sous la même forme — des lignes séparées par des tabulations —
+   que les analyseurs savent déjà lire.
+   ========================================================================= */
+
+/* Un tableau HTML (mail Outlook, page enregistrée) → lignes de cellules. */
+function htmlTables(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll("table").forEach(tb => {
+    const lignes = [];
+    tb.querySelectorAll("tr").forEach(tr => {
+      const cs = Array.from(tr.querySelectorAll("th,td"))
+        .map(td => (td.textContent || "").replace(/\s+/g, " ").trim());
+      if (cs.some(x => x !== "")) lignes.push(cs);
+    });
+    if (lignes.length > 1) out.push(lignes);
+  });
+  /* on garde le plus grand tableau : dans un mail, les autres sont la mise en page */
+  out.sort((a, b) => b.length * (b[0] || []).length - a.length * (a[0] || []).length);
+  return out.length ? out[0] : null;
+}
+
+/* Un mail enregistré (.eml, .mht) est un document MIME : on suit ses séparateurs
+   déclarés plutôt que de deviner, sinon une ligne de CSS commençant par « -- »
+   tronque le message. */
+function qpDecode(corps, charset){
+  const sansSaut = corps.replace(/=\r?\n/g, "");
+  const octets = [];
+  for (let k = 0; k < sansSaut.length; k++){
+    if (sansSaut[k] === "=" && /^[0-9A-Fa-f]{2}$/.test(sansSaut.substr(k + 1, 2))){
+      octets.push(parseInt(sansSaut.substr(k + 1, 2), 16)); k += 2;
+    } else octets.push(sansSaut.charCodeAt(k) & 0xff);
+  }
+  return decodeOctets(new Uint8Array(octets), charset);
+}
+function decodeOctets(u8, charset){
+  try { return new TextDecoder(charset || "utf-8").decode(u8); }
+  catch(e){ return new TextDecoder("windows-1252").decode(u8); }
+}
+function b64Decode(corps, charset){
+  try {
+    const bin = atob(corps.replace(/\s+/g, ""));
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return decodeOctets(u8, charset);
+  } catch(e){ return ""; }
+}
+/* Parcourt les parties d'un message et rend le plus grand corps text/html. */
+function mimeHtml(texte){
+  const coupe = texte.search(/\r?\n\r?\n/);
+  if (coupe < 0) return "";
+  const entete = texte.slice(0, coupe), corps = texte.slice(coupe).replace(/^\r?\n\r?\n/, "");
+  const ct = (entete.match(/content-type:\s*([^\r\n;]+)/i) || [])[1] || "";
+  const cs = (entete.match(/charset="?([\w-]+)"?/i) || [])[1] || "";
+  const cte = ((entete.match(/content-transfer-encoding:\s*([^\r\n;]+)/i) || [])[1] || "").toLowerCase().trim();
+  if (/^multipart\//i.test(ct)){
+    const bd = (entete.match(/boundary="?([^";\r\n]+)"?/i) || [])[1];
+    if (!bd) return "";
+    const parts = corps.split(new RegExp("\r?\n?--" + bd.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    let best = "";
+    for (const p of parts){
+      if (!p || /^--/.test(p.trim())) continue;
+      const h = mimeHtml(p.replace(/^\r?\n/, ""));
+      if (h.length > best.length) best = h;
+    }
+    return best;
+  }
+  if (!/text\/html/i.test(ct)) return "";
+  if (cte === "quoted-printable") return qpDecode(corps, cs);
+  if (cte === "base64") return b64Decode(corps, cs);
+  return corps;
+}
+function mhtHtml(buf){
+  return mimeHtml(new TextDecoder("latin1").decode(buf));
+}
+const enTsv = rows => rows.map(r => r.map(c => String(c == null ? "" : c).replace(/[\t\r\n]+/g, " ")).join("\t")).join("\n");
+
+/* Point d'entrée : rend le contenu d'un fichier sous forme de lignes de cellules.
+   Les analyseurs les prennent telles quelles — un gros export n'a donc pas à
+   transiter par le champ de collage, qui serait vite saturé. */
+async function lireFichierRows(file){
+  const nom = (file.name || "").toLowerCase();
+  if (/\.(xlsx|xlsm|xltx)$/.test(nom)){
+    const rows = await xlsxRead(await file.arrayBuffer());
+    if (!rows || !rows.length) throw new Error("Le classeur ne contient aucune ligne lisible.");
+    return rows;
+  }
+  if (/\.(mht|mhtml|eml)$/.test(nom)){
+    const html = mhtHtml(await file.arrayBuffer());
+    const rows = html ? htmlTables(html) : null;
+    if (rows) return rows;
+    if (html && /<img/i.test(html))
+      throw new Error("Ce mail ne contient pas de tableau : le relevé y est une capture d'image, que l'outil ne sait pas lire. Demandez l'envoi du tableau lui-même, ou d'un fichier joint.");
+    throw new Error("Aucun tableau trouvé dans ce mail.");
+  }
+  if (/\.(html?|htm)$/.test(nom)){
+    const rows = htmlTables(await file.text());
+    if (!rows) throw new Error("Aucun tableau trouvé dans cette page.");
+    return rows;
+  }
+  return parseTable(await file.text());
 }
 /* =========================================================================
    Bloc 2 : rendu, graphiques, interactions
@@ -1868,7 +2058,7 @@ function drawEvo(){
 function perimAgg(){
   const out = [], eff = effCells();
   Object.keys(SITES).forEach(si => Object.keys(SERVS).forEach(sv => {
-    const list = eff.filter(c => c.site === si && c.service === sv && inDates(c) && inRange(pkey(c)));
+    const list = eff.filter(c => c.site === si && c.service === sv && inRange(pkey(c)));
     out.push({ si, sv, l: SITES[si].l + " · " + (sv === "distri" ? "Distribution" : "Réception"), a: agg(list) });
   }));
   return out;
@@ -1963,6 +2153,19 @@ function renderDash(){
 }
 
 /* ---------------------------- retards qualifiés ---------------------------- */
+let regList = [];
+function triReg(x, y){
+  const s = S.ui.regSens || -1, cle = S.ui.regTri || "date";
+  let d = 0;
+  if (cle === "date") d = String(x.l.d || dateOfRef(x.c, x.l.ref) || "").localeCompare(String(y.l.d || dateOfRef(y.c, y.l.ref) || ""));
+  else if (cle === "per") d = x.c.periode.localeCompare(y.c.periode);
+  else if (cle === "perim") d = (SITES[x.c.site].l + x.c.service).localeCompare(SITES[y.c.site].l + y.c.service);
+  else if (cle === "ref") d = String(x.l.ref).localeCompare(String(y.l.ref), "fr", { numeric:true });
+  else if (cle === "cause") d = String(CAT[x.l.cat] ? CAT[x.l.cat].l : x.l.cat).localeCompare(String(CAT[y.l.cat] ? CAT[y.l.cat].l : y.l.cat));
+  else if (cle === "ko") d = x.l.nb - y.l.nb;
+  else if (cle === "src") d = String(x.l.src).localeCompare(String(y.l.src));
+  return s * d || y.c.periode.localeCompare(x.c.periode) || (y.l.nb - x.l.nb);
+}
 function renderQualifies(){
   const cs = selCells(), a = agg(cs);
   const rows = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man, doc: v.doc, man: v.man }))
@@ -1984,10 +2187,11 @@ function renderQualifies(){
   const flat = [];
   cs.forEach(c => c.lignes.forEach(l => flat.push({ c, l })));
   const qs = S.ui.q.toLowerCase();
-  const sel = flat.filter(({ l }) =>
+  const sel = flat.filter(({ c, l }) =>
     (!S.ui.qsrc || l.src === S.ui.qsrc) && (!S.ui.qst || l.st === S.ui.qst) && (!S.ui.qcat || l.cat === S.ui.qcat) &&
-    (!qs || (l.ref + " " + (CAT[l.cat] ? CAT[l.cat].l : l.cat) + " " + l.com).toLowerCase().includes(qs)))
-    .sort((x, y) => y.c.periode.localeCompare(x.c.periode) || (y.l.nb - x.l.nb));
+    (!qs || (l.ref + " " + (l.postes || []).join(" ") + " " + (CAT[l.cat] ? CAT[l.cat].l : l.cat) +
+             " " + l.com + " " + perLabel(c.periode)).toLowerCase().includes(qs)))
+    .sort(triReg);
   const cs2 = $("#q-cat");
   if (cs2 && document.activeElement !== cs2){
     const present = Array.from(new Set(flat.map(x => x.l.cat)));
@@ -1995,13 +2199,22 @@ function renderQualifies(){
       CATS.filter(c => present.indexOf(c.k) >= 0).map(c => '<option value="' + c.k + '">' + esc(c.l) + "</option>").join("");
     cs2.value = S.ui.qcat;
   }
+  regList = sel;                       /* ce que l'export Excel reprendra */
   const filt = S.ui.q || S.ui.qcat || S.ui.qsrc || S.ui.qst;
   $("#reg-foot").innerHTML = '<span class="muted" style="font-size:12px">' +
     n0(sel.length) + (sel.length > 1 ? " lignes" : " ligne") + " sur " + n0(flat.length) + " · " +
     n0(sel.filter(x => x.l.st === "ok").reduce((s, x) => s + x.l.nb, 0)) + " KO retirés</span>" +
     (filt ? ' <button class="btn sm" id="btn-clear-q" style="margin-left:10px">Retirer les filtres</button>' : "");
   $("#reg").innerHTML = sel.length
-    ? '<table><thead><tr><th>Date</th><th>Période</th><th>Périmètre</th><th>Réf.</th><th>Cause</th><th class="n">KO</th><th>Source</th><th>Note</th><th></th></tr></thead><tbody>' +
+    ? '<table data-tritable="reg"><thead><tr>' +
+      th("date", "Date", S.ui.regTri, S.ui.regSens) +
+      th("per", "Période", S.ui.regTri, S.ui.regSens) +
+      th("perim", "Périmètre", S.ui.regTri, S.ui.regSens) +
+      th("ref", "Réf.", S.ui.regTri, S.ui.regSens) +
+      th("cause", "Cause", S.ui.regTri, S.ui.regSens) +
+      th("ko", "KO", S.ui.regTri, S.ui.regSens, "n") +
+      th("src", "Source", S.ui.regTri, S.ui.regSens) +
+      "<th>Note</th><th></th></tr></thead><tbody>" +
       sel.slice(0, 400).map(({ c, l }) =>
         '<tr data-fiche="' + c.id + "|" + l.id + '"><td class="ref nowrap">' + frDay(l.d || dateOfRef(c, l.ref)) + "</td>" +
         '<td class="nowrap">' + perLabel(c.periode) + "</td>" +
@@ -2019,6 +2232,28 @@ function renderQualifies(){
 
 /* ---------------------------- à justifier ---------------------------- */
 let qList = [];
+/* Tri des tableaux de détail : une colonne, un sens, mémorisés dans S.ui. */
+function cmpTri(a, b, cle){
+  switch (cle){
+    case "date":   return String(a.d || "").localeCompare(String(b.d || ""));
+    case "ref":    return String(a.ref).localeCompare(String(b.ref), "fr", { numeric:true });
+    case "ko":     return a.n - b.n;
+    case "per":    return a.cell.periode.localeCompare(b.cell.periode);
+    default:       return 0;
+  }
+}
+function triAJ(a, b){
+  const s = S.ui.ajSens || -1;
+  return s * cmpTri(a, b, S.ui.ajTri || "ko")
+    || b.n - a.n || a.cell.periode.localeCompare(b.cell.periode) || (a.ref > b.ref ? 1 : -1);
+}
+/* En-tête cliquable : la flèche dit la colonne et le sens en cours. */
+function th(cle, libelle, tri, sens, cls){
+  const actif = tri === cle;
+  return '<th data-tri="' + cle + '"' + (cls ? ' class="' + cls + '"' : "") +
+    ' title="Trier par ' + esc(libelle.toLowerCase()) + '">' + esc(libelle) +
+    '<span class="tri' + (actif ? " on" : "") + '">' + (actif ? (sens < 0 ? "▼" : "▲") : "↕") + "</span></th>";
+}
 function renderAJustifier(){
   const qAll = toQualify();
   const lots = {};
@@ -2033,8 +2268,10 @@ function renderAJustifier(){
           esc(perLabel(c.periode) + " · " + SITES[c.site].l + " · " + (c.service === "distri" ? "Distri" : "Récep")) +
           " — " + n0(lots[id]) + " KO</option>"; }).join("");
   }
+  const ajq = (S.ui.ajq || "").trim().toLowerCase();
   qList = (S.ui.qscope ? qAll.filter(r => r.cell.id === S.ui.qscope) : qAll)
-    .slice().sort((a, b) => b.n - a.n || a.cell.periode.localeCompare(b.cell.periode) || (a.ref > b.ref ? 1 : -1));
+    .filter(r => !ajq || (String(r.ref) + " " + r.postes.join(" ")).toLowerCase().includes(ajq))
+    .slice().sort(triAJ);
   const qKo = qList.reduce((s, r) => s + r.n, 0);
   $("#q-all-lbl").textContent = "Tout cocher (" + n0(qList.length) + ")";
   const nPostes = qList.reduce((s, r) => s + r.postes.length, 0);
@@ -2043,7 +2280,12 @@ function renderAJustifier(){
   $("#cnt-aj").textContent = n0(qAll.reduce((s, r) => s + r.n, 0));
   const show = Math.min(S.ui.qshow, qList.length);
   $("#aqualifier").innerHTML = qList.length
-    ? '<div class="tw"><table><thead><tr><th style="width:26px"></th><th>Référence</th><th>Date</th><th class="n">KO</th><th>Période · périmètre</th><th class="n">Qualifier en un clic</th></tr></thead><tbody>' +
+    ? '<div class="tw"><table data-tritable="aj"><thead><tr><th style="width:26px"></th>' +
+      th("ref", "Référence", S.ui.ajTri, S.ui.ajSens) +
+      th("date", "Date", S.ui.ajTri, S.ui.ajSens) +
+      th("ko", "KO", S.ui.ajTri, S.ui.ajSens, "n") +
+      th("per", "Période · périmètre", S.ui.ajTri, S.ui.ajSens) +
+      '<th class="n">Qualifier en un clic</th></tr></thead><tbody>' +
       qList.slice(0, show).map(r => {
         const qk = QUICK[r.cell.service] || [], tail = "|" + esc(r.ref) + "|";
         const part = r.total > r.n;
@@ -2135,8 +2377,12 @@ function renderFb(){
       (fromFile ? "La configuration est écrite dans le fichier : tous ceux qui ouvrent la page arrivent sur la même base."
                 : "La configuration n'est enregistrée que sur ce navigateur — collez-la dans <code>index.html</code> pour que l'équipe l'ait aussi.") + "</div>";
   } else if (cfg){
-    el.innerHTML = '<div class="note" style="border-left-color:var(--crit)"><b>Configuration présente, base non jointe.</b> ' +
-      esc(S.fbError || "Vérifiez la connexion, les règles de sécurité et l'authentification anonyme.") + "</div>";
+    const dg = fbDiag(S.fbError);
+    el.innerHTML = '<div class="note" style="border-left-color:var(--crit)"><b>' +
+      (dg ? esc(dg.t) : "Configuration présente, base non jointe") + ".</b> " +
+      (dg ? dg.d : "Vérifiez la connexion, les règles de sécurité et l'authentification anonyme.") +
+      (S.fbError ? '<div class="muted" style="margin-top:6px;font-size:11.5px">Message reçu&nbsp;: <code>' + esc(S.fbError) + "</code></div>" : "") +
+      "</div>";
   } else {
     el.innerHTML = '<div class="note">Aucune base connectée. Créez un projet sur <b>console.firebase.google.com</b>, ajoutez-y une application Web, activez <b>Firestore</b> et l\'authentification <b>anonyme</b>, puis collez la configuration ci-dessous.</div>';
   }
@@ -2146,23 +2392,12 @@ function renderFb(){
 
 /* ---------------------------- rendu global ---------------------------- */
 function renderRange(){
-  const parDates = S.ui.preset === "dates";
   const keys = syncRange();
   const opts = k0 => keys.map(k => '<option value="' + k + '"' + (k === k0 ? " selected" : "") + ">" + esc(perOpt(k)) + "</option>").join("");
   const f = $("#f-from"), t = $("#f-to");
   if (document.activeElement !== f) f.innerHTML = opts(S.ui.from);
   if (document.activeElement !== t) t.innerHTML = opts(S.ui.to);
   $("#f-preset").value = S.ui.preset;
-  const rngP = f.parentElement, rngD = $("#f-dates");
-  rngP.classList.toggle("off", parDates);
-  rngD.classList.toggle("off", !parDates);
-  if (parDates){
-    const b = bornesJours();
-    const d1 = $("#f-d1"), d2 = $("#f-d2");
-    if (b){ d1.min = d2.min = b[0]; d1.max = d2.max = b[1]; }
-    if (document.activeElement !== d1) d1.value = S.ui.d1 || "";
-    if (document.activeElement !== d2) d2.value = S.ui.d2 || "";
-  }
   $("#btn-reset").hidden = !filtersActive();
 }
 let rafPending = false;
@@ -2228,34 +2463,30 @@ function segBind(id, key){
   }));
 }
 segBind("f-site", "site"); segBind("f-serv", "serv"); segBind("f-maille", "maille");
-$("#f-preset").addEventListener("change", e => {
-  S.ui.preset = e.target.value;
-  if (S.ui.preset === "dates" && !(S.ui.d1 && S.ui.d2)){
-    const b = bornesJours();
-    if (b){
-      const fin = new Date(b[1] + "T12:00:00Z"), deb = new Date(fin);
-      deb.setUTCDate(fin.getUTCDate() - 13);          /* deux semaines par défaut */
-      S.ui.d1 = ymd(deb) < b[0] ? b[0] : ymd(deb);
-      S.ui.d2 = b[1];
-    }
-  }
-  render();
-});
-function majDates(){
-  const a = $("#f-d1").value, b = $("#f-d2").value;
-  S.ui.d1 = a; S.ui.d2 = b;
-  if (a && b && a > b){ S.ui.d1 = b; S.ui.d2 = a; }
-  render();
-}
-$("#f-d1").addEventListener("change", majDates);
-$("#f-d2").addEventListener("change", majDates);
+$("#f-preset").addEventListener("change", e => { S.ui.preset = e.target.value; render(); });
 $("#f-from").addEventListener("change", e => { S.ui.preset = "custom"; S.ui.from = e.target.value; render(); });
 $("#f-to").addEventListener("change", e => { S.ui.preset = "custom"; S.ui.to = e.target.value; render(); });
 $("#btn-reset").addEventListener("click", () => {
-  Object.assign(S.ui, { site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null, d1:"", d2:"" });
+  Object.assign(S.ui, { site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null });
   syncSegs(); render(); toast("Filtres réinitialisés");
 });
 $("#q-search").addEventListener("input", e => { S.ui.q = e.target.value; render(); });
+$("#aj-search").addEventListener("input", e => { S.ui.ajq = e.target.value; S.ui.qshow = 40; render(); });
+/* Clic sur un en-tête : même colonne → on inverse le sens, sinon on l'adopte. */
+document.addEventListener("click", e => {
+  const h = e.target.closest("th[data-tri]"); if (!h) return;
+  const tbl = h.closest("table"), quoi = tbl && tbl.dataset.tritable;
+  if (!quoi) return;
+  const cle = h.dataset.tri;
+  if (quoi === "aj"){
+    if (S.ui.ajTri === cle) S.ui.ajSens = -(S.ui.ajSens || -1);
+    else { S.ui.ajTri = cle; S.ui.ajSens = cle === "ref" ? 1 : -1; }
+  } else {
+    if (S.ui.regTri === cle) S.ui.regSens = -(S.ui.regSens || -1);
+    else { S.ui.regTri = cle; S.ui.regSens = (cle === "ref" || cle === "cause" || cle === "perim") ? 1 : -1; }
+  }
+  render();
+});
 $("#q-cat").addEventListener("change", e => { S.ui.qcat = e.target.value; render(); });
 $("#q-src").addEventListener("change", e => { S.ui.qsrc = e.target.value; render(); });
 $("#q-st").addEventListener("change", e => { S.ui.qst = e.target.value; render(); });
@@ -2331,12 +2562,25 @@ function findCol(heads, tests){
   return -1;
 }
 const isoDay = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+/* Un identifiant de flux PowerBI : deux tirets, des chiffres, rien d'autre. */
+const RE_IDENT = /^\d{4,}-\d{4,}-\d{2,}$/;
 function parseDate(v){
   const s = String(v || "").trim(); if (!s) return null;
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
   m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
   if (m){ let y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[2] - 1, +m[1]); }
+  /* AAAAMMJJ compact, tel que SAP l'exporte */
+  m = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  /* numéro de série d'un tableur : jours depuis le 30/12/1899 */
+  if (/^\d{5}(\.\d+)?$/.test(s)){
+    const n = parseFloat(s);
+    if (n > 20000 && n < 60000){
+      const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 864e5);
+      return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    }
+  }
   const d = new Date(s); return isNaN(d) ? null : d;
 }
 
@@ -2344,8 +2588,8 @@ function parseDate(v){
 let EXPORT_OUT = "#export-out", RELEVE_OUT = "#releve-out", EXPORT_APPLY = true, RELEVE_APPLY = true;
 let RELEVE_SRC = { ta:"#ta-releve", date:"#r-date", site:"#r-site", serv:"#r-serv" };
 let exportDraft = null;
-function analyseExport(text){
-  const rows = parseTable(text);
+function analyseExport(src){
+  const rows = Array.isArray(src) ? src : parseTable(src);
   if (rows.length < 2){ $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px">Collage vide ou illisible : il faut la ligne d\'en-têtes puis les lignes de flux.</div>'; return; }
   const heads = rows[0].map(norm);
   const ci = {
@@ -2362,7 +2606,19 @@ function analyseExport(text){
     $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Colonnes introuvables.</b> Il faut au minimum <code>Identifiant flux début</code>, <code>Code aire</code>, <code>Résultat</code> et une <code>Date fin</code>. En-têtes lus : ' + esc(rows[0].join(" · ")) + "</div>";
     return;
   }
-  const acc = {}, rej = { aire:0, kpi:0, date:0, res:0, litige:0, ident:0 };
+  const acc = {}, rej = { aire:0, kpi:0, date:0, res:0, litige:0, ident:0, decale:0 };
+  /* Un classeur sain donne à chaque cellule sa référence (A1, B1…). Quand elles
+     en sont toutes dépourvues, une cellule vide omise décale silencieusement
+     toute la fin de la ligne : mieux vaut s'arrêter que publier des chiffres faux. */
+  if (rows.sansReperes && rows.slice(1, 201).some(r => r.length !== heads.length)){
+    $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)">' +
+      "<b>Cet export ne porte pas de repère de colonne.</b> Ses cellules n'ont pas de référence " +
+      "(A1, B1…) et les cellules vides ont été supprimées sans dire lesquelles&nbsp;: à partir du premier " +
+      "trou, chaque valeur glisse d'une colonne. La date et l'identifiant lus seraient ceux d'à côté." +
+      '<div class="muted" style="margin-top:8px">Deux sorties&nbsp;: réexporter en <b>CSV</b>, ou reprendre ' +
+      "l'export Excel habituel — celui qui a servi à la reprise se lit sans problème.</div></div>";
+    return;
+  }
   for (let i = 1; i < rows.length; i++){
     const r = rows[i];
     const site = AIRE2SITE[String(r[ci.aire] || "").trim().toUpperCase()];
@@ -2375,6 +2631,7 @@ function analyseExport(text){
     const d = parseDate(r[ci.fin]);
     if (!d){ rej.date++; continue; }
     const ident = String(r[ci.id] == null ? "" : r[ci.id]).trim();
+    if (r.length !== heads.length) rej.decale++;
     if (!ident){ rej.ident++; continue; }   /* sans identifiant : ni traçable, ni qualifiable */
     const rs = norm(r[ci.res]);
     let ko;
@@ -2412,11 +2669,18 @@ function analyseExport(text){
   if (rej.kpi) warn.push(n0(rej.kpi) + " sans KPI reconnu");
   if (rej.date) warn.push(n0(rej.date) + " sans date de fin exploitable");
   if (rej.ident) warn.push(n0(rej.ident) + " sans identifiant de flux (ni traçables ni qualifiables)");
+  if (rej.decale) warn.push(n0(rej.decale) + " lignes au nombre de colonnes inattendu");
   if (rej.res) warn.push(n0(rej.res) + " au résultat illisible");
   $(EXPORT_OUT).innerHTML =
     '<div class="note" style="margin:16px 0 12px">' +
       "<b>" + n0(list.reduce((s, c) => s + c.flux, 0)) + " flux retenus</b> sur " + n0(rows.length - 1) + " lignes collées." +
-      (rej.litige ? ' <b>' + n0(rej.litige) + " flux réception exclus</b> car en litige (convention métier)." : " <span class=\"muted\">Aucun flux en litige détecté — vérifiez si le filtre est déjà appliqué en amont.</span>") +
+      (rej.litige
+        ? ' <b>' + n0(rej.litige) + " flux réception exclus</b> car en litige (convention métier)."
+        : (ci.litige < 0 && list.some(c => c.service === "recep")
+          ? ' <b style="color:var(--crit)">La colonne « Statut litige » manque à cet export.</b> ' +
+            "Les réceptions en litige ne peuvent donc pas être écartées : leurs KO restent comptés et le brut réception sort trop bas. " +
+            "Ajoutez cette colonne à l'export avant de vous servir de ces chiffres."
+          : ' <span class="muted">Aucun flux en litige détecté — vérifiez si le filtre est déjà appliqué en amont.</span>')) +
       (warn.length ? '<div class="muted" style="margin-top:5px">Écartés : ' + esc(warn.join(" · ")) + ".</div>" : "") +
     "</div>" +
     '<div class="tw" style="border:1px solid var(--line);border-radius:8px"><table><thead><tr><th>Période</th><th>Site</th><th>Service</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Réf. KO</th><th>Effet</th></tr></thead><tbody>' +
@@ -2454,11 +2718,27 @@ async function applyExport(){
 }
 $("#btn-parse-export").addEventListener("click", () => analyseExport($("#ta-export").value));
 $("#btn-clear-export").addEventListener("click", () => { $("#ta-export").value = ""; $(EXPORT_OUT).innerHTML = ""; exportDraft = null; });
+/* Un fichier déposé passe par le lecteur universel : .xlsx, .csv, .txt,
+   ou un mail enregistré en .htm / .mht dont on extrait le tableau. */
+async function chargeFichier(file, ta, sortie, suite){
+  const out = $(sortie);
+  if (out) out.innerHTML = '<div class="note" style="margin-top:14px">Lecture de <b>' + esc(file.name) + "</b>…</div>";
+  try {
+    const rows = await lireFichierRows(file);
+    /* le champ ne reçoit qu'un aperçu : les analyseurs travaillent sur les lignes */
+    const apercu = rows.slice(0, 60).map(r => r.join("\t")).join("\n");
+    $(ta).value = apercu + (rows.length > 60
+      ? "\n… " + n0(rows.length - 60) + " autres lignes lues depuis " + file.name : "");
+    suite(rows);
+  } catch(err){
+    if (out) out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Fichier illisible.</b> ' +
+      esc(err && err.message ? err.message : "") + " Formats acceptés : .xlsx, .csv, .txt, et le mail enregistré en .eml, .htm ou .mht.</div>";
+  }
+}
 $("#file-export").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => { $("#ta-export").value = String(r.result).slice(0, 6e6); analyseExport($("#ta-export").value); };
-  r.readAsText(f, "utf-8");
+  chargeFichier(f, "#ta-export", EXPORT_OUT, analyseExport);
+  e.target.value = "";
 });
 
 /* ---------------------------- saisie manuelle ---------------------------- */
@@ -2472,29 +2752,16 @@ function bindWeekHint(dateId, hintId){
   i.addEventListener("change", up); i.addEventListener("input", up);
   i.value = new Date().toISOString().slice(0, 10); up();
 }
-bindWeekHint("m-date", "m-week"); bindWeekHint("r-date", "r-week");
-
-$("#btn-save-cell").addEventListener("click", async () => {
-  const d = $("#m-date").value;
-  if (!d){ toast("Choisissez une date", true); return; }
-  const per = weekKey(new Date(d + "T12:00:00"));
-  const site = $("#m-site").value, service = $("#m-serv").value;
-  const flux = +$("#m-flux").value || 0, ko = +$("#m-ko").value || 0;
-  if (flux <= 0){ toast("Le nombre de flux doit être supérieur à 0", true); return; }
-  if (ko > flux){ toast("Les KO ne peuvent pas dépasser les flux", true); return; }
-  const id = cellId(per, site, service), ex = S.cells[id];
-  await putCell({ id, periode:per, site, service, flux, ko,
-    litiges: service === "recep" ? (+$("#m-lit").value || 0) : null,
-    note: $("#m-note").value || "Saisie manuelle", demo:false,
-    koRefs: ex ? ex.koRefs : [], lignes: ex ? ex.lignes : [] });
-  $("#m-msg").textContent = perLabel(per) + " · " + SITES[site].l + " · " + SERVS[service].l + " enregistré" + (ex ? " (remplacé)" : "");
-  toast("Période enregistrée");
-});
+bindWeekHint("r-date", "r-week");
 
 /* ---------------------------- relevé ---------------------------- */
 let releveDraft = null;
-function analyseReleve(){
-  const txt = $(RELEVE_SRC.ta).value.replace(/\r\n?/g, "\n").trim();
+/* Le relevé arrive collé, ou lu depuis un fichier / un mail : dans les deux cas
+   on retombe sur des lignes « référence ; catégorie ; commentaire ». */
+function analyseReleve(src){
+  const txt = Array.isArray(src)
+    ? src.map(r => r.join(" ; ")).join("\n").trim()
+    : $(RELEVE_SRC.ta).value.replace(/\r\n?/g, "\n").trim();
   const out = $(RELEVE_OUT);
   if (!txt){ out.innerHTML = '<div class="note" style="margin-top:14px">Collez d\'abord les lignes du relevé.</div>'; return; }
   const d = $(RELEVE_SRC.date).value;
@@ -2547,6 +2814,11 @@ async function applyReleve(){
   toast("Relevé enregistré"); releveDraft = null;
 }
 $("#btn-parse-releve").addEventListener("click", analyseReleve);
+$("#file-releve").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  chargeFichier(f, "#ta-releve", RELEVE_OUT, () => analyseReleve());
+  e.target.value = "";
+});
 $("#btn-clear-releve").addEventListener("click", () => { $("#ta-releve").value = ""; $(RELEVE_OUT).innerHTML = ""; releveDraft = null; });
 
 /* ------------------ extraction SAP : rééditions de postes BR ------------------ */
@@ -2573,9 +2845,9 @@ function koCount(c, it){
   }
   return n;
 }
-function analyseSap(text){
+function analyseSap(src){
   const OUT = $(SAP_OUT);
-  const rows = parseTable(text);
+  const rows = Array.isArray(src) ? src : parseTable(src);
   if (rows.length < 2){ OUT.innerHTML = '<div class="note" style="margin-top:14px">Collage vide ou illisible : il faut la ligne d\'en-têtes puis les lignes de postes BR.</div>'; return; }
   const heads = rows[0].map(norm);
   const ci = {
@@ -2583,11 +2855,16 @@ function analyseSap(text){
     br:   findCol(heads, [h => h === "n br", h => h.includes("n br") && !h.includes("poste"), h => h.includes("numero br")]),
     ps:   findCol(heads, [h => h.includes("n poste br"), h => h.includes("poste br") && !h.includes("reference")]),
     ref:  findCol(heads, [h => h.includes("poste reference"), h => h.includes("reference")]),
-    cre:  findCol(heads, [h => h.includes("creation du poste"), h => h.includes("creation poste"), h => h.includes("date de creation du poste br")]),
-    em:   findCol(heads, [h => h === "date em", h => h.includes("date em")]),
+    /* « Date de création du poste » voisine avec « Heure de création du poste » :
+       on exige le mot date, sinon l'heure serait lue comme une date. */
+    cre:  findCol(heads, [h => h.includes("date") && h.includes("creation") && h.includes("poste") && !h.includes("heure"),
+                          h => h.includes("creation du poste") && !h.includes("heure"),
+                          h => h.includes("creation poste") && !h.includes("heure")]),
+    em:   findCol(heads, [h => h === "date em", h => h.includes("date em") && !h.includes("heure")]),
     cc:   findCol(heads, [h => h.includes("circuit court")]),
-    hcre: findCol(heads, [h => h.includes("heure") && h.includes("creation")]),
-    hem:  findCol(heads, [h => h.includes("heure") && h.includes("em")])
+    hcre: findCol(heads, [h => h.includes("heure") && h.includes("creation") && h.includes("poste"),
+                          h => h.includes("heure") && h.includes("creation")]),
+    hem:  findCol(heads, [h => h === "heure em", h => h.includes("heure") && h.includes("em")])
   };
   const miss = ["br", "ps", "ref", "cre", "em"].filter(k => ci[k] < 0);
   if (miss.length){
@@ -2692,9 +2969,8 @@ $("#btn-parse-sap").addEventListener("click", () => analyseSap($("#ta-sap").valu
 $("#btn-clear-sap").addEventListener("click", () => { $("#ta-sap").value = ""; $("#sap-out").innerHTML = ""; sapDraft = null; });
 $("#file-sap").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => { $("#ta-sap").value = String(r.result).slice(0, 8e6); analyseSap($("#ta-sap").value); };
-  r.readAsText(f, "utf-8");
+  chargeFichier(f, "#ta-sap", SAP_OUT, analyseSap);
+  e.target.value = "";
 });
 
 
@@ -3160,7 +3436,8 @@ async function connectFirebase(cfg){
     try {
       const authMod = await import(base + "firebase-auth.js");
       await authMod.signInAnonymously(authMod.getAuth(app));
-    } catch(e){ /* authentification anonyme non activée : les règles trancheront */ }
+      S.fbAuth = true;
+    } catch(e){ S.fbAuth = false; S.fbAuthErr = errCode(e); /* les règles trancheront */ }
     const db = fsMod.getFirestore(app);
     const col = fsMod.collection(db, FB_COLLECTION);
     const snap = await fsMod.getDocs(col);
@@ -3182,7 +3459,9 @@ async function connectFirebase(cfg){
     render();
     return true;
   } catch(e){
-    S.fbError = errCode(e); S.backend = "local"; S.fb = null;
+    /* l'échec de l'authentification explique souvent le refus qui suit */
+    S.fbError = (S.fbAuth === false && S.fbAuthErr) ? S.fbAuthErr : errCode(e);
+    S.backend = "local"; S.fb = null;
     setStatus("local", "Base injoignable — copie locale"); render();
     return false;
   }
@@ -3295,6 +3574,36 @@ $("#btn-xls-out").addEventListener("click", async () => {
   $("#xls-out-hint").textContent = n0(body.length) + " lignes · " + n0(list.reduce((s, r) => s + r.n, 0)) + " KO" +
     (avecPoste ? " · " + n0(avecPoste) + " au poste" : "");
 });
+/* --------- Excel des retards déjà justifiés ---------
+   Reprend exactement ce que le registre affiche : plage de périodes, filtres et
+   tri compris. Une ligne par justification, le détail des postes en clair. */
+$("#btn-xls-just").addEventListener("click", async () => {
+  const list = regList || [];
+  if (!list.length){ toast("Aucune justification sur ce filtre", true); return; }
+  const head = ["Date du flux", "Jour", "Période", "Site", "Service", "Référence", "Postes",
+                "Cause", "Justifie le net", "KO retirés", "Source", "Statut", "Commentaire"];
+  const rows = [head].concat(list.map(({ c, l }) => {
+    const d = l.d || dateOfRef(c, l.ref);
+    return [ frDay(d), d ? frWeekday(d) : "", perLabel(c.periode) + " (" + weekSpan(c.periode) + ")",
+      SITES[c.site].l, SERVS[c.service].l,
+      l.ref || "lot", (l.postes || []).join(", "),
+      CAT[l.cat] ? CAT[l.cat].l : l.cat, (CAT[l.cat] && CAT[l.cat].j) ? "oui" : "non",
+      l.st === "ok" ? l.nb : 0, SRC[l.src] || l.src,
+      l.st === "rejet" ? "écartée" : "retenue", l.com || "" ];
+  }));
+  /* une ligne de total, pour que le fichier se défende tout seul */
+  const tot = list.reduce((s, x) => s + (x.l.st === "ok" ? x.l.nb : 0), 0);
+  rows.push([]);
+  rows.push(["Total", "", rangeLabel(), "", "", "", "", "", "", tot, "", "", n0(list.length) + " justification(s)"]);
+  const buf = xlsxBuild([
+    { name:"Retards justifiés", rows, opts:{ widths:[13, 11, 22, 13, 14, 15, 14, 24, 14, 11, 13, 11, 46] } }
+  ]);
+  const per = rangeKeys();
+  const bornes = per.length ? per[0].replace(/-/g, "") + "-" + per[per.length - 1].replace(/-/g, "") : stamp();
+  await offerFile("retards-justifies-" + bornes + ".xlsx", buf);
+  toast(n0(list.length) + " lignes exportées");
+});
+
 let xlsDraft = null;
 const normLbl = s => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const CAUSE_BY_LABEL = (() => { const m = {}; CATS.forEach(c => { m[normLbl(c.l)] = c.k; }); return m; })();
@@ -3425,16 +3734,15 @@ function wiz1(){
     '<p class="wh">Dans Excel&nbsp;: sélectionnez <b>la ligne d\'en-têtes et toutes les lignes</b>, copiez, puis collez ci-dessous. L\'outil compte le brut tout seul et vous montre ce qu\'il a trouvé. <b>Rien n\'est enregistré</b> avant que vous validiez.</p>' +
     '<textarea id="wz-ta" rows="6" placeholder="Identifiant flux début&#9;Code aire&#9;KPI (Code - Libellé)&#9;Résultat&#9;Date fin&#9;Statut litige"></textarea>' +
     '<div class="actions"><button class="btn pri" id="wz-an">Analyser le collage</button>' +
-    '<label class="btn" style="cursor:pointer">Ouvrir un fichier CSV…<input type="file" id="wz-file" accept=".csv,.tsv,.txt" hidden></label></div>' +
+    '<label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
     '<div id="wz-out"></div></div>' +
     wizFoot("Je n'ai pas l'export", "Enregistrer et continuer", true));
   wizCommon();
   $("#wz-an").addEventListener("click", () => analyseExport($("#wz-ta").value));
   $("#wz-file").addEventListener("change", ev => {
     const f = ev.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => { $("#wz-ta").value = String(r.result).slice(0, 6e6); analyseExport($("#wz-ta").value); };
-    r.readAsText(f, "utf-8");
+    chargeFichier(f, "#wz-ta", EXPORT_OUT, analyseExport);
+    ev.target.value = "";
   });
   $("#wz-next").addEventListener("click", async () => {
     if (!exportDraft) return;
@@ -3453,16 +3761,15 @@ function wizSap(){
     '<p class="wh">C\'est la colonne qui manque à l\'export PowerBI. Quand un litige se résout, SAP <b>recrée le poste BR</b> sous un nouveau numéro&nbsp;: le KPI, lui, continue de compter depuis la première création. L\'outil recalcule le délai réel depuis la recréation et documente les postes qui tiennent l\'objectif. Sans cette étape, ces KO restent comptés comme des retards.</p>' +
     '<textarea id="wz-ta" rows="6" placeholder="Type Magasin&#9;N° BR&#9;N° poste BR&#9;N° Poste Référence&#9;Date de création du poste BR&#9;Date EM&#9;Circuit Court"></textarea>' +
     '<div class="actions"><button class="btn pri" id="wz-an">Analyser l\'extraction</button>' +
-    '<label class="btn" style="cursor:pointer">Ouvrir un fichier CSV…<input type="file" id="wz-file" accept=".csv,.tsv,.txt" hidden></label></div>' +
+    '<label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
     '<div id="wz-out"></div></div>' +
     wizFoot("Je n'ai pas l'extraction SAP", "Documenter et continuer", true));
   wizCommon();
   $("#wz-an").addEventListener("click", () => analyseSap($("#wz-ta").value));
   $("#wz-file").addEventListener("change", ev => {
     const f = ev.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = () => { $("#wz-ta").value = String(r.result).slice(0, 8e6); analyseSap($("#wz-ta").value); };
-    r.readAsText(f, "utf-8");
+    chargeFichier(f, "#wz-ta", SAP_OUT, analyseSap);
+    ev.target.value = "";
   });
   $("#wz-next").addEventListener("click", async () => {
     if (!sapDraft) return;
@@ -3480,7 +3787,7 @@ function wiz2(){
   openModal('<div class="ph"><h2>Mettre à jour la semaine</h2><span class="sub">Étape 3 sur 4</span></div>' +
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
-    '<div class="wq">Collez le relevé quotidien</div>' +
+    '<div class="wq">Le relevé journalier Distri MG</div>' +
     '<p class="wh">Une ligne par DT&nbsp;: <code>numéro ; catégorie ; commentaire</code>. Collez les relevés de toute la semaine d\'un coup. Les catégories <i>Urgences</i>, <i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
     '<div class="form" style="margin-bottom:11px">' +
     '<div class="f"><label for="wz-date">Semaine concernée</label><input type="date" id="wz-date" value="' + mid + '"><span class="hint" id="wz-week">' + esc(perLong(last)) + "</span></div>" +
@@ -3488,7 +3795,8 @@ function wiz2(){
     '<div class="f"><label for="wz-serv">Service</label><select id="wz-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>' +
     "</div>" +
     '<textarea id="wz-ta" rows="6" placeholder="7512783 ; Reliquat ; attente appro&#10;7462231 ; Grues ; grue indisponible"></textarea>' +
-    '<div class="actions"><button class="btn pri" id="wz-an">Analyser le relevé</button></div>' +
+    '<div class="actions"><button class="btn pri" id="wz-an">Analyser le relevé</button>' +
+    '<label class="btn" style="cursor:pointer">Ouvrir le mail ou un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
     '<div id="wz-out"></div></div>' +
     wizFoot("Pas de relevé cette semaine", "Enregistrer et continuer", true));
   wizCommon();
@@ -3496,6 +3804,11 @@ function wiz2(){
     $("#wz-week").textContent = d ? perLong(weekKey(new Date(d + "T12:00:00"))) : "—"; };
   $("#wz-date").addEventListener("change", up);
   $("#wz-an").addEventListener("click", analyseReleve);
+  $("#wz-file").addEventListener("change", ev => {
+    const f = ev.target.files[0]; if (!f) return;
+    chargeFichier(f, "#wz-ta", RELEVE_OUT, () => analyseReleve());
+    ev.target.value = "";
+  });
   $("#wz-next").addEventListener("click", async () => {
     if (!releveDraft) return;
     $("#wz-next").disabled = true;
