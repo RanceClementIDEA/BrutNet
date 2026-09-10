@@ -98,34 +98,74 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .rng.off{display:none}
 
 /* ---------- board ---------- */
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-@media (max-width:1080px){.board{grid-template-columns:1fr}}
-.bcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:20px 22px 18px;display:flex;flex-direction:column}
-.bcard h3{font-family:var(--f-disp);font-size:14px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
-.bcard h3 .btag{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.03em}
-.bnum{font-family:var(--f-disp);font-weight:700;font-size:clamp(36px,4.6vw,52px);line-height:1;letter-spacing:-.035em;margin:16px 0 3px}
-.bnum small{font-size:.36em;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:0}
+/* ---------- mur d'indicateurs ---------- */
+.wall{display:grid;gap:14px}
+.wrow{display:grid;gap:14px}
+.wrow.a{grid-template-columns:minmax(300px,1.15fr) minmax(240px,1fr) minmax(260px,1.05fr)}
+.wrow.b{grid-template-columns:repeat(4,1fr)}
+.wrow.c{grid-template-columns:repeat(4,1fr)}
+@media (max-width:1180px){.wrow.a{grid-template-columns:1fr}.wrow.b,.wrow.c{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.wrow.b,.wrow.c{grid-template-columns:1fr}}
+.wt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);
+  padding:16px 18px 15px;display:flex;flex-direction:column;min-width:0}
+.wt h3{font-family:var(--f-disp);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.wt h3 .btag{margin-left:auto;text-transform:none;letter-spacing:0;font-size:11px;font-weight:600}
+/* le chiffre de tête */
+.wnum{font-family:var(--f-disp);font-weight:700;font-size:clamp(44px,6vw,68px);line-height:1;
+  letter-spacing:-.04em;margin:10px 0 2px;color:var(--s3)}
+.wnum small{font-size:.34em;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:0}
+.wnum-l{font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
+.wnum-l b{color:var(--ink)}
+/* meter : un ratio face à une limite, avec le repère de cible */
+.meter{position:relative;height:12px;border-radius:7px;background:var(--surface-3);border:1px solid var(--line);
+  margin:22px 0 7px;overflow:visible}
+.meter i{position:absolute;top:0;bottom:0;border-radius:7px 0 0 7px;display:block}
+.meter i.n{border-radius:0 7px 7px 0}
+.meter .tgt{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink);border-radius:2px}
+.meter .tgt::after{content:attr(data-l);position:absolute;top:-17px;left:50%;transform:translateX(-50%);
+  font-family:var(--f-mono);font-size:10px;color:var(--ink);white-space:nowrap}
+.mscale{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--f-mono);margin-bottom:12px}
+/* tuiles de périmètre, colorées par l'état */
+.kt{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line-2);
+  border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;
+  gap:2px;min-width:0;cursor:pointer;transition:.12s}
+.kt:hover{border-color:var(--line-2);transform:translateY(-1px)}
+.kt.on{outline:2px solid var(--accent);outline-offset:-1px}
+.kt .ktt{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:6px}
+.kt .ktt .ic{margin-left:auto;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+  font-size:11px;font-weight:700;color:#fff;flex:none}
+.kt .ktv{font-family:var(--f-disp);font-weight:700;font-size:clamp(26px,3vw,34px);line-height:1.05;
+  letter-spacing:-.03em;white-space:nowrap}
+.kt .ktd{font-size:11.5px;color:var(--ink-2);font-family:var(--f-mono);white-space:nowrap}
+.kt .ktr{font-size:11.5px;color:var(--muted);margin-top:5px;padding-top:6px;border-top:1px solid var(--line);white-space:nowrap}
+.kt.good{border-left-color:var(--good)} .kt.good .ktv{color:var(--good-ink)} .kt.good .ic{background:var(--good)}
+.kt.serious{border-left-color:var(--serious)} .kt.serious .ktv{color:var(--ink)} .kt.serious .ic{background:var(--serious)}
+.kt.crit{border-left-color:var(--crit)} .kt.crit .ktv{color:var(--crit-ink)} .kt.crit .ic{background:var(--crit)}
+.kt.vide{cursor:default;opacity:.6} .kt.vide .ktv{color:var(--muted)}
+/* barres horizontales : comparer des grandeurs */
+.hbars{display:flex;flex-direction:column;gap:9px;margin-top:9px;flex:1}
+.hb{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;cursor:pointer}
+.hb .hbl{font-size:12.5px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .hbv{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:600}
+.hb .hbt{grid-column:1/-1;height:6px;border-radius:4px;background:var(--surface-3)}
+.hb .hbt i{display:block;height:100%;border-radius:4px;background:var(--s2)}
+.hb:hover .hbl{color:var(--ink)}
+/* liste classée */
+.rank{margin-top:8px;flex:1}
+.rank .rk{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;cursor:pointer}
+.rank .rk:last-child{border-bottom:0}
+.rank .rk .rkn{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:600}
+.rank .rk .rkl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.rank .rk .rkv{font-family:var(--f-mono);font-weight:700;color:var(--ink)}
+.rank .rk:hover .rkl{color:var(--ink)}
+.wt .bcta{padding-top:12px}
+.wempty{color:var(--muted);font-size:12.5px;padding:14px 0}
 /* brut → net, deux chiffres côte à côte */
-.duo{display:flex;align-items:flex-end;gap:clamp(10px,2vw,20px);margin:16px 0 3px}
-.duo .di{display:flex;flex-direction:column;gap:3px;min-width:0}
-.duo .dk{font-family:var(--f-disp);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--muted)}
-.duo .dv{font-family:var(--f-disp);font-weight:700;font-size:clamp(30px,3.9vw,46px);line-height:1;letter-spacing:-.035em;white-space:nowrap}
-.duo .dv small{font-size:.36em;font-weight:600;color:var(--ink-2);margin-left:3px;letter-spacing:0}
-.duo .net .dk{color:var(--s3)}
-.duo .net .dv{color:var(--s3)}
-.duo .dgap{margin-left:auto;text-align:right;padding-bottom:3px}
-.duo .dgap b{display:block;font-family:var(--f-disp);font-size:16px;font-weight:700;color:var(--s3);letter-spacing:-.02em;white-space:nowrap}
-.duo .dgap span{font-size:10.5px;color:var(--muted);letter-spacing:.02em}
 @media (max-width:1080px){.duo .dv{font-size:38px}}
 @media (max-width:420px){.duo{flex-wrap:wrap}.duo .dgap{margin-left:0;text-align:left;width:100%}}
-.bsub{font-size:12.5px;color:var(--ink-2);line-height:1.5}
-.bprog{height:8px;border-radius:5px;background:var(--surface-3);border:1px solid var(--line);overflow:visible;margin:15px 0 6px;position:relative}
-.bprog i{display:block;height:100%;border-radius:4px}
-.bprog i.ov{position:absolute;top:0;height:100%;border-radius:0 4px 4px 0}
-.bprog .mk{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--ink-2);opacity:.5;border-radius:1px}
-.bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-family:var(--f-mono)}
-.blab{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;font-family:var(--f-disp);margin-top:18px}
 .blist{margin-top:7px;border-top:1px solid var(--line)}
+.bl .nm .chip-c{vertical-align:0}
 .bl{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
 .bl:last-child{border-bottom:0}
 .bl .nm{flex:1;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -224,6 +264,51 @@ body.simple .adv{display:none!important}
 /* ---------- formats ---------- */
 .gh{font-family:var(--f-disp);font-size:13.5px;margin:0 0 6px}
 .gp{font-size:13px;color:var(--ink-2);line-height:1.6;margin:0 0 9px;max-width:78ch}
+/* le geste principal : déposer un fichier. Le collage reste possible, replié. */
+.drop{display:flex;gap:13px;align-items:center;flex-wrap:wrap;padding:15px 17px;margin-bottom:12px;
+  border:1.5px dashed var(--accent-line);border-radius:10px;background:var(--accent-soft)}
+.dropi{font-size:12.5px;color:var(--ink-2);min-width:0}
+.dropi code{background:var(--surface);border:1px solid var(--accent-line);border-radius:4px;padding:1px 5px;
+  font-family:var(--f-mono);font-size:11.5px}
+.mini.alt > summary{color:var(--muted);font-weight:500}
+.recs{display:grid;grid-template-columns:repeat(auto-fit,minmax(288px,1fr));gap:14px;align-items:stretch}
+.rec{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:11px;
+  background:var(--surface);min-width:0;overflow:hidden}
+.rec-h{display:flex;align-items:center;gap:10px;padding:12px 15px;background:var(--surface-2);
+  border-bottom:1px solid var(--line)}
+.rec-h i{flex:none;width:30px;height:30px;border-radius:8px;background:var(--accent-soft);
+  color:var(--accent);border:1px solid var(--accent-line);display:grid;place-items:center}
+.rec-h i svg{display:block}
+.rec-h > div{min-width:0}
+.rec-h b{display:block;font-family:var(--f-disp);font-size:13.5px;line-height:1.25}
+.rec-h span{font-size:11px;color:var(--muted);letter-spacing:.02em}
+/* un rail vertical : les étapes se lisent comme une suite, sans concurrencer
+   la pastille numérotée de la carte */
+.srail{list-style:none;margin:0;padding:14px 15px 6px;position:relative}
+.srail li{position:relative;padding:0 0 13px 24px;font-size:12.5px;line-height:1.55;color:var(--ink-2)}
+.srail li:last-child{padding-bottom:4px}
+/* une icône par geste : on lit la marche à suivre d'un coup d'œil */
+.srail li{padding-left:31px}
+.srail .si{position:absolute;left:0;top:-1px;width:22px;height:22px;border-radius:6px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);
+  display:grid;place-items:center}
+.srail .si svg{display:block}
+.srail li:not(:last-child)::after{content:"";position:absolute;left:10.5px;top:23px;bottom:0;width:1px;
+  background:var(--line)}
+.srail li b{color:var(--ink);font-weight:600}
+.srail code{background:var(--surface-3);border-radius:4px;padding:1px 5px;font-family:var(--f-mono);font-size:11.5px}
+.srail mark{background:var(--warn);color:#3a2a00;border-radius:4px;padding:0 5px;font-weight:600}
+/* la destination : où le fichier atterrit dans l'outil */
+.rec-in{margin:0;padding:10px 15px;font-size:12px;color:var(--ink-2);background:var(--accent-soft);
+  border-top:1px solid var(--accent-line);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.rec-in span{color:var(--accent);font-weight:700;flex:none}
+.rec-in b{color:var(--ink)}
+.rec-in code{background:var(--surface);border:1px solid var(--accent-line);border-radius:4px;padding:0 5px;
+  font-family:var(--f-mono);font-size:11px}
+.rec .codeblk{display:block;white-space:pre-wrap;font-size:11.5px;margin:8px 0 2px;
+  padding:10px 70px 10px 11px;background:var(--surface-2)}
+.rec .pit{max-width:none;margin:auto 0 0;border-radius:0;border:0;border-top:1px solid var(--line);
+  border-left:3px solid var(--warn);background:var(--surface-2);font-size:12px}
 .gmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:4px}
 .gmap div{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
 .gmap > div > b{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--accent);margin-bottom:3px}
@@ -376,9 +461,6 @@ main{max-width:1380px;margin:0 auto;padding:22px 20px 72px}
 .fact .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;font-family:var(--f-disp)}
 .fact .v{font-family:var(--f-mono);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
 
-/* meter */
-.meter{height:7px;border-radius:4px;background:var(--surface-3);overflow:hidden;margin-top:7px;border:1px solid var(--line)}
-.meter i{display:block;height:100%;background:var(--s3);border-radius:3px}
 
 /* ---------- charts ---------- */
 .chartwrap{position:relative;padding:6px 4px 0}
@@ -489,6 +571,7 @@ th[data-tri] .tri.on{opacity:1;color:var(--accent)}
 .pcount{margin-left:auto;font-size:11.5px;color:var(--muted);font-family:var(--f-mono)}
 .phead{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .pill.demo{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.pill.op{background:var(--surface-3);color:var(--ink);border-color:var(--line-2);font-family:var(--f-mono);font-weight:600;font-size:10.5px;padding:1px 7px;letter-spacing:.03em}
 .pill.mag{background:var(--surface-3);color:var(--ink-2);border-color:var(--line-2)}
 .tag{font-family:var(--f-mono);font-size:11px;background:var(--surface-3);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink-2);white-space:nowrap}
 .note{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:11px 14px;font-size:12.5px;color:var(--ink-2)}
@@ -533,12 +616,6 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   .panel,.bcard{break-inside:avoid;box-shadow:none}
   main{max-width:none;padding:0}
   .board{grid-template-columns:repeat(3,1fr);gap:10px}
-  .bcard h3 .btag{display:none}
-  .bcard h3{font-size:13px}
-  .bcard{padding:12px 14px 10px}
-  .duo{margin:10px 0 2px}
-  .duo .dv{font-size:30px}
-  .bnum{font-size:34px;margin:10px 0 2px}
   .blist .bl{padding:6px 0}
   #print-head{display:block!important;margin:0 0 14px;padding:0 0 10px;border-bottom:2px solid #000}
   #print-head b{font-family:var(--f-disp);font-size:17px;letter-spacing:-.01em}
@@ -619,7 +696,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   <!-- ============ TABLEAU DE BORD ============ -->
   <section class="view on" id="v-dash">
     <div class="stack">
-      <div class="board" id="board"></div>
+      <div class="wall" id="board"></div>
 
       <div class="panel">
         <div class="ph">
@@ -677,16 +754,73 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         </div>
       </div>
 
+      <div class="panel">
+        <div class="ph"><h2>Où trouver chaque fichier</h2><span class="sub">La marche à suivre, source par source — tout se fait en fichier, rien ne se retape</span></div>
+        <div class="pb">
+          <div class="recs">
+
+            <article class="rec">
+              <header class="rec-h"><i><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="3" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 11.6V9M8.6 11.6V6.6M11.6 11.6v-3.6M14.6 11.6V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></i><div><b>Export PowerBI</b><span>donne le brut</span></div></header>
+              <ol class="srail">
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M9.5 2.5h4v4M13.5 2.5 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9.8v2.7a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Ouvrir le rapport <b>Volume Réception&nbsp;/ Distribution LOG&nbsp;+&nbsp;MG</b></li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Choisir la <b>période</b> à exporter</li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2" stroke="currentColor" stroke-width="1.5"/><path d="m5.2 8.2 2 2 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Onglet de gauche&nbsp;: <b>Détails lignes PowerBI</b> puis <b>Dimensions</b>,
+                    <mark>tout cocher</mark></li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter les données</b></li>
+              </ol>
+              <div class="pit"><b>L'étape à ne pas sauter&nbsp;: tout cocher.</b> C'est elle qui fait
+                sortir les 50 colonnes. Sans elles, l'outil perd <code>Statut litige</code> — les
+                litiges de réception ne sont plus écartés, la réception MG affiche 396 KO au lieu
+                de 280 — et vos règles automatiques n'ont plus rien à lire.</div>
+              <p class="rec-in"><span>↓</span> Ouvrir le <code>.xlsx</code> dans <b>1 · Export PowerBI</b></p>
+            </article>
+
+            <article class="rec">
+              <header class="rec-h"><i><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><path d="M3 5.4C3 4.1 6.1 3 10 3s7 1.1 7 2.4M3 5.4v9.2C3 15.9 6.1 17 10 17s7-1.1 7-2.4V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 10c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4" stroke="currentColor" stroke-width="1.6"/></svg></i><div><b>Extraction SAP</b><span>rééditions de postes BR</span></div></header>
+              <ol class="srail">
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Lancer <b>Suivi_BR</b> sur la <b>date choisie</b></li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter</b> le résultat</li>
+              </ol>
+              <div class="pit"><b>Après la période, pas pendant.</b> Un poste recréé après la date
+                d'extraction n'y figure pas&nbsp;: il resterait compté en retard.</div>
+              <p class="rec-in"><span>↓</span> Ouvrir le <code>.xlsx</code> dans <b>2 · Extraction SAP</b></p>
+            </article>
+
+            <article class="rec">
+              <header class="rec-h"><i><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="4" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 5.4 10 10.6l7.2-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><div><b>Relevé journalier Distri MG</b><span>les causes déclarées</span></div></header>
+              <ol class="srail">
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Ouvrir le ou les mails — une conversation de plusieurs jours convient</li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M4.6 6V2.6h6.8V6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.2" y="6" width="11.6" height="5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><path d="M4.6 9.6h6.8v3.8H4.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></i><b>Imprimer → Enregistrer en PDF</b></li>
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.2 9.3 6 13 7.3 9.3 8.6 8 12.4 6.7 8.6 3 7.3 6.7 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.4 11.2v2.4M11.2 12.4h2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></i>Demander à <b>Copilot</b> de le mettre en tableau&nbsp;:
+                  <span class="codeblk" data-copy>Je veux que tu transformes les captures présentes dans ce(s) mail(s) en tableau</span></li>
+              </ol>
+              <div class="pit"><b>Pourquoi ce détour.</b> Le relevé arrive en capture d'écran&nbsp;: il
+                n'y a aucun tableau à lire dans le mail. Copilot fait la transcription, l'outil fait le
+                rapprochement. <b>L'ordre des colonnes n'a pas d'importance</b> — elles sont
+                reconnues par leur nom.</div>
+              <p class="rec-in"><span>↓</span> Ouvrir le <code>.xlsx</code> dans <b>3 · Relevé journalier</b></p>
+            </article>
+
+          </div>
+        </div>
+      </div>
+
       <details class="panel" open>
         <summary class="ph"><h2>1 · Export PowerBI</h2><span class="sub">Donne le brut</span></summary>
         <div class="pb">
-          <p class="gp" style="margin:0 0 8px">Collez l'export, ou ouvrez directement le fichier <code>.xlsx</code> ou <code>.csv</code> — aucun besoin de le convertir.</p>
-          <textarea id="ta-export" rows="5" placeholder="Collez ici, en-têtes comprises&#10;Identifiant flux début&#9;Code aire&#9;KPI (Code - Libellé)&#9;Résultat&#9;Date fin&#9;Statut litige"></textarea>
-          <div class="actions">
-            <button class="btn pri" id="btn-parse-export">Analyser</button>
-            <label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="file-export" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
-            <button class="btn" id="btn-clear-export">Effacer</button>
+          <div class="drop">
+            <label class="btn pri big" style="cursor:pointer">Ouvrir l'export PowerBI…<input type="file" id="file-export" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
+            <span class="dropi"><code>.xlsx</code> ou <code>.csv</code>, tel que PowerBI le sort — aucune conversion</span>
           </div>
+          <details class="mini alt"><summary>Ou coller le tableau à la main</summary>
+            <div>
+              <textarea id="ta-export" rows="5" placeholder="Collez ici, en-têtes comprises&#10;Identifiant flux début&#9;Code aire&#9;KPI (Code - Libellé)&#9;Résultat&#9;Date fin&#9;Statut litige"></textarea>
+              <div class="actions">
+                <button class="btn pri" id="btn-parse-export">Analyser le collage</button>
+                <button class="btn" id="btn-clear-export">Effacer</button>
+              </div>
+            </div>
+          </details>
           <details class="mini"><summary>À quoi ça ressemble</summary>
             <div>
               <div class="codeblk" data-copy>Identifiant flux début	Code aire	KPI (Code - Libellé)	Résultat	Date fin	Statut litige
@@ -708,13 +842,19 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       <details class="panel" id="pan-sap">
         <summary class="ph"><h2>2 · Extraction SAP</h2><span class="sub">Réception — la colonne que PowerBI n'a pas</span></summary>
         <div class="pb">
-          <p class="gp" style="margin:0 0 8px">Collez l'extraction, ou ouvrez le <code>.xlsx</code> tel que SAP le sort.</p>
-          <textarea id="ta-sap" rows="5" placeholder="Collez SUIVI_BR_DATE_EM tel quel, en-têtes comprises"></textarea>
-          <div class="actions">
-            <button class="btn pri" id="btn-parse-sap">Analyser</button>
-            <label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="file-sap" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
-            <button class="btn" id="btn-clear-sap">Effacer</button>
+          <div class="drop">
+            <label class="btn pri big" style="cursor:pointer">Ouvrir l'extraction SAP…<input type="file" id="file-sap" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
+            <span class="dropi"><code>Suivi_BR</code> tel que SAP le sort</span>
           </div>
+          <details class="mini alt"><summary>Ou coller l'extraction à la main</summary>
+            <div>
+              <textarea id="ta-sap" rows="5" placeholder="Collez SUIVI_BR_DATE_EM tel quel, en-têtes comprises"></textarea>
+              <div class="actions">
+                <button class="btn pri" id="btn-parse-sap">Analyser le collage</button>
+                <button class="btn" id="btn-clear-sap">Effacer</button>
+              </div>
+            </div>
+          </details>
           <details class="mini"><summary>Pourquoi cette étape change tout</summary>
             <div>
               <p class="gp">Quand un litige se résout, SAP <b>recrée</b> le poste sous un nouveau numéro. Le KPI, lui, compte toujours depuis la première création.</p>
@@ -758,12 +898,19 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
           chaque DT parmi les KO déjà importés du périmètre choisi et les documente là où ils sont réellement,
           à leur vraie date. Une DT que l'export ne porte pas n'est <b>jamais ajoutée</b> — elle est signalée.
           La date ne sert qu'à départager si une même DT a des KO dans plusieurs semaines.</p>
-          <textarea id="ta-releve" rows="5" placeholder="4512345 ; Reliquat ; attente appro&#10;4512346 ; Grues ; grue indisponible"></textarea>
-          <div class="actions">
-            <button class="btn pri" id="btn-parse-releve">Analyser</button>
-            <label class="btn" style="cursor:pointer">Ouvrir le mail ou un fichier…<input type="file" id="file-releve" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
-            <button class="btn" id="btn-clear-releve">Effacer</button>
+          <div class="drop">
+            <label class="btn pri big" style="cursor:pointer">Ouvrir le tableau du relevé…<input type="file" id="file-releve" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
+            <span class="dropi">le <code>.xlsx</code> issu de Copilot, ou le mail en <code>.eml</code> / <code>.mht</code></span>
           </div>
+          <details class="mini alt"><summary>Ou coller les lignes à la main</summary>
+            <div>
+              <textarea id="ta-releve" rows="5" placeholder="4512345 ; Reliquat ; attente appro&#10;4512346 ; Grues ; grue indisponible"></textarea>
+              <div class="actions">
+                <button class="btn pri" id="btn-parse-releve">Analyser le collage</button>
+                <button class="btn" id="btn-clear-releve">Effacer</button>
+              </div>
+            </div>
+          </details>
           <details class="mini"><summary>Trois façons de l'intégrer, et la règle des catégories</summary>
             <div>
               <p class="gp"><b>1 · Le mail directement.</b> Dans Outlook, <i>Fichier → Enregistrer sous</i> en
@@ -910,6 +1057,11 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         <div class="panel">
           <div class="ph"><h2>Sauvegardes</h2><span class="sub">Où vivent les saisies</span></div>
           <div class="pb">
+            <div class="form" style="margin-bottom:14px">
+              <div class="f"><label for="opt-cible">Cible de taux net</label>
+                <input type="number" id="opt-cible" min="50" max="100" step="0.5" style="width:110px">
+                <span class="hint">colore les tuiles du tableau de bord</span></div>
+            </div>
             <div id="store-state"></div>
             <div class="actions">
               <button class="btn pri" id="btn-exp-json">Exporter la base (JSON)</button>
@@ -955,6 +1107,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
             <button class="btn" id="fb-line">Ligne à coller dans index.html</button>
             <button class="btn" id="fb-push">Envoyer mes données locales</button>
             <span class="sp"></span>
+            <button class="btn" id="fb-net">Tester le réseau</button>
             <button class="btn danger" id="fb-forget">Oublier</button>
           </div>
           <div id="fb-out"></div>
@@ -1139,11 +1292,23 @@ const S = {
         q:"", qcat:"", qsrc:"", qst:"", vue:"simple", qscope:"", qshow:40,
         ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
   regles: [],
+  cible: 99,                       /* taux net visé, réglable — colore les tuiles */
   backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
 };
+const LSCIBLE = "taux-net-cible";
+/* Trois bandes plutôt que deux : à 99 % de cible, tout serait rouge et le mur
+   ne dirait plus rien. « proche » distingue ce qui est à portée de ce qui ne l'est pas. */
+function etatTaux(v){
+  if (v == null) return "vide";
+  const c = (+S.cible || 99) / 100;
+  if (v >= c - 1e-9) return "good";
+  if (v >= c - 0.02) return "serious";
+  return "crit";
+}
 const LSKEY = "brut-net-taux-service-v1";
 const CFGKEY = "brut-net-firebase-config";
-const BACKEND_LBL = { local:"Navigateur seul", db:"Base Claude", firebase:"Base partagée Firebase" };
+const BACKEND_LBL = { local:"Navigateur seul", db:"Base Claude", firebase:"Base partagée Firebase",
+  rest:"Base partagée Firebase (sans SDK)" };
 
 function cellId(p, s, sv){ return p + "_" + s + "_" + sv; }
 const LIMREF = 6000;   /* nombre de références de KO gardées par période */
@@ -1172,8 +1337,7 @@ function normCell(c){
     koPostes: Array.isArray(c.koPostes) ? c.koPostes.slice(0, LIMREF).map(x => x == null ? "" : String(x)) : [],
     postesOk: !!c.postesOk,
     jours: normJours(c.jours),
-    koCtx: (c.koCtx && Array.isArray(c.koCtx.c))
-      ? { c:c.koCtx.c, k:c.koCtx.k, d:c.koCtx.d || [], v:c.koCtx.v || [] } : null,
+    koCtx: ctxUnpack(c.koCtx),
     lignes: (Array.isArray(c.lignes) ? c.lignes : []).map(l => ({
       id: l.id || uid(), ref: l.ref || "", cat: CAT[l.cat] ? l.cat : "autre",
       postes: Array.isArray(l.postes) ? l.postes.map(String).filter(Boolean) : [],
@@ -1244,6 +1408,28 @@ function ctxPush(ctx, ligne, indexParNom){
   });
 }
 function ctxFin(ctx){ return ctx ? { c: ctx.c, k: ctx.k, d: ctx.d, v: ctx.v } : null; }
+/* Firestore refuse un tableau directement dans un tableau, et le dictionnaire
+   du contexte en est fait de deux (d et v). On l'écrit donc en texte au moment
+   d'enregistrer, et on le relit indifféremment dans les deux formes : les bases
+   déjà remplies avant ce changement restent lisibles. */
+function ctxPack(x){
+  if (!x || !Array.isArray(x.c)) return null;
+  return { c: x.c, k: Array.isArray(x.k) ? x.k : [],
+    d: typeof x.d === "string" ? x.d : JSON.stringify(x.d || []),
+    v: typeof x.v === "string" ? x.v : JSON.stringify(x.v || []) };
+}
+function ctxUnpack(x){
+  if (!x || !Array.isArray(x.c)) return null;
+  const par = q => { if (Array.isArray(q)) return q;
+    try { const o = JSON.parse(q || "[]"); return Array.isArray(o) ? o : []; } catch(e){ return []; } };
+  return { c: x.c, k: Array.isArray(x.k) ? x.k : [], d: par(x.d), v: par(x.v) };
+}
+/* Le document tel qu'il part dans la base : aucun tableau imbriqué. */
+function pourBase(n){
+  const o = Object.assign({}, n);
+  o.koCtx = ctxPack(n.koCtx);
+  return o;
+}
 /* Les colonnes de date d'une période (pour proposer le bon choix dans une règle). */
 function ctxKind(colonne){
   let k = "";
@@ -1271,6 +1457,34 @@ function ctxColonnes(){
   Object.values(S.cells).forEach(c => (c.koCtx && c.koCtx.c ? c.koCtx.c : []).forEach(n => s.add(n)));
   return Array.from(s).sort((a, b) => a.localeCompare(b, "fr"));
 }
+/* ------------------------- opérateur d'un KO -------------------------
+   En réception, la colonne « ID Collaborateur » de l'export porte le code de
+   l'opérateur qui a traité le flux — TKX, 13M, HGD… — et elle est toujours
+   remplie. En distribution la même colonne porte un code d'emplacement, sans
+   rapport avec une personne : on ne l'affiche donc qu'en réception. */
+const COL_OP = /^(id )?(collaborateur|operateur|utilisateur)/;
+function colOp(cell){
+  const x = cell && cell.koCtx;
+  if (!x || !Array.isArray(x.c)) return "";
+  return x.c.find(n => COL_OP.test(normCol(n))) || "";
+}
+function opKo(cell, i){
+  if (!cell || cell.service !== "recep") return "";
+  const c = colOp(cell); return c ? ctxVal(cell, i, c) : "";
+}
+/* Les opérateurs distincts d'une référence, éventuellement bornée à des postes. */
+function opsRef(cell, ref, postes){
+  if (!cell || cell.service !== "recep") return [];
+  const col = colOp(cell); if (!col) return [];
+  const lim = postes && postes.length ? new Set(postes.map(String)) : null;
+  const s = new Set();
+  (cell.koRefs || []).forEach((r, i) => {
+    if (String(r) !== String(ref)) return;
+    if (lim && !lim.has(String((cell.koPostes || [])[i] || ""))) return;
+    const v = ctxVal(cell, i, col); if (v) s.add(v);
+  });
+  return Array.from(s).sort();
+}
 /* Valeurs vues pour une colonne, les plus fréquentes d'abord. */
 function ctxValeurs(colonne, max){
   const n = {};
@@ -1296,6 +1510,23 @@ function loadLocal(){
     return m;
   } catch(e){ return null; }
 }
+/* Fusion d'un instantané de la base avec ce que ce navigateur a en mémoire.
+   La base ne fait pas systématiquement autorité : si une écriture vient d'être
+   refusée, l'instantané est plus ancien que le travail local, et l'adopter tel
+   quel effacerait des justifications saisies à la main. On garde donc la version
+   la plus récente de chaque période, et toutes les périodes que la base n'a pas
+   encore vues tant qu'une écriture est en vol ou en échec. */
+function mergeSnapshot(distant){
+  const local = S.cells || {};
+  const out = {};
+  for (const id in distant){
+    const d = distant[id], l = local[id];
+    out[id] = (l && l.maj && d.maj && l.maj > d.maj) ? l : d;
+  }
+  if (S.pending || S.writeErr)
+    for (const id in local) if (!out[id]) out[id] = local[id];
+  return out;
+}
 function setStatus(kind, txt){
   const d = $("#sv-dot"), t = $("#sv-txt");
   if (!d) return;
@@ -1306,13 +1537,16 @@ function remoteSet(n){
      refus opaque venu d'un undefined arrivé jusqu'ici. */
   if (!n || typeof n !== "object" || !n.id)
     return Promise.reject(new Error("période introuvable au moment d'écrire"));
-  if (S.backend === "db") return S.db.doc(FB_COLLECTION + "/" + n.id).set(n);
-  if (S.backend === "firebase") return S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, n.id), n);
+  const doc = pourBase(n);
+  if (S.backend === "db") return S.db.doc(FB_COLLECTION + "/" + n.id).set(doc);
+  if (S.backend === "firebase") return S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, n.id), doc);
+  if (S.backend === "rest") return restSet(n.id, doc);
   return Promise.resolve();
 }
 function remoteDel(id){
   if (S.backend === "db") return S.db.doc(FB_COLLECTION + "/" + id).delete();
   if (S.backend === "firebase") return S.fb.m.deleteDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, id));
+  if (S.backend === "rest") return restDel(id);
   return Promise.resolve();
 }
 const errCode = e => (e && (e.code || e.message)) ? String(e.code || e.message).slice(0, 90) : "erreur";
@@ -1334,6 +1568,11 @@ function fbDiag(code){
   if (/api-key|invalid.*key/.test(c))
     return { t:"Clé d'API refusée",
       d:"Vérifiez que la configuration collée est bien celle de l'application Web du projet." };
+  if (/invalid.argument|nested array|not supported/.test(c))
+    return { t:"La base refuse la forme du document",
+      d:"Firestore n'accepte pas un tableau placé directement dans un tableau. L'outil met le " +
+        "contexte des KO en texte avant de l'écrire depuis cette version : si le message revient, " +
+        "c'est qu'un autre champ est en cause — signalez-le, il se corrige au niveau du code." };
   return null;
 }
 async function putCell(c){
@@ -1378,6 +1617,14 @@ async function bulkPut(list){
     else { S.writeErr = null; setStatus("ok", "Enregistré dans la base"); }
   }
   render();
+}
+/* La base injoignable relève du même bandeau : le code d'erreur seul, enfoui
+   dans les réglages, n'aide personne. */
+function connectFail(code){
+  const d = fbDiag(code);
+  S.writeErr = { ko:0, total:0, code: code || "connexion refusée",
+    t: d ? d.t : "La base n'a pas pu être jointe", d: d ? d.d : "",
+    connexion: true, when: new Date().toISOString() };
 }
 /* Une écriture refusée doit dire pourquoi et quoi faire. Le compte seul —
    « 3 écritures refusées » — n'apprend rien et laisse croire à une perte. */
@@ -1468,7 +1715,9 @@ function migrateCtx(){
   const changed = [];
   Object.values(S.cells).forEach(c => {
     const x = c.koCtx;
-    if (!x || !Array.isArray(x.c) || x.k) return;
+    /* k absent, ou désaligné parce que le contexte vient d'une version
+       antérieure : on le recalcule et on remet les valeurs en clair. */
+    if (!x || !Array.isArray(x.c) || (Array.isArray(x.k) && x.k.length === x.c.length)) return;
     x.k = x.c.map(h => { const n = normCol(h);
       return CTX_EST_DATE.test(n) ? "date" : CTX_EST_HEURE.test(n) ? "heure" : ""; });
     x.c.forEach((nom, j) => {
@@ -1745,7 +1994,8 @@ function toQualify(){
     if (reste <= 0) continue;
     libres.sort(cmpPoste);
     if (libres.length > reste) libres = libres.slice(0, reste);
-    out.push({ cell:g.cell, ref:g.ref, n:reste, total:totalCell, postes:libres, d:g.d || "" });
+    out.push({ cell:g.cell, ref:g.ref, n:reste, total:totalCell, postes:libres, d:g.d || "",
+      ops: opsRef(g.cell, g.ref, libres.length ? libres : null) });
   }
   return out;
 }
@@ -2531,17 +2781,12 @@ function renderDash(){
   const crit = ctr.filter(c => c.k === "crit").length, warn = ctr.filter(c => c.k === "warn").length;
   const per = perimAgg();
 
-  const lo = a.brut == null ? 90 : Math.max(70, Math.min(95, Math.floor((a.brut * 100 - 2) / 5) * 5));
-  const px = v => v == null ? 0 : Math.max(0, Math.min(100, (v * 100 - lo) / (100 - lo) * 100));
-  const li = (nm, vl, drill, tip) => '<div class="bl"' + (drill ? ' data-drill="' + esc(drill) + '" title="' + esc(tip || "Voir le détail") + '"' : "") +
-    '><span class="nm">' + esc(nm) + '</span><span class="vl">' + vl + "</span></div>";
-
   if (!a.flux){
     const sd = sansDetail();
     const jourVide = S.ui.maille === "jour" && sd.length;
-    $("#board").innerHTML = '<div class="bcard" style="grid-column:1/-1"><h3>' +
+    $("#board").innerHTML = '<div class="wt"><h3>' +
       (jourVide ? "Le détail au jour manque sur ces périodes" : "Aucune donnée sur ce périmètre") + "</h3>" +
-      '<div class="bsub" style="margin-top:10px">' + (jourVide
+      '<div class="wnum-l" style="margin-top:10px">' + (jourVide
         ? n0(sd.length) + " période(s) sont bien enregistrées, mais leur export a été chargé avant que l'outil compte les flux <b>par date</b>. " +
           "Réimportez un export pour les lire au jour — ou revenez en maille <b>Semaine</b>."
         : "Élargissez la plage de périodes, ou importez un export dans l'onglet <b>Import</b>.") + "</div>" +
@@ -2553,60 +2798,99 @@ function renderDash(){
     return;
   }
 
-  const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man }))
-    .filter(r => r.n > 0.5).sort((x, y) => y.n - x.n);
+  const cible = (+S.cible || 99) / 100;
+  /* Le meter part d'un plancher qui laisse voir l'écart : à 93-97 % pour une
+     cible à 99, une échelle 0-100 tasserait tout dans le dernier centimètre. */
+  const vals = [a.brut, a.net].concat(per.map(p => p.a.net)).filter(v => v != null);
+  const bas = Math.min.apply(null, vals.concat([cible])) * 100;
+  const lo = Math.max(0, Math.floor((bas - 1) / 2) * 2);
+  const px = v => v == null ? 0 : Math.max(0, Math.min(100, (v * 100 - lo) / (100 - lo) * 100));
 
-  const bn = (br, nt) => '<span class="mono">' + pf(br) + '</span> <span class="ar">→</span> <span class="mono st">' + pf(nt) + "</span>";
-  const c1 = '<div class="bcard">' +
-    '<h3><i class="chip-c" style="background:var(--s3)"></i>Taux de service<span class="btag">' + esc(rangeLabel()) + "</span></h3>" +
-    '<div class="duo"><div class="di"><span class="dk">Brut</span>' +
-      '<span class="dv">' + dec(a.brut * 100, 1) + "<small>%</small></span></div>" +
-      '<div class="di net"><span class="dk">Net</span>' +
-      '<span class="dv">' + dec(a.net * 100, 1) + "<small>%</small></span></div>" +
-      '<div class="dgap"><b>' + ptf(a.net - a.brut) + "</b><span>expliqués</span></div></div>" +
-    '<div class="bsub">' + n0(a.flux) + " flux · " + n0(a.ko) + " KO, dont " + n0(a.jtot) + " justifiés</div>" +
-    '<div class="bprog"><i title="taux brut" style="width:' + px(a.brut).toFixed(1) + '%;background:var(--s1)"></i>' +
-      '<i class="ov" title="part expliquée" style="left:' + px(a.brut).toFixed(1) + '%;width:' + Math.max(0, px(a.net) - px(a.brut)).toFixed(1) + '%;background:var(--s3)"></i></div>' +
-    '<div class="bscale"><span>' + dec(lo, 0) + " %</span><span>100 %</span></div>" +
-    '<div class="blab">Brut → net par périmètre</div><div class="blist">' +
-      per.map(p => li(p.l, p.a.flux ? bn(p.a.brut, p.a.net) : "—", p.a.flux ? "perim|" + p.si + "|" + p.sv + "|dash" : "",
-        "N'afficher que " + p.l)).join("") + "</div>" +
+  const ICO = { good:"✓", serious:"!", crit:"!" };
+  const etatNet = etatTaux(a.net);
+  const ecart = a.net == null ? null : (a.net - cible) * 100;
+
+  /* ---- tuile 1 : le taux, face à la cible ---- */
+  const t1 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s3)"></i>Taux de service net' +
+      '<span class="btag">' + esc(rangeLabel()) + "</span></h3>" +
+    '<div class="wnum">' + dec(a.net * 100, 1) + "<small>%</small></div>" +
+    '<div class="wnum-l">Brut <b>' + pf(a.brut) + "</b> · " + ptf(a.net - a.brut) + " expliqués · " +
+      (ecart >= 0 ? "<b>cible atteinte</b>" : "<b>" + dec(Math.abs(ecart), 1) + " pt</b> sous la cible de " +
+        dec(S.cible, 0) + " %") + "</div>" +
+    '<div class="meter" role="img" aria-label="Taux brut ' + pf(a.brut) + ", net " + pf(a.net) +
+      ", cible " + dec(S.cible, 0) + ' %">' +
+      '<i title="brut" style="left:0;width:' + px(a.brut).toFixed(1) + '%;background:var(--s1)"></i>' +
+      '<i class="n" title="part expliquée" style="left:' + px(a.brut).toFixed(1) + '%;width:' +
+        Math.max(0, px(a.net) - px(a.brut)).toFixed(1) + '%;background:var(--s3)"></i>' +
+      '<span class="tgt" data-l="cible ' + dec(S.cible, 0) + ' %" style="left:' + px(cible).toFixed(1) + '%"></span></div>' +
+    '<div class="mscale"><span>' + dec(lo, 0) + " %</span><span>100 %</span></div>" +
+    '<div class="blist" style="margin-top:2px">' +
+      [["Brut", a.brut, "var(--s1)", n0(a.flux) + " flux · " + n0(a.ko) + " KO"],
+       ["Documenté", a.docu, "var(--s2)", n0(a.jdoc) + " KO prouvés par les données"],
+       ["Net", a.net, "var(--s3)", a.jtot - a.jdoc < 0.5
+          ? "aucune saisie manuelle en plus"
+          : "+ " + n0(a.jtot - a.jdoc) + " KO justifiés à la main"]
+      ].map(([k, v, col, d]) =>
+        '<div class="bl"><span class="nm"><i class="chip-c" style="background:' + col + '"></i> ' + k +
+        ' <span class="muted" style="font-size:11.5px">' + esc(d) + "</span></span>" +
+        '<span class="vl mono">' + pf(v) + "</span></div>").join("") + "</div>" +
     '<div class="bcta"><button class="btn sm" id="btn-defs">Que veulent dire brut, documenté et net&nbsp;?</button></div></div>';
 
-  const c2 = '<div class="bcard">' +
-    '<h3><i class="chip-c" style="background:var(--s2)"></i>Retards expliqués</h3>' +
-    '<div class="bnum">' + n0(a.jtot) + "<small>sur " + n0(a.ko) + " KO</small></div>" +
-    '<div class="bsub">' + (a.jdoc >= a.jtot - 0.5
-      ? "Tous prouvables sans aucune saisie manuelle."
-      : n0(a.jdoc) + " prouvables sans saisie, " + n0(a.jtot - a.jdoc) + " justifiés à la main.") + "</div>" +
-    '<div class="bprog"><i style="width:' + (a.ko ? Math.min(100, a.jtot / a.ko * 100) : 0).toFixed(1) + '%;background:var(--s2)"></i></div>' +
-    '<div class="bscale"><span>' + (a.ko ? dec(a.jtot / a.ko * 100, 0) : "0") + " % des KO</span><span>100 %</span></div>" +
-    '<div class="blab">Principales causes</div><div class="blist">' +
-      (cats.length ? cats.slice(0, 4).map(c => li(c.l, n0(c.n), "cat|" + c.k, "Voir les retards « " + c.l + " »")).join("")
-        : '<div class="bl"><span class="nm">Aucune cause enregistrée</span><span class="vl">—</span></div>') + "</div>" +
-    '<div class="bcta"><button class="btn sm" data-tabgo="qualif">Voir le détail</button></div></div>';
+  /* ---- tuile 2 : les causes, en barres ---- */
+  const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man }))
+    .filter(r => r.n > 0.5).sort((x, y) => y.n - x.n).slice(0, 6);
+  const maxC = cats.length ? cats[0].n : 1;
+  const t2 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s2)"></i>Retards expliqués' +
+      '<span class="btag">' + n0(a.jtot) + " KO</span></h3>" +
+    (cats.length
+      ? '<div class="hbars">' + cats.map(c =>
+          '<div class="hb" data-drill="cat|' + esc(c.k) + '" title="Voir les retards « ' + esc(c.l) + ' »">' +
+          '<span class="hbl">' + esc(c.l) + '</span><span class="hbv">' + n0(c.n) + "</span>" +
+          '<span class="hbt"><i style="width:' + Math.max(2, c.n / maxC * 100).toFixed(1) + '%"></i></span></div>').join("") + "</div>"
+      : '<div class="wempty">Aucune cause enregistrée sur cette plage.</div>') +
+    '<div class="bcta"><button class="btn sm" data-tabgo="qualif">Voir le registre</button></div></div>';
 
+  /* ---- tuile 3 : les plus gros lots encore sans décision ---- */
   const q = toQualify();
   const qKo = q.reduce((s, r) => s + r.n, 0);
-  const ecartees = Math.max(0, Math.round(a.reste) - qKo);   /* examinés, jugés non justifiants */
-  const parPer = {};
-  q.forEach(r => { const k = r.cell.site + "|" + r.cell.service; parPer[k] = (parPer[k] || 0) + r.n; });
-  const c3 = '<div class="bcard">' +
-    '<h3><i class="chip-c" style="background:var(--muted)"></i>Restent à justifier</h3>' +
-    '<div class="bnum">' + n0(a.reste) + "<small>KO</small></div>" +
-    '<div class="bsub">' + (q.length
-      ? n0(qKo) + " sans décision sur " + n0(q.length) + " demande" + (q.length > 1 ? "s" : "") +
-        " — une DT ou un BR porte plusieurs postes." +
-        (ecartees ? " " + n0(ecartees) + " déjà examinés et écartés." : "")
-      : "Aucune référence chargée : importez un export pour les faire apparaître.") + "</div>" +
-    '<div class="bprog"><i style="width:' + (a.ko ? Math.min(100, a.reste / a.ko * 100) : 0).toFixed(1) + '%;background:var(--line-2)"></i></div>' +
-    '<div class="bscale"><span>' + (a.ko ? dec(a.reste / a.ko * 100, 0) : "0") + " % des KO</span><span>100 %</span></div>" +
-    '<div class="blab">Par périmètre</div><div class="blist">' +
-      per.map(p => li(p.l, n0(p.a.reste), p.a.reste ? "perim|" + p.si + "|" + p.sv + "|justif" : "",
-        "Ouvrir les retards à justifier de " + p.l)).join("") + "</div>" +
+  const ecartees = Math.max(0, Math.round(a.reste) - qKo);
+  const top = q.slice().sort((x, y) => y.n - x.n || String(x.ref).localeCompare(String(y.ref))).slice(0, 7);
+  const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--muted)"></i>Les plus gros lots à traiter' +
+      '<span class="btag">' + n0(a.reste) + " KO</span></h3>" +
+    (top.length
+      ? '<div class="rank">' + top.map(r =>
+          '<div class="rk" data-ko="' + esc(r.cell.id) + "|" + esc(r.ref) + "|" + r.n + "|" + esc(r.d || "") + '"' +
+          ' title="Ouvrir la fiche de ' + esc(r.ref) + '">' +
+          '<span class="rkn">' + esc(r.ref) + "</span>" +
+          '<span class="rkl">' + esc(perLabel(r.cell.periode) + " · " + SITES[r.cell.site].l + " · " +
+            (r.cell.service === "distri" ? "Distri" : "Récep")) +
+            ((r.ops || []).length ? " · " + esc(r.ops.slice(0, 2).join(", ")) : "") + "</span>" +
+          '<span class="rkv">' + n0(r.n) + "</span></div>").join("") + "</div>"
+      : '<div class="wempty">Rien en attente sur cette plage.</div>') +
+    '<div class="wnum-l" style="margin:10px 0 0">' + (q.length
+        ? n0(qKo) + " KO sans décision sur " + n0(q.length) + " demande" + sPl(q.length) +
+          (ecartees ? " · " + n0(ecartees) + " examinés et écartés" : "")
+        : "Importez un export pour les faire apparaître.") + "</div>" +
     '<div class="bcta"><button class="btn pri sm" data-tabgo="justif">Ouvrir la liste</button></div></div>';
 
-  $("#board").innerHTML = c1 + c2 + c3;
+  /* ---- rangée de tuiles : un périmètre chacune ---- */
+  const actif = (si, sv) => S.ui.site === si && S.ui.serv === sv;
+  const tuiles = per.map(p => {
+    if (!p.a.flux) return '<div class="kt vide"><span class="ktt">' + esc(p.l) + "</span>" +
+      '<span class="ktv">—</span><span class="ktd">aucun flux</span></div>';
+    const e = etatTaux(p.a.net);
+    const d = (p.a.net - cible) * 100;
+    return '<div class="kt ' + e + (actif(p.si, p.sv) ? " on" : "") + '" data-drill="perim|' + p.si + "|" + p.sv + '|dash"' +
+      ' title="N\'afficher que ' + esc(p.l) + '">' +
+      '<span class="ktt">' + esc(p.l) + '<span class="ic" aria-hidden="true">' + ICO[e] + "</span></span>" +
+      '<span class="ktv">' + dec(p.a.net * 100, 1) + " %</span>" +
+      '<span class="ktd">' + (d >= 0 ? "cible atteinte" : dec(d, 1) + " pt / cible") + "</span>" +
+      '<span class="ktr">brut ' + pf(p.a.brut) + " · " + n0(p.a.reste) + " à justifier</span></div>";
+  }).join("");
+
+  $("#board").innerHTML =
+    '<div class="wrow a">' + t1 + t2 + t3 + "</div>" +
+    '<div class="wrow b">' + tuiles + "</div>";
   $("#ctrl-sub").textContent = crit ? crit + " point(s) à corriger" : warn ? warn + " point(s) à trancher" : "Rien à signaler";
   $("#ctrls").innerHTML = ctr.map(c =>
     '<div class="alert ' + c.k + '"><span class="ic">' + (c.k === "ok" ? "✓" : "!") + '</span>' +
@@ -2653,7 +2937,8 @@ function renderQualifies(){
   const sel = flat.filter(({ c, l }) =>
     (!S.ui.qsrc || l.src === S.ui.qsrc) && (!S.ui.qst || l.st === S.ui.qst) && (!S.ui.qcat || l.cat === S.ui.qcat) &&
     (!qs || (l.ref + " " + (l.postes || []).join(" ") + " " + (CAT[l.cat] ? CAT[l.cat].l : l.cat) +
-             " " + l.com + " " + perLabel(c.periode)).toLowerCase().includes(qs)))
+             " " + l.com + " " + perLabel(c.periode) + " " + opsRef(c, l.ref, l.postes).join(" ")
+            ).toLowerCase().includes(qs)))
     .sort(triReg);
   const cs2 = $("#q-cat");
   if (cs2 && document.activeElement !== cs2){
@@ -2702,6 +2987,7 @@ function cmpTri(a, b, cle){
     case "ref":    return String(a.ref).localeCompare(String(b.ref), "fr", { numeric:true });
     case "ko":     return a.n - b.n;
     case "per":    return a.cell.periode.localeCompare(b.cell.periode);
+    case "op":     return String((a.ops || [])[0] || "").localeCompare(String((b.ops || [])[0] || ""), "fr");
     default:       return 0;
   }
 }
@@ -2732,8 +3018,11 @@ function renderAJustifier(){
           " — " + n0(lots[id]) + " KO</option>"; }).join("");
   }
   const ajq = sansZeros(S.ui.ajq || "").toLowerCase();
+  /* La colonne n'apparaît que si la sélection contient de la réception : en
+     distribution, « ID Collaborateur » porte un emplacement, pas une personne. */
+  const opVisible = qAll.some(r => (r.ops || []).length);
   qList = (S.ui.qscope ? qAll.filter(r => r.cell.id === S.ui.qscope) : qAll)
-    .filter(r => !ajq || (String(r.ref) + " " + r.postes.join(" ")).toLowerCase().includes(ajq))
+    .filter(r => !ajq || (String(r.ref) + " " + r.postes.join(" ") + " " + (r.ops || []).join(" ")).toLowerCase().includes(ajq))
     .slice().sort(triAJ);
   const qKo = qList.reduce((s, r) => s + r.n, 0);
   $("#q-all-lbl").textContent = "Tout cocher (" + n0(qList.length) + ")";
@@ -2747,6 +3036,7 @@ function renderAJustifier(){
       th("ref", "Référence", S.ui.ajTri, S.ui.ajSens) +
       th("date", "Date", S.ui.ajTri, S.ui.ajSens) +
       th("ko", "KO", S.ui.ajTri, S.ui.ajSens, "n") +
+      (opVisible ? th("op", "Opérateur", S.ui.ajTri, S.ui.ajSens) : "") +
       th("per", "Période · périmètre", S.ui.ajTri, S.ui.ajSens) +
       '<th class="n">Qualifier en un clic</th></tr></thead><tbody>' +
       qList.slice(0, show).map(r => {
@@ -2758,6 +3048,10 @@ function renderAJustifier(){
           '<td class="ref nowrap muted">' + frDay(r.d) + "</td>" +
           '<td class="n"' + (r.n > 1 ? ' style="color:var(--ink)"' : ' style="color:var(--muted)"') + ">" + r.n +
             (part ? '<span class="muted" style="font-weight:400"> / ' + r.total + "</span>" : "") + "</td>" +
+          (opVisible ? '<td class="nowrap">' + ((r.ops || []).length
+              ? (r.ops || []).slice(0, 3).map(o => '<span class="pill op">' + esc(o) + "</span>").join(" ") +
+                ((r.ops || []).length > 3 ? ' <span class="muted">+' + ((r.ops || []).length - 3) + "</span>" : "")
+              : '<span class="muted">—</span>') + "</td>" : "") +
           '<td class="nowrap muted">' + perLabel(r.cell.periode) + " · " + SITES[r.cell.site].l + " · " + (r.cell.service === "distri" ? "Distri" : "Récep") + "</td>" +
           '<td><div class="qq">' + qk.map(k => '<button data-qq="' + r.cell.id + tail + k + "|" + r.n + '">' + esc(CAT[k].l) + "</button>").join("") +
           '<button class="more" data-qq="' + r.cell.id + tail + "_more|" + r.n + '">Autre…</button></div></td></tr>';
@@ -2900,8 +3194,9 @@ function renderDonnees(){
   const cells = Object.values(S.cells);
   const nl = cells.reduce((s, c) => s + c.lignes.length, 0);
   const maj = cells.length ? cells.map(c => c.maj).sort().pop() : null;
-  const back = S.backend === "firebase"
-    ? '<span class="pill manuel">Base partagée</span> Les saisies partent dans Firebase : tout le monde voit et alimente les mêmes chiffres, en direct.'
+  const back = (S.backend === "firebase" || S.backend === "rest")
+    ? '<span class="pill manuel">Base partagée</span> Les saisies partent dans Firebase : tout le monde voit et alimente les mêmes chiffres' +
+      (S.backend === "rest" ? ", relus toutes les minutes (le SDK est bloqué par le réseau, l'outil passe par l'API directe)." : ", en direct.")
     : S.backend === "db"
     ? '<span class="pill manuel">Base en ligne</span> Les saisies sont enregistrées dans l\'outil : elles vous suivent d\'un appareil à l\'autre et restent visibles par les personnes avec qui vous partagez le lien.'
     : '<span class="pill rejet">Navigateur seul</span> Aucune base connectée : les saisies restent sur ce navigateur. Exportez le JSON pour ne rien perdre, ou connectez la base partagée ci-dessous.';
@@ -2940,13 +3235,18 @@ function renderFb(){
   const cfg = fbConfig();
   const fromFile = !!(FIREBASE_CONFIG && FIREBASE_CONFIG.projectId);
   const sub = $("#fb-sub");
-  if (sub) sub.textContent = S.backend === "firebase"
-    ? "Connectée au projet " + cfg.projectId
+  const jointe = S.backend === "firebase" || S.backend === "rest";
+  if (sub) sub.textContent = jointe
+    ? "Connectée au projet " + cfg.projectId + (S.backend === "rest" ? " — sans SDK" : "")
     : cfg ? "Configuration présente, base non jointe" : "Non connectée — les saisies restent sur ce navigateur";
-  if (S.backend === "firebase"){
+  if (jointe){
     el.innerHTML = '<div class="note" style="border-left-color:var(--good)"><b>Connecté au projet <code>' + esc(cfg.projectId) + "</code>.</b> " +
       (fromFile ? "La configuration est écrite dans le fichier : tous ceux qui ouvrent la page arrivent sur la même base."
-                : "La configuration n'est enregistrée que sur ce navigateur — collez-la dans <code>index.html</code> pour que l'équipe l'ait aussi.") + "</div>";
+                : "La configuration n'est enregistrée que sur ce navigateur — collez-la dans <code>index.html</code> pour que l'équipe l'ait aussi.") +
+      (S.backend === "rest"
+        ? " <b>Le SDK Firebase est bloqué par le réseau</b> : l'outil parle directement à l'API Firestore, sans script externe. " +
+          "Tout fonctionne, à ceci près que les changements d'un collègue arrivent à la minute plutôt qu'à la seconde."
+        : "") + "</div>";
   } else if (cfg){
     const dg = fbDiag(S.fbError);
     el.innerHTML = '<div class="note" style="border-left-color:var(--crit)"><b>' +
@@ -2995,7 +3295,9 @@ function renderBanner(){
   const e = S.writeErr;
   if (!e){ host.innerHTML = ""; return; }
   host.innerHTML = '<div class="wban"><div class="wb-main"><b>' + esc(e.t) + "</b> — " +
-    n0(e.ko) + " période(s) sur " + n0(e.total) + " n'ont pas été écrites dans la base." +
+    (e.connexion
+      ? "l'outil travaille sur la copie de ce navigateur."
+      : n0(e.ko) + " période" + sPl(e.ko) + " sur " + n0(e.total) + " n'ont pas été écrites dans la base.") +
     '<div class="wb-d">' + (e.d || "") +
       " <b>Rien n'est perdu</b> : tout est enregistré sur ce navigateur. Réessayez une fois le " +
       "problème réglé, ou exportez la sauvegarde JSON depuis les réglages." + "</div>" +
@@ -3004,7 +3306,14 @@ function renderBanner(){
       '<button class="btn sm" id="wb-hide">Masquer</button></div></div>';
   $("#wb-hide").addEventListener("click", () => { S.writeErr = null; render(); });
   $("#wb-retry").addEventListener("click", async () => {
+    const cnx = e.connexion;
     S.writeErr = null; render();
+    if (cnx){
+      const cfg = fbConfig();
+      if (cfg && await connectFirebase(cfg)){ toast("Base rejointe"); return; }
+      if (!cfg) toast("Aucune base configurée", true);
+      return;
+    }
     await bulkPut(Object.values(S.cells));
     if (!S.writeErr) toast("Base à jour");
   });
@@ -3767,6 +4076,7 @@ function openFicheKo(cid, ref, n, d){
       f("Service", SERVS[c.service].l) +
       f("KO restants", n0(reste) + (dejaFait ? " sur " + n0(total) : ""), true) +
       f("Postes connus", postes.length ? n0(postes.length) : "non — qualification par quantité", true) +
+      ((q && (q.ops || []).length) ? f("Opérateur", q.ops.join(", "), true) : "") +
       f("Poids dans la période", c.ko ? dec(reste / c.ko * 100, 1) + " % des KO" : "—", true) + "</div>" +
     bloc +
     '<div class="flab" style="margin-top:18px">Donner une cause</div>' +
@@ -4153,14 +4463,176 @@ function fbConfig(){
 const FB_RULES = "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /" +
   FB_COLLECTION + "/{document} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}";
 
+/* ------------------- Firestore sans SDK, en REST -------------------
+   Le SDK Firebase se charge depuis gstatic.com. Beaucoup de réseaux
+   d'entreprise bloquent ce domaine : la page n'a alors aucune base, alors que
+   l'API REST de Firestore — sur googleapis.com — suffirait. Ce bloc parle
+   directement à cette API : aucun script externe, comme le lecteur XLSX.
+
+   Firestore encode ses valeurs par type (stringValue, mapValue, arrayValue…) ;
+   ces deux fonctions traduisent dans les deux sens. Un tableau ne peut toujours
+   pas contenir un tableau — pourBase s'en charge en amont. */
+function fsEnc(v){
+  if (v === null || v === undefined) return { nullValue: null };
+  if (typeof v === "boolean") return { booleanValue: v };
+  if (typeof v === "number")
+    return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+  if (Array.isArray(v)) return { arrayValue: { values: v.map(fsEnc) } };
+  if (typeof v === "object"){
+    const f = {}; for (const k in v) f[k] = fsEnc(v[k]);
+    return { mapValue: { fields: f } };
+  }
+  return { stringValue: String(v) };
+}
+function fsDec(v){
+  if (!v || typeof v !== "object") return null;
+  if ("nullValue" in v) return null;
+  if ("booleanValue" in v) return !!v.booleanValue;
+  if ("integerValue" in v) return parseInt(v.integerValue, 10);
+  if ("doubleValue" in v) return Number(v.doubleValue);
+  if ("stringValue" in v) return v.stringValue;
+  if ("timestampValue" in v) return v.timestampValue;
+  if ("arrayValue" in v) return (v.arrayValue.values || []).map(fsDec);
+  if ("mapValue" in v){
+    const o = {}, f = v.mapValue.fields || {};
+    for (const k in f) o[k] = fsDec(f[k]);
+    return o;
+  }
+  return null;
+}
+const fsFields = o => { const f = {}; for (const k in o) f[k] = fsEnc(o[k]); return f; };
+const fsObj = d => { const o = {}, f = (d && d.fields) || {}; for (const k in f) o[k] = fsDec(f[k]); return o; };
+
+const REST = { tok:"", exp:0, cfg:null };
+function restBase(){
+  return "https://firestore.googleapis.com/v1/projects/" + REST.cfg.projectId +
+    "/databases/(default)/documents/";
+}
+/* Session anonyme : le même geste que signInAnonymously, en une requête. */
+async function restAuth(){
+  if (REST.tok && Date.now() < REST.exp - 60000) return REST.tok;
+  const r = await fetch("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
+    encodeURIComponent(REST.cfg.apiKey), { method:"POST", headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ returnSecureToken:true }) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok){
+    const e = new Error((j.error && j.error.message) || "auth-failed");
+    e.code = (j.error && j.error.message) || "auth-failed";
+    if (/ADMIN_ONLY|OPERATION_NOT_ALLOWED/i.test(e.code)) e.code = "auth/operation-not-allowed";
+    throw e;
+  }
+  REST.tok = j.idToken;
+  REST.exp = Date.now() + (parseInt(j.expiresIn, 10) || 3600) * 1000;
+  return REST.tok;
+}
+async function restCall(path, opts){
+  const tok = await restAuth();
+  const r = await fetch(restBase() + path, Object.assign({}, opts, {
+    headers: Object.assign({ "Content-Type":"application/json", "Authorization":"Bearer " + tok },
+      (opts && opts.headers) || {}) }));
+  if (r.status === 404) return null;
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok){
+    const e = new Error((j.error && j.error.message) || ("HTTP " + r.status));
+    e.code = r.status === 403 || r.status === 401 ? "permission-denied"
+      : r.status === 400 ? "invalid-argument" : ("http-" + r.status);
+    throw e;
+  }
+  return j;
+}
+async function restGetAll(){
+  const out = [];
+  let page = "";
+  for (let i = 0; i < 30; i++){
+    const j = await restCall(FB_COLLECTION + "?pageSize=300" + (page ? "&pageToken=" + encodeURIComponent(page) : ""));
+    if (!j) break;
+    (j.documents || []).forEach(d => {
+      const id = String(d.name || "").split("/").pop();
+      out.push({ id, data: fsObj(d) });
+    });
+    page = j.nextPageToken || "";
+    if (!page) break;
+  }
+  return out;
+}
+const restSet = (id, obj) => restCall(FB_COLLECTION + "/" + encodeURIComponent(id),
+  { method:"PATCH", body: JSON.stringify({ fields: fsFields(obj) }) });
+const restDel = id => restCall(FB_COLLECTION + "/" + encodeURIComponent(id), { method:"DELETE" });
+
+/* Rafraîchissement périodique : le REST n'a pas d'écoute temps réel, on relit
+   la collection de loin en loin et après chaque écriture. */
+let restTimer = null;
+async function restRefresh(){
+  try {
+    const docs = await restGetAll();
+    const m = {};
+    docs.forEach(({ id, data:o }) => {
+      if (id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+      if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = id; m[c.id] = c; }
+    });
+    S.cells = mergeSnapshot(m); saveLocal();
+    if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré dans la base");
+    if (!afterLoad()) render();
+    return true;
+  } catch(e){ return false; }
+}
+async function connectRest(cfg){
+  REST.cfg = cfg; REST.tok = ""; REST.exp = 0;
+  await restAuth();                                   /* lève si l'auth est refusée */
+  const docs = await restGetAll();
+  S.backend = "rest"; S.fbAuth = true;
+  if (!docs.length){
+    for (const c of Object.values(S.cells)){
+      try { await restSet(c.id, pourBase(normCell(c))); }
+      catch(e){ if (!S.writeErr) writeFail(1, Object.keys(S.cells).length, e); }
+    }
+  }
+  await restRefresh();
+  clearInterval(restTimer);
+  restTimer = setInterval(() => { if (!S.pending) restRefresh(); }, 60000);
+  setStatus("ok", "Enregistré dans la base");
+  render();
+  return true;
+}
+
+/* Ce que le réseau laisse passer, domaine par domaine : de quoi savoir si le
+   problème vient du CDN, de l'API, ou des deux — et quoi demander à la DSI. */
+async function netProbe(cfg){
+  const out = [];
+  const essai = async (nom, url, opts) => {
+    const t0 = Date.now();
+    try { await fetch(url, Object.assign({ cache:"no-store" }, opts || {}));
+      out.push({ nom, ok:true, ms:Date.now() - t0 });
+    } catch(e){ out.push({ nom, ok:false, err:String(e.message || e).slice(0, 70) }); }
+  };
+  await essai("gstatic.com — le SDK Firebase",
+    "https://www.gstatic.com/firebasejs/" + FIREBASE_SDK_VERSION + "/firebase-app.js");
+  await essai("identitytoolkit.googleapis.com — la session",
+    "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + encodeURIComponent(cfg.apiKey),
+    { method:"POST", headers:{ "Content-Type":"application/json" }, body:"{}" });
+  await essai("firestore.googleapis.com — les données",
+    "https://firestore.googleapis.com/v1/projects/" + cfg.projectId + "/databases/(default)/documents/" + FB_COLLECTION + "?pageSize=1");
+  return out;
+}
+
 async function connectFirebase(cfg){
   S.fbError = "";
   setStatus("busy", "Connexion à la base…");
   const base = "https://www.gstatic.com/firebasejs/" + FIREBASE_SDK_VERSION + "/";
   try {
     if (S.fbUnsub){ try { S.fbUnsub(); } catch(e){} S.fbUnsub = null; }
-    const appMod = await import(base + "firebase-app.js");
-    const fsMod = await import(base + "firebase-firestore.js");
+    let appMod, fsMod;
+    try {
+      appMod = await import(base + "firebase-app.js");
+      fsMod = await import(base + "firebase-firestore.js");
+    } catch(e){
+      /* CDN bloqué : on parle à Firestore en REST, sans aucun script externe. */
+      S.fbSdk = false;
+      try { return await connectRest(cfg); }
+      catch(e2){ S.fbError = errCode(e2); S.backend = "local"; S.fb = null;
+        connectFail(S.fbError); setStatus("local", "Base injoignable — copie locale"); render(); return false; }
+    }
+    S.fbSdk = true;
     if (appMod.getApps){
       const old = appMod.getApps().find(a => a.name === "brutnet");
       if (old && appMod.deleteApp){ try { await appMod.deleteApp(old); } catch(e){} }
@@ -4175,16 +4647,22 @@ async function connectFirebase(cfg){
     const col = fsMod.collection(db, FB_COLLECTION);
     const snap = await fsMod.getDocs(col);
     S.fb = { db, m: fsMod, app }; S.backend = "firebase";
+    /* Semis d'une base vide : le document doit passer par pourBase comme
+       n'importe quelle autre écriture, sinon un tableau imbriqué fait échouer
+       la connexion entière et l'outil se déclare « injoignable ». */
     if (snap.empty){
-      for (const c of Object.values(S.cells)) await fsMod.setDoc(fsMod.doc(db, FB_COLLECTION, c.id), c);
+      for (const c of Object.values(S.cells)){
+        try { await fsMod.setDoc(fsMod.doc(db, FB_COLLECTION, c.id), pourBase(normCell(c))); }
+        catch(e){ if (!S.writeErr) writeFail(1, Object.keys(S.cells).length, e); }
+      }
     }
     S.fbUnsub = fsMod.onSnapshot(col, s => {
       const m = {};
       s.forEach(d => { const o = d.data();
         if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
         if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
-      S.cells = m; saveLocal();
-      if (!S.pending) setStatus("ok", "Enregistré dans la base");
+      S.cells = mergeSnapshot(m); saveLocal();
+      if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré dans la base");
       if (!afterLoad()) render();
     }, err => {
       S.fbError = errCode(err); S.backend = "local"; S.fb = null;
@@ -4197,6 +4675,7 @@ async function connectFirebase(cfg){
     /* l'échec de l'authentification explique souvent le refus qui suit */
     S.fbError = (S.fbAuth === false && S.fbAuthErr) ? S.fbAuthErr : errCode(e);
     S.backend = "local"; S.fb = null;
+    connectFail(S.fbError);
     setStatus("local", "Base injoignable — copie locale"); render();
     return false;
   }
@@ -4242,9 +4721,44 @@ function bindFb(){
     await bulkPut(Object.values(local));
     toast(Object.keys(local).length + " période(s) envoyée(s)");
   });
+  const ci = $("#opt-cible");
+  if (ci){
+    ci.value = S.cible;
+    ci.addEventListener("change", () => {
+      const v = Math.max(50, Math.min(100, +ci.value || 99));
+      S.cible = v; ci.value = v;
+      try { localStorage.setItem(LSCIBLE, String(v)); } catch(e){}
+      render(); toast("Cible à " + dec(v, 0) + " %");
+    });
+  }
+  const bnet = $("#fb-net");
+  if (bnet) bnet.addEventListener("click", async () => {
+    const cfg = fbConfig();
+    if (!cfg){ toast("Aucune configuration à tester", true); return; }
+    const out = $("#fb-out");
+    out.innerHTML = '<div class="note" style="margin-top:14px">Test en cours…</div>';
+    const r = await netProbe(cfg);
+    const bloques = r.filter(x => !x.ok);
+    out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:' +
+      (bloques.length ? "var(--warn)" : "var(--good)") + '"><b>' +
+      (bloques.length ? n0(bloques.length) + " domaine(s) bloqué(s) sur 3" : "Les trois domaines répondent") + "</b>" +
+      '<div class="facts" style="margin-top:9px;border-radius:8px;border:1px solid var(--line)">' +
+      r.map(x => '<div class="fact"><span class="k">' + esc(x.nom) + '</span><span class="v">' +
+        (x.ok ? '<span class="pill manuel">joignable</span> <span class="muted">' + x.ms + " ms</span>"
+              : '<span class="pill rejet">bloqué</span>') + "</span></div>").join("") + "</div>" +
+      (bloques.length
+        ? '<div class="muted" style="margin-top:9px;font-size:12px">À demander à la DSI : autoriser ' +
+          esc(bloques.map(x => x.nom.split(" —")[0]).join(", ")) + ". " +
+          (r[0] && !r[0].ok && r[1] && r[1].ok && r[2] && r[2].ok
+            ? "<b>Seul le CDN est bloqué</b> : l\'outil sait s\'en passer, il parle directement à l\'API Firestore."
+            : "") + "</div>"
+        : '<div class="muted" style="margin-top:9px;font-size:12px">Si la base reste injoignable, la cause est ailleurs : règles Firestore, ou authentification anonyme non activée.</div>') +
+      "</div>";
+  });
   $("#fb-forget").addEventListener("click", () => {
     try { localStorage.removeItem(CFGKEY); } catch(e){}
     if (S.fbUnsub){ try { S.fbUnsub(); } catch(e){} S.fbUnsub = null; }
+    clearInterval(restTimer);
     S.fb = null; S.backend = "local"; S.fbError = "";
     setStatus("local", "Enregistré sur ce navigateur");
     $("#fb-out").innerHTML = "";
@@ -4316,12 +4830,13 @@ $("#btn-xls-just").addEventListener("click", async () => {
   const list = regList || [];
   if (!list.length){ toast("Aucune justification sur ce filtre", true); return; }
   const head = ["Date du flux", "Jour", "Période", "Site", "Service", "Référence", "Postes",
-                "Cause", "Justifie le net", "KO retirés", "Source", "Statut", "Commentaire"];
+                "Opérateur", "Cause", "Justifie le net", "KO retirés", "Source", "Statut", "Commentaire"];
   const rows = [head].concat(list.map(({ c, l }) => {
     const d = l.d || dateOfRef(c, l.ref);
     return [ frDay(d), d ? frWeekday(d) : "", perLabel(c.periode) + " (" + weekSpan(c.periode) + ")",
       SITES[c.site].l, SERVS[c.service].l,
       l.ref || "lot", (l.postes || []).join(", "),
+      opsRef(c, l.ref, l.postes).join(", "),
       CAT[l.cat] ? CAT[l.cat].l : l.cat, (CAT[l.cat] && CAT[l.cat].j) ? "oui" : "non",
       l.st === "ok" ? l.nb : 0, SRC[l.src] || l.src,
       l.st === "rejet" ? "écartée" : "retenue", l.com || "" ];
@@ -4329,9 +4844,9 @@ $("#btn-xls-just").addEventListener("click", async () => {
   /* une ligne de total, pour que le fichier se défende tout seul */
   const tot = list.reduce((s, x) => s + (x.l.st === "ok" ? x.l.nb : 0), 0);
   rows.push([]);
-  rows.push(["Total", "", rangeLabel(), "", "", "", "", "", "", tot, "", "", n0(list.length) + " justification(s)"]);
+  rows.push(["Total", "", rangeLabel(), "", "", "", "", "", "", "", tot, "", "", n0(list.length) + " justification(s)"]);
   const buf = xlsxBuild([
-    { name:"Retards justifiés", rows, opts:{ widths:[13, 11, 22, 13, 14, 15, 14, 24, 14, 11, 13, 11, 46] } }
+    { name:"Retards justifiés", rows, opts:{ widths:[13, 11, 22, 13, 14, 15, 14, 13, 24, 14, 11, 13, 11, 46] } }
   ]);
   const per = rangeKeys();
   const bornes = per.length ? per[0].replace(/-/g, "") + "-" + per[per.length - 1].replace(/-/g, "") : stamp();
@@ -4712,8 +5227,13 @@ function wiz1(){
   openModal('<div class="ph"><h2>Mettre à jour la semaine</h2><span class="sub">Étape 1 sur 4 — environ 5 minutes en tout</span></div>' +
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
-    '<div class="wq">Collez l\'export PowerBI</div>' +
-    '<p class="wh">Dans Excel&nbsp;: sélectionnez <b>la ligne d\'en-têtes et toutes les lignes</b>, copiez, puis collez ci-dessous. L\'outil compte le brut tout seul et vous montre ce qu\'il a trouvé. <b>Rien n\'est enregistré</b> avant que vous validiez.</p>' +
+    '<div class="wq">L\'export PowerBI</div>' +
+    '<p class="wh"><b>Volume Réception / Distribution LOG + MG</b> → choisir la période → onglet de gauche, ' +
+    '<b>Détails lignes PowerBI</b> et <b>Dimensions</b>, <b>tout cocher</b> → <b>Exporter les données</b>. ' +
+    'Puis <i>Ouvrir un fichier…</i> ci-dessous avec le <code>.xlsx</code> — inutile de le convertir ou de le coller. ' +
+    'Le « tout cocher » n\'est pas un détail&nbsp;: sans lui il manque <code>Statut litige</code>, et les litiges de ' +
+    'réception ne sont plus écartés. L\'outil compte le brut tout seul et vous montre ce qu\'il a trouvé&nbsp;: ' +
+    '<b>rien n\'est enregistré</b> avant que vous validiez.</p>' +
     '<textarea id="wz-ta" rows="6" placeholder="Identifiant flux début&#9;Code aire&#9;KPI (Code - Libellé)&#9;Résultat&#9;Date fin&#9;Statut litige"></textarea>' +
     '<div class="actions"><button class="btn pri" id="wz-an">Analyser le collage</button>' +
     '<label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
@@ -4739,8 +5259,10 @@ function wizSap(){
   openModal('<div class="ph"><h2>Mettre à jour la semaine</h2><span class="sub">Étape 2 sur 4 — réception uniquement</span></div>' +
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
-    '<div class="wq">Collez l\'extraction SAP des postes BR</div>' +
-    '<p class="wh">C\'est la colonne qui manque à l\'export PowerBI. Quand un litige se résout, SAP <b>recrée le poste BR</b> sous un nouveau numéro&nbsp;: le KPI, lui, continue de compter depuis la première création. L\'outil recalcule le délai réel depuis la recréation et documente les postes qui tiennent l\'objectif. Sans cette étape, ces KO restent comptés comme des retards.</p>' +
+    '<div class="wq">L\'extraction SAP des postes BR</div>' +
+    '<p class="wh"><b>Suivi_BR</b> sur la date choisie, exporter, puis <i>Ouvrir un fichier…</i> ci-dessous. ' +
+    'Extrayez <b>après</b> la période&nbsp;: un poste recréé plus tard n\'y figurerait pas. ' +
+    'C\'est la colonne qui manque à l\'export PowerBI. Quand un litige se résout, SAP <b>recrée le poste BR</b> sous un nouveau numéro&nbsp;: le KPI, lui, continue de compter depuis la première création. L\'outil recalcule le délai réel depuis la recréation et documente les postes qui tiennent l\'objectif. Sans cette étape, ces KO restent comptés comme des retards.</p>' +
     '<textarea id="wz-ta" rows="6" placeholder="Type Magasin&#9;N° BR&#9;N° poste BR&#9;N° Poste Référence&#9;Date de création du poste BR&#9;Date EM&#9;Circuit Court"></textarea>' +
     '<div class="actions"><button class="btn pri" id="wz-an">Analyser l\'extraction</button>' +
     '<label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
@@ -4770,7 +5292,13 @@ function wiz2(){
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
     '<div class="wq">Le relevé journalier Distri MG</div>' +
-    '<p class="wh">Collez les relevés de toute la semaine d\'un coup, ou ouvrez le mail. L\'outil cherche chaque DT parmi les KO déjà importés et les documente là où ils sont — il n\'ajoute jamais une DT que l\'export ne porte pas. Une ligne par DT&nbsp;: <code>numéro ; catégorie ; commentaire</code>, ou un tableau avec ses en-têtes. Les catégories <i>Urgences</i>, <i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
+    '<p class="wh">Le relevé arrive en capture d\'écran&nbsp;: <b>Imprimer → Enregistrer en PDF</b> le ou les mails ' +
+    '(une conversation de plusieurs jours convient), puis demander à <b>Copilot</b> ' +
+    '«&nbsp;<i>transforme les captures présentes dans ce(s) mail(s) en tableau</i>&nbsp;» et ouvrir le ' +
+    '<code>.xlsx</code> obtenu ci-dessous. L\'ordre des colonnes n\'a pas d\'importance, elles sont reconnues par ' +
+    'leur nom. L\'outil <b>cherche</b> chaque DT parmi les KO déjà importés et les documente là où ils sont, à leur ' +
+    'vraie date&nbsp;: il n\'ajoute jamais une DT que l\'export ne porte pas. Les catégories <i>Urgences</i>, ' +
+    '<i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
     '<div class="form" style="margin-bottom:11px">' +
     '<div class="f"><label for="wz-date">Semaine, si besoin</label><input type="date" id="wz-date" value="' + mid + '"><span class="hint" id="wz-week">' + esc(perLong(last)) + "</span></div>" +
     '<div class="f"><label for="wz-site">Site</label><select id="wz-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>' +
@@ -4833,6 +5361,7 @@ function wiz3(){
   chargeReglesLocal();
   setStatus("local", "Enregistré sur ce navigateur");
   if (!afterLoad()) render();
+  try { const c = parseFloat(localStorage.getItem(LSCIBLE)); if (isFinite(c) && c > 0) S.cible = c; } catch(e){}
   connectStore();
 })();
 
@@ -4845,7 +5374,10 @@ async function connectStore(){
       setStatus("busy", "Connexion à la base…");
       try {
         const snap = await db.collection(FB_COLLECTION).get();
-        if (snap.empty) for (const c of Object.values(S.cells)) await db.doc(FB_COLLECTION + "/" + c.id).set(c);
+        if (snap.empty) for (const c of Object.values(S.cells)){
+          try { await db.doc(FB_COLLECTION + "/" + c.id).set(pourBase(normCell(c))); }
+          catch(e){ if (!S.writeErr) writeFail(1, Object.keys(S.cells).length, e); }
+        }
       } catch(e){
         S.backend = "local"; S.db = null;
         setStatus("local", "Base indisponible — copie locale"); render(); return;
@@ -4855,12 +5387,8 @@ async function connectStore(){
         snap.docs.forEach(d => { const o = d.data();
           if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
           if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
-        /* Tant qu'une écriture est en vol, l'instantané peut être antérieur :
-           il compléterait alors la base mais ferait disparaître la période que
-           l'import vient tout juste de créer. On garde le local dans ce cas. */
-        if (S.pending) Object.values(S.cells).forEach(c => { if (!m[c.id]) m[c.id] = c; });
-        S.cells = m; saveLocal();
-        if (!S.pending) setStatus("ok", "Enregistré en ligne");
+        S.cells = mergeSnapshot(m); saveLocal();
+        if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré en ligne");
         if (!afterLoad()) render();
       }, () => { S.backend = "local"; S.db = null; setStatus("local", "Base interrompue — copie locale"); render(); });
       setStatus("ok", "Enregistré en ligne"); render();
