@@ -1406,6 +1406,11 @@ function normCell(c){
     postesOk: !!c.postesOk,
     jours: normJours(c.jours),
     koCtx: ctxUnpack(c.koCtx),
+    /* Postes recréés après litige, relevés dans SAP : « BR-poste » → la date de
+       recréation, le poste d'origine et le délai recompté depuis cette date.
+       C'est la seule base honnête pour ces lignes — le litige a arrêté le temps,
+       et le KPI, lui, continue de compter depuis l'arrivée du BR. */
+    reed: (c.reed && typeof c.reed === "object" && !Array.isArray(c.reed)) ? c.reed : null,
     lignes: (Array.isArray(c.lignes) ? c.lignes : []).map(l => ({
       id: l.id || uid(), ref: l.ref || "", cat: CAT[l.cat] ? l.cat : "autre",
       postes: Array.isArray(l.postes) ? l.postes.map(String).filter(Boolean) : [],
@@ -1576,6 +1581,20 @@ function opDispo(cells){
     if (c.koCtx && (c.koCtx.c || []).length){ ctx = true; if (colOp(c)) col = true; }
   });
   return { ctx, col };
+}
+/* Ce que SAP dit de la recréation des postes d'une référence. */
+function reedRef(cell, ref, postes){
+  const m = cell && cell.reed; if (!m) return [];
+  const lim = postes && postes.length ? postes.map(String) : null;
+  const out = [];
+  for (const k in m){
+    const p = k.lastIndexOf("-"); if (p < 0) continue;
+    if (sansZeros(k.slice(0, p)) !== sansZeros(ref)) continue;
+    const poste = k.slice(p + 1);
+    if (lim && lim.indexOf(poste) < 0) continue;
+    out.push(Object.assign({ poste }, m[k]));
+  }
+  return out.sort((a, b) => cmpPoste(a.poste, b.poste));
 }
 /* Valeurs vues pour une colonne, les plus fréquentes d'abord. */
 function ctxValeurs(colonne, max){
@@ -3771,6 +3790,10 @@ async function applyExport(){
       note: "Export du " + new Date().toLocaleDateString("fr-FR"),
       demo: false, koRefs: c.refs, koDates: c.dates, koPostes: c.postes || [], postesOk: true,
       jours: c.jours || {}, koCtx: ctxFin(c.ctx),
+      /* La base de calcul des postes recréés vient de SAP, pas de l'export : un
+         réimport PowerBI ne doit pas l'effacer, sans quoi elle serait à refaire
+         toutes les semaines — comme l'étaient les justifications manuelles. */
+      reed: ex ? ex.reed : null,
       lignes: ex ? ex.lignes : []
     };
   });
@@ -4046,6 +4069,12 @@ function koCount(c, it){
   }
   return n;
 }
+/* Une quantité SAP : « 2.000 », « 2,000 » ou vide. */
+function nbSap(v){
+  if (v == null || String(v).trim() === "") return null;
+  const n = parseFloat(String(v).replace(",", "."));
+  return isFinite(n) ? n : null;
+}
 function analyseSap(src){
   const OUT = $(SAP_OUT);
   const rows = Array.isArray(src) ? src : parseTable(src);
@@ -4065,19 +4094,69 @@ function analyseSap(src){
     cc:   findCol(heads, [h => h.includes("circuit court")]),
     hcre: findCol(heads, [h => h.includes("heure") && h.includes("creation") && h.includes("poste"),
                           h => h.includes("heure") && h.includes("creation")]),
-    hem:  findCol(heads, [h => h === "heure em", h => h.includes("heure") && h.includes("em")])
+    hem:  findCol(heads, [h => h === "heure em", h => h.includes("heure") && h.includes("em")]),
+    /* Une recréation ne porte pas toujours un poste de référence : elle se
+       reconnaît alors au poste de commande, repris à l'identique. */
+    cmd:  findCol(heads, [h => h === "n commande", h => h.includes("n commande") && !h.includes("poste")]),
+    pcmd: findCol(heads, [h => h.includes("n poste commande"), h => h.includes("poste commande")]),
+    qc:   findCol(heads, [h => h.includes("qte commandee"), h => h.includes("quantite commandee")]),
+    qb:   findCol(heads, [h => h === "qte bl", h => h.includes("qte bl")])
   };
+  /* Les colonnes de litige, toutes formes confondues : c'est le signe que le BR a
+     bien connu un incident, donc qu'un poste recréé plus tard le résout. */
+  const cLit = heads.map((h, k) => k).filter(k => /^litige/.test(heads[k]));
   const miss = ["br", "ps", "ref", "cre", "em"].filter(k => ci[k] < 0);
   if (miss.length){
     OUT.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Colonnes introuvables.</b> Il faut <code>N° BR</code>, <code>N° poste BR</code>, <code>N° Poste Référence</code>, <code>Date de création du poste BR</code> et <code>Date EM</code>. En-têtes lus : ' + esc(rows[0].slice(0, 40).join(" · ")) + "</div>";
     return;
   }
-  const items = [], stat = { lignes:rows.length - 1, reed:0, sansDate:0, urgSansHeure:0 };
+  /* ---- premier passage : qui remplace qui ----
+     Le poste de référence ne couvre qu'une partie des recréations. L'autre forme
+     reprend le même poste de commande sur un poste BR créé plus tard : le nouveau
+     poste solde ce qui manquait au premier. Mesuré sur l'extraction du 03/09 :
+     198 postes recréés, dont 125 portent un poste de référence — les deux signaux
+     concordent — et 73 ne se voient qu'ainsi. Les 649 postes créés au même instant
+     sont de simples éclatements de ligne, et sont écartés. */
+  const grp = {}, brLit = {};
+  for (let i = 1; i < rows.length; i++){
+    const r = rows[i], br = sansZeros(r[ci.br]);
+    if (!br) continue;
+    if (cLit.some(k => String(r[k] == null ? "" : r[k]).trim())) brLit[br] = 1;
+    if (ci.cmd < 0 || ci.pcmd < 0) continue;
+    const cmd = String(r[ci.cmd] == null ? "" : r[ci.cmd]).trim(), pc = sansZeros(r[ci.pcmd]);
+    if (!cmd || !pc || pc === "0") continue;
+    const cre = parseDT(r[ci.cre], ci.hcre >= 0 ? r[ci.hcre] : null);
+    if (!cre) continue;
+    const g = grp[br + "|" + cmd + "|" + pc] = grp[br + "|" + cmd + "|" + pc] || [];
+    g.push({ t:cre.d.getTime(), poste:sansZeros(r[ci.ps]),
+      court: nbSap(r[ci.qb]) != null && nbSap(r[ci.qc]) != null && nbSap(r[ci.qb]) < nbSap(r[ci.qc]) });
+  }
+  for (const k in grp) grp[k].sort((a, b) => a.t - b.t);
+  /* Le poste que celui-ci remplace, ou "" s'il n'en remplace aucun. */
+  const remplace = r => {
+    const direct = String(r[ci.ref] == null ? "" : r[ci.ref]).trim();
+    if (direct && direct !== "0") return { anc: sansZeros(direct), deduit:false };
+    if (ci.cmd < 0 || ci.pcmd < 0) return null;
+    const br = sansZeros(r[ci.br]);
+    const cmd = String(r[ci.cmd] == null ? "" : r[ci.cmd]).trim(), pc = sansZeros(r[ci.pcmd]);
+    const cre = parseDT(r[ci.cre], ci.hcre >= 0 ? r[ci.hcre] : null);
+    if (!cmd || !pc || pc === "0" || !cre) return null;
+    const g = grp[br + "|" + cmd + "|" + pc];
+    if (!g || g.length < 2) return null;
+    const prem = g[0];
+    if (!(cre.d.getTime() > prem.t)) return null;       /* même instant = éclatement */
+    /* on exige la trace de l'incident que la recréation vient résoudre */
+    if (!brLit[br] && !prem.court) return null;
+    return { anc: prem.poste, deduit:true };
+  };
+
+  const items = [], stat = { lignes:rows.length - 1, reed:0, sansDate:0, urgSansHeure:0, deduits:0 };
   for (let i = 1; i < rows.length; i++){
     const r = rows[i];
-    const anc = String(r[ci.ref] == null ? "" : r[ci.ref]).trim();
-    if (!anc || anc === "0") continue;
-    stat.reed++;
+    const rp = remplace(r);
+    if (!rp) continue;
+    const anc = rp.anc;
+    stat.reed++; if (rp.deduit) stat.deduits++;
     /* SAP remplit ses numéros de zéros à gauche : on les enlève pour retomber
        sur la même écriture que l'export PowerBI et que les saisies. */
     const br = sansZeros(r[ci.br]), ps = sansZeros(r[ci.ps]);
@@ -4091,11 +4170,11 @@ function analyseSap(src){
       if (cre.t && em.t) reel = Math.max(0, (em.d.getTime() - cre.d.getTime()) / 36e5);
       else stat.urgSansHeure++;
     } else reel = joursOuvres(toUTCDay(cre.d), toUTCDay(em.d));
-    items.push({ key: br + "-" + ps, ref: br, poste: String(ps), anc, site: AIRE2SITE[String(r[ci.mag] == null ? "" : r[ci.mag]).trim().toUpperCase()] || null,
+    items.push({ key: br + "-" + ps, ref: br, poste: String(ps), anc, deduit: rp.deduit, site: AIRE2SITE[String(r[ci.mag] == null ? "" : r[ci.mag]).trim().toUpperCase()] || null,
       per: weekKey(em.d), urg, reel, unite: urg ? "h" : "j", obj: urg ? 3 : 2,
       cre: toUTCDay(cre.d), em: toUTCDay(em.d) });
   }
-  const plan = {}, res = { ko:0, doc:0, hors:0, deja:0, tard:0 };
+  const plan = {}, reed = {}, res = { ko:0, doc:0, hors:0, deja:0, tard:0 };
   for (const it of items){
     const cands = it.site ? [cellId(it.per, it.site, "recep")]
       : [cellId(it.per, "mag", "recep"), cellId(it.per, "log", "recep")];
@@ -4107,18 +4186,30 @@ function analyseSap(src){
     }
     if (!hit){ res.hors++; continue; }
     res.ko++;
+    /* La recréation est notée pour TOUT poste retrouvé, même quand le délai reste
+       au-delà de l'objectif : le KO est alors mérité, mais il doit se lire sur la
+       bonne base. Sans cela la fiche continue d'afficher l'arrivée du BR, donc un
+       délai que le litige a gonflé. */
+    (reed[hit.id] = reed[hit.id] || {})[it.key] = {
+      cre: it.cre.toISOString().slice(0, 10), anc: String(it.anc), dd: it.deduit ? 1 : 0,
+      reel: it.reel == null ? null : Math.round(it.reel * 100) / 100,
+      u: it.unite, obj: it.obj };
     if (hit.lignes.some(l => l.cat === "reedition" && l.st === "ok" &&
         (String(l.ref) === it.key || (String(l.ref) === it.ref && (l.postes || []).map(String).indexOf(it.poste) >= 0)))){ res.deja++; continue; }
     if (it.reel == null || it.reel > it.obj){ res.tard++; continue; }
     res.doc++;
     (plan[hit.id] = plan[hit.id] || []).push({ it, n });
   }
-  sapDraft = { plan, res, stat };
+  sapDraft = { plan, reed, res, stat };
   const cellsTouched = Object.keys(plan);
   const gain = cellsTouched.reduce((s, id) => s + plan[id].reduce((x, p) => x + p.n, 0), 0);
+  /* postes dont la base de calcul n'est pas encore enregistrée sur la période */
+  let nReed = 0;
+  for (const cid in reed){ const c = S.cells[cid]; if (!c) continue;
+    for (const k in reed[cid]) if (!(c.reed && c.reed[k])) nReed++; }
   OUT.innerHTML =
-    '<div class="note" style="margin:16px 0 12px"><b>' + n0(stat.reed) + " poste(s) réédité(s)</b> sur " + n0(stat.lignes) +
-      " lignes lues. " + n0(res.ko) + " correspondent à un flux en KO chargé dans l'outil, dont <b>" + n0(res.doc) +
+    '<div class="note" style="margin:16px 0 12px"><b>' + n0(stat.reed) + " poste(s) recréé(s)</b> sur " + n0(stat.lignes) +
+      " lignes lues" + (stat.deduits ? ", dont " + n0(stat.deduits) + " sans poste de référence, reconnus au poste de commande" : "") + ". " + n0(res.ko) + " correspondent à un flux en KO chargé dans l'outil, dont <b>" + n0(res.doc) +
       " à documenter</b> (délai réel depuis la recréation ≤ objectif)." +
       '<div class="muted" style="margin-top:5px">' +
         (res.tard ? n0(res.tard) + " restent en retard réel · " : "") +
@@ -4136,18 +4227,43 @@ function analyseSap(src){
         "</tbody></table></div>" +
         (SAP_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-sap">Documenter ' + n0(gain) + " KO</button>" +
           '<span class="muted" style="font-size:12px">Enregistré en source « automatique » : la pièce est l\'extraction SAP.</span></div>' : "")
-      : '<div class="note" style="border-left-color:var(--warn)">Rien à documenter : aucun poste réédité ne correspond à un KO chargé, ou ils sont déjà enregistrés.</div>');
-  if (SAP_APPLY && cellsTouched.length) $("#btn-apply-sap").addEventListener("click", applySap);
+      : "") +
+    /* Même sans rien à justifier, il reste quelque chose à enregistrer : la base de
+       calcul des postes recréés. Sans ce bouton, les 55 postes encore en retard
+       continuaient d'afficher un délai compté depuis l'arrivée du BR. */
+    (!cellsTouched.length && nReed
+      ? '<div class="note" style="margin-bottom:12px">Aucun KO de plus à justifier — les postes conformes sont déjà enregistrés. ' +
+        "Il reste <b>" + n0(nReed) + " poste" + sPl(nReed) + " recréé" + sPl(nReed) + "</b> dont le délai doit se compter " +
+        "depuis la recréation et non depuis l'arrivée du BR, " + n0(res.tard) + " étant encore en retard sur cette base.</div>" +
+        (SAP_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-sap">Corriger la base de calcul de ' +
+          n0(nReed) + " poste" + sPl(nReed) + "</button>" +
+          '<span class="muted" style="font-size:12px">Aucun taux ne bouge : seule la date de départ du délai est rétablie.</span></div>' : "")
+      : (!cellsTouched.length && !nReed
+        ? '<div class="note"' + (res.ko ? "" : ' style="border-left-color:var(--warn)"') + ">" +
+          (res.ko
+            ? "<b>Rien à reprendre — tout est déjà en place.</b> Les " + n0(res.ko) +
+              " postes recréés qui correspondent à un KO chargé sont enregistrés, base de calcul comprise. " +
+              "Vous pouvez redéposer ce fichier autant de fois que vous voulez."
+            : "Rien à reprendre : aucun poste recréé ne correspond à un KO chargé. " +
+              "Le plus souvent : la semaine n'est pas importée, ou ces postes ne sont pas en KO dans l'export.") +
+          "</div>" : ""));
+  if (SAP_APPLY && (cellsTouched.length || nReed)) $("#btn-apply-sap").addEventListener("click", applySap);
   if (typeof wizReady === "function"){
     wizReady(true);
     const nx = $("#wz-next");
-    if (nx) nx.textContent = cellsTouched.length ? "Documenter " + n0(gain) + " KO et continuer" : "Rien à documenter — continuer";
+    if (nx) nx.textContent = cellsTouched.length ? "Documenter " + n0(gain) + " KO et continuer"
+      : nReed ? "Corriger " + n0(nReed) + " base(s) de calcul et continuer" : "Rien à documenter — continuer";
   }
 }
 async function applySap(){
   if (!sapDraft) return;
-  const out = Object.entries(sapDraft.plan).map(([cid, list]) => {
-    const c = S.cells[cid];
+  const reed = sapDraft.reed || {};
+  /* toutes les périodes touchées : celles qu'on justifie, et celles où l'on n'a
+     qu'une base de calcul à corriger */
+  const ids = new Set(Object.keys(sapDraft.plan).concat(Object.keys(reed)));
+  const out = [...ids].map(cid => {
+    const c = S.cells[cid]; if (!c) return null;
+    const list = sapDraft.plan[cid] || [];
     /* on ne remplace que les justifications portant exactement ce poste :
        les autres postes de la même demande gardent leur cause */
     const vises = {};
@@ -4159,13 +4275,20 @@ async function applySap(){
     };
     const add = list.map(({ it, n }) => ({ id:uid(), ref:it.ref, postes:[it.poste], cat:"reedition", nb:n, src:"auto",
       d: it.em.toISOString().slice(0, 10),
-      com: "Poste recréé le " + frDate(it.cre) + " (ancien poste " + it.anc + ") — délai réel " +
+      com: "Poste recréé le " + frDate(it.cre) + " (ancien poste " + it.anc +
+           (it.deduit ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
            fmtDelai(it.reel, it.unite) + " pour un objectif de " + it.obj + (it.unite === "h" ? " h" : " j ouvrés"), st:"ok" }));
-    return Object.assign({}, c, { lignes: c.lignes.filter(l => !vise(l)).concat(add) });
-  });
+    return Object.assign({}, c, { lignes: c.lignes.filter(l => !vise(l)).concat(add),
+      reed: Object.assign({}, c.reed || {}, reed[cid] || {}) });
+  }).filter(Boolean);
   const gain = Object.values(sapDraft.plan).reduce((s, l) => s + l.reduce((x, p) => x + p.n, 0), 0);
   await bulkPut(out);
-  $(SAP_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + n0(gain) + " KO documentés.</b> Ils apparaissent en « Litige BR réédité » dans le registre.</div>";
+  const nb = Object.values(reed).reduce((s2, m) => s2 + Object.keys(m).length, 0);
+  $(SAP_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)">' +
+    (gain ? "<b>" + n0(gain) + " KO documentés.</b> Ils apparaissent en « Litige BR réédité » dans le registre." : "") +
+    (nb ? (gain ? " Et " : "<b>") + n0(nb) + " poste" + sPl(nb) + " recréé" + sPl(nb) + (gain ? " " : "</b> ") +
+      (nb > 1 ? "comptent" : "compte") + " désormais leur délai depuis la recréation, y compris " +
+      (nb > 1 ? "ceux" : "celui") + " qui restent en retard." : "") + "</div>";
   toast(n0(gain) + " KO documentés"); sapDraft = null;
 }
 $("#btn-parse-sap").addEventListener("click", () => analyseSap($("#ta-sap").value));
@@ -4376,12 +4499,12 @@ function ctxBloc(c, ref, postes){
       if (hv.length === 1) suf = "  " + hv[0];
       else if (hv.length > 1) suf = "  de " + hv[0] + " à " + hv[hv.length - 1];
     }
-    return (v.length === 1 ? v[0] : abrege(v)) + (v.length === 1 ? suf : "");
+    return (v.length <= 3 ? v.join(" · ") : abrege(v)) + (v.length === 1 ? suf : "");
   };
   /* Dire combien il y en a vaut mieux que trois valeurs et des points de
      suspension : on sait alors si on regarde l'exception ou la règle. */
   function abrege(v){
-    return v.slice(0, 2).join(" · ") + " … et " + n0(v.length - 2) + " autre" + sPl(v.length - 2);
+    return v.slice(0, 2).join(" · ") + " … et " + n0(v.length - 2) + " autres";
   }
   const pose = (lbl, col) => {
     if (!col || vus.has(col)) return;
@@ -4394,10 +4517,30 @@ function ctxBloc(c, ref, postes){
   (CTX_FICHE[c.service] || []).forEach(([lbl, frag]) => pose(lbl, trouve(frag)));
   /* mesuré et objectif se lisent ensemble ou pas du tout ; l'unité vient du KPI,
      les codes en .2 étant les flux urgents, comptés en heures */
+  /* Poste recréé après litige : le KPI compte depuis l'arrivée du BR, alors que le
+     litige a arrêté le temps et qu'une nouvelle ligne a été créée pour le résoudre.
+     Les deux mesures sont montrées, et nommées, pour qu'on ne les confonde pas. */
+  const rd = reedRef(c, ref, postes);
   const cMes = trouve("valeur kpi"), cObj = trouve("objectif"), cKpi = trouve("kpi");
   const mes = ctxRef(c, ref, postes, cMes), obj = ctxRef(c, ref, postes, cObj),
         kpi = ctxRef(c, ref, postes, cKpi);
   vus.add(cMes); vus.add(cObj); vus.add(cKpi);
+  if (rd.length){
+    const dates = [...new Set(rd.map(x => frDay(x.cre)))];
+    const ancs  = [...new Set(rd.map(x => String(x.anc)))];
+    items.push(["Poste recréé le", esc(dates.join(" · ") +
+      (ancs.length ? " — en remplacement du poste " + ancs.join(", ") : "")) +
+      (rd.some(x => x.dd) ? ' <span class="muted">· rapproché par le poste de commande</span>' : "")]);
+    const reels = rd.filter(x => x.reel != null);
+    if (reels.length){
+      const h = reels[0].u === "h";
+      const un = n => h ? " h" : " j ouvré" + (Math.abs(n) > 1 ? "s" : "");
+      const v = [...new Set(reels.map(x => dec(x.reel, Number.isInteger(x.reel) ? 0 : 2)))];
+      const mx = Math.max.apply(null, reels.map(x => x.reel));
+      items.push(["Délai réel", esc((v.length === 1 ? v[0] : "de " + v[0] + " à " + v[v.length - 1]) +
+        un(mx) + " depuis la recréation · objectif " + reels[0].obj + un(reels[0].obj))]);
+    }
+  }
   if (mes.length){
     const u = kpi.some(k => /[25]\.2/.test(k)) ? "h" : "j";
     /* L'export sort ses délais en flottant : « 3.8702999999999999 » n'est pas une
@@ -4416,8 +4559,9 @@ function ctxBloc(c, ref, postes){
       if (n === 0) return "le jour de l'échéance";
       return num(n) + " " + u;
     };
-    items.push(["Mesuré / objectif", esc(plage(mes) + " " + u +
-      (obj.length ? " · objectif " + [...new Set(obj.map(litObj))].join(" · ") : ""))]);
+    items.push([rd.length ? "Mesuré par le KPI" : "Mesuré / objectif",
+      esc(plage(mes) + " " + u + (obj.length ? " · objectif " + [...new Set(obj.map(litObj))].join(" · ") : "")) +
+      (rd.length ? ' <span class="muted">depuis l\'arrivée du BR — le litige a arrêté le temps</span>' : "")]);
   }
   if (kpi.length) items.push(["KPI", esc(kpi.join(" · "))]);
   /* tout le reste de l'export, sous son propre nom */
