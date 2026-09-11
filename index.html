@@ -2864,8 +2864,10 @@ function passerRegles(cells, regles, simule, conflits){
         nb: (occKo(cell)[x.ref + "|" + x.poste] || 1), src:"auto",
         d: cell.koDates ? (cell.koDates[(cell.koRefs || []).findIndex((r, i) =>
              sansZeros(r) === x.ref && String((cell.koPostes || [])[i] || "") === x.poste)] || "") : "",
-        com: "Poste recréé le " + frDay(x.v.cre) + " (ancien poste " + x.v.anc +
-             (x.v.dd ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
+        com: (x.v.dd === 2 ? "Poste redivisé le " : "Poste recréé le ") + frDay(x.v.cre) +
+             " (ancien poste " + x.v.anc +
+             (x.v.dd === 2 ? ", même poste de commande, créé plus d'un jour après"
+              : x.v.dd ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
              dec(x.v.reel, Number.isInteger(x.v.reel) ? 0 : 2) + (x.v.u === "h" ? " h" : " j ouvré" + (x.v.reel > 1 ? "s" : "")) +
              " pour un objectif de " + x.v.obj + (x.v.u === "h" ? " h" : " j ouvrés") +
              (pr ? " · remplace la saisie « " + (CAT[pr.cat] ? CAT[pr.cat].l : pr.cat) + " »" : ""),
@@ -3766,9 +3768,11 @@ function renderFournies(){
     carte("Litige BR réédité",
       "Quand SAP recrée un poste BR après un litige, le KPI continue de compter depuis la première " +
       "création. La règle recompte le délai <b>depuis la recréation</b> et retire les postes qui " +
-      "tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon. Une recréation se " +
-      "reconnaît à son <code>N° Poste Référence</code>, ou au même poste de commande repris plus tard " +
-      "sur un BR en litige.",
+      "tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon. Trois formes la " +
+      "déclenchent : un <code>N° Poste Référence</code> ; le même poste de commande repris plus tard " +
+      "sur un BR en litige ; et un poste <b>redivisé après coup</b> — même poste de commande, créé " +
+      "plus d'un jour après ses voisins, sans incident déclaré. Les postes nés avec le BR, eux, " +
+      "sont de simples éclatements de ligne : ils restent comptés.",
       ["Réception", "Compte comme : Automatique", "retire les KO du décompte",
        "passe avant les vôtres et avant une saisie à la main"],
       reedConnus
@@ -4690,7 +4694,7 @@ function analyseSap(src){
   /* Le poste que celui-ci remplace, ou "" s'il n'en remplace aucun. */
   const remplace = r => {
     const direct = String(r[ci.ref] == null ? "" : r[ci.ref]).trim();
-    if (direct && direct !== "0") return { anc: sansZeros(direct), deduit:false };
+    if (direct && direct !== "0") return { anc: sansZeros(direct), mode:0 };
     if (ci.cmd < 0 || ci.pcmd < 0) return null;
     const br = sansZeros(r[ci.br]);
     const cmd = String(r[ci.cmd] == null ? "" : r[ci.cmd]).trim(), pc = sansZeros(r[ci.pcmd]);
@@ -4699,19 +4703,28 @@ function analyseSap(src){
     const g = grp[br + "|" + cmd + "|" + pc];
     if (!g || g.length < 2) return null;
     const prem = g[0];
-    if (!(cre.d.getTime() > prem.t)) return null;       /* même instant = éclatement */
-    /* on exige la trace de l'incident que la recréation vient résoudre */
-    if (!brLit[br] && !prem.court) return null;
-    return { anc: prem.poste, deduit:true };
+    const ecart = cre.d.getTime() - prem.t;
+    if (!(ecart > 0)) return null;                      /* même instant = éclatement */
+    /* avec la trace de l'incident que la recréation vient résoudre */
+    if (brLit[br] || prem.court) return { anc: prem.poste, mode:1 };
+    /* Troisième forme : le poste a été redivisé après coup, sans incident déclaré.
+       Il n'existait pas avant sa création, et le KPI compte pourtant depuis
+       l'arrivée du BR. Faute de trace d'incident, on exige un décalage d'au moins
+       un jour plein : sinon on confondrait avec la saisie étalée sur la journée.
+       Sur l'extraction du 03/09, 1 404 postes naissent à la seconde de leur aîné,
+       71 dans les 24 heures qui suivent, et 236 au-delà — c'est là que sont les
+       redivisions réelles. */
+    if (ecart < 24 * 36e5) return null;
+    return { anc: prem.poste, mode:2 };
   };
 
-  const items = [], stat = { lignes:rows.length - 1, reed:0, sansDate:0, urgSansHeure:0, deduits:0 };
+  const items = [], stat = { lignes:rows.length - 1, reed:0, sansDate:0, urgSansHeure:0, deduits:0, redivises:0 };
   for (let i = 1; i < rows.length; i++){
     const r = rows[i];
     const rp = remplace(r);
     if (!rp) continue;
     const anc = rp.anc;
-    stat.reed++; if (rp.deduit) stat.deduits++;
+    stat.reed++; if (rp.mode) stat.deduits++; if (rp.mode === 2) stat.redivises++;
     /* SAP remplit ses numéros de zéros à gauche : on les enlève pour retomber
        sur la même écriture que l'export PowerBI et que les saisies. */
     const br = sansZeros(r[ci.br]), ps = sansZeros(r[ci.ps]);
@@ -4725,7 +4738,7 @@ function analyseSap(src){
       if (cre.t && em.t) reel = Math.max(0, (em.d.getTime() - cre.d.getTime()) / 36e5);
       else stat.urgSansHeure++;
     } else reel = joursOuvres(toUTCDay(cre.d), toUTCDay(em.d));
-    items.push({ key: br + "-" + ps, ref: br, poste: String(ps), anc, deduit: rp.deduit, site: AIRE2SITE[String(r[ci.mag] == null ? "" : r[ci.mag]).trim().toUpperCase()] || null,
+    items.push({ key: br + "-" + ps, ref: br, poste: String(ps), anc, mode: rp.mode, site: AIRE2SITE[String(r[ci.mag] == null ? "" : r[ci.mag]).trim().toUpperCase()] || null,
       per: weekKey(em.d), urg, reel, unite: urg ? "h" : "j", obj: urg ? 3 : 2,
       cre: toUTCDay(cre.d), em: toUTCDay(em.d) });
   }
@@ -4746,7 +4759,7 @@ function analyseSap(src){
        bonne base. Sans cela la fiche continue d'afficher l'arrivée du BR, donc un
        délai que le litige a gonflé. */
     (reed[hit.id] = reed[hit.id] || {})[it.key] = {
-      cre: it.cre.toISOString().slice(0, 10), anc: String(it.anc), dd: it.deduit ? 1 : 0,
+      cre: it.cre.toISOString().slice(0, 10), anc: String(it.anc), dd: it.mode || 0,
       reel: it.reel == null ? null : Math.round(it.reel * 100) / 100,
       u: it.unite, obj: it.obj };
     if (hit.lignes.some(l => l.cat === "reedition" && l.st === "ok" &&
