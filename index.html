@@ -108,6 +108,8 @@ a{color:var(--accent)}
 .seg button:active{transform:translateY(1px)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600}
 .seg button[aria-pressed="true"]:hover{background:var(--accent);filter:brightness(1.08)}
+/* la maille posée contre le graphique : même contrôle, corps plus discret */
+.seg.sm button{padding:3px 10px;min-height:26px;font-size:11.5px}
 select,input[type=text],input[type=number],input[type=date],textarea{background:var(--surface);
   border:1px solid var(--line-2);border-radius:8px;padding:6px 10px;min-height:32px;color:var(--ink);font-size:13px;
   transition:border-color .12s ease,box-shadow .12s ease}
@@ -519,10 +521,20 @@ main{max-width:1380px;margin:0 auto;padding:22px 20px 72px}
 /* ---------- charts ---------- */
 .chartwrap{position:relative;padding:6px 4px 0}
 .chartwrap svg{display:block;width:100%;height:auto}
+/* Au jour, la plage peut porter deux cents barres : plutôt que de les tasser en
+   traits illisibles, le graphique garde une largeur minimale par barre et défile.
+   L'infobulle reste dans le cadre, elle, d'où le conteneur positionné à part. */
+.chartwrap .cscroll{overflow-x:auto;overscroll-behavior-x:contain}
+.chartwrap .cscroll svg{width:auto;max-width:none;min-width:100%}
 .tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-2);border-radius:8px;box-shadow:var(--shadow);padding:9px 11px;font-size:12px;min-width:150px;opacity:0;transition:opacity .09s;z-index:5}
 .tip .tt{font-family:var(--f-disp);font-weight:700;font-size:12px;margin-bottom:5px;letter-spacing:.01em}
 .tip .tr{display:flex;align-items:center;gap:7px;justify-content:space-between;font-variant-numeric:tabular-nums}
 .tip .tr b{font-family:var(--f-mono);font-weight:500}
+/* la pastille de série dans l'infobulle : l'identité vient de la marque colorée
+   posée à côté du mot, jamais du mot lui-même */
+.tip .tk{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:baseline}
+.tip .tr.sm{font-size:11px;color:var(--muted);padding-left:15px}
+.tip .tr.sm b{font-size:11px}
 .legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 18px 16px;font-size:12px;color:var(--ink-2)}
 .legend span{display:flex;align-items:center;gap:6px}
 .legend i{width:11px;height:11px;border-radius:3px;display:block;flex:none}
@@ -778,6 +790,22 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         </div>
         <div class="pb tight"><div class="chartwrap" id="evo-wrap"></div></div>
         <div class="legend" id="evo-legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">
+          <h2>Volume</h2>
+          <span class="sub" id="vol-sub"></span>
+          <div class="tools">
+            <div class="seg sm" id="f-maille2" role="group" aria-label="Maille du graphique">
+              <button data-v="mois" aria-pressed="false">Mois</button>
+              <button data-v="semaine" aria-pressed="true">Semaine</button>
+              <button data-v="jour" aria-pressed="false">Jour</button>
+            </div>
+          </div>
+        </div>
+        <div class="pb tight"><div class="chartwrap" id="vol-wrap"></div></div>
+        <div class="legend" id="vol-legend"></div>
       </div>
 
       <div class="panel" id="ctrl-panel">
@@ -3135,6 +3163,197 @@ function drawEvo(){
   hit.addEventListener("mouseleave", () => { tip.style.opacity = "0"; cross.setAttribute("opacity", "0"); });
 }
 
+/* ------------------------- volume, en barres -------------------------
+   La courbe d'évolution donne le taux ; elle ne dit rien du volume. Deux
+   semaines à 95 % ne pèsent pas pareil si l'une porte 200 KO et l'autre 20.
+   Ces barres montrent le nombre de KO, coupé en deux : ce qui est retiré du
+   décompte, et ce qui reste compté. La hauteur est la matière, la couleur dit
+   ce qu'on en a fait — vert ce qui est expliqué, orange ce qui pèse encore sur
+   le taux, comme partout ailleurs dans l'outil.
+
+   Deux séries seulement : le partage pièce / analyse a sa place dans le panneau
+   des causes, pas ici. Deux tons d'un même vert ne se distinguent pas de façon
+   fiable en aplat — ils échouent au contrôle de séparation — et à soixante
+   barres la lecture n'y survivrait pas. Le détail reste dans l'infobulle. */
+let volData = [];
+function niceStep(v, n){
+  const brut = v / Math.max(1, n);
+  const p = Math.pow(10, Math.floor(Math.log10(Math.max(brut, 1e-9))));
+  const r = brut / p;
+  return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * p;
+}
+/* Coins hauts arrondis, pied carré : la barre pousse depuis la ligne de base. */
+function colPath(x, y, w, h, r){
+  r = Math.max(0, Math.min(r, w / 2, h));
+  if (h <= 0.4) return "";
+  return "M" + x.toFixed(1) + "," + (y + h).toFixed(1) +
+    "V" + (y + r).toFixed(1) + "a" + r + "," + r + " 0 0 1 " + r + "," + (-r) +
+    "h" + (w - 2 * r).toFixed(1) + "a" + r + "," + r + " 0 0 1 " + r + "," + r +
+    "V" + (y + h).toFixed(1) + "Z";
+}
+function drawVol(){
+  const wrap = $("#vol-wrap"); if (!wrap || !wrap.clientWidth) return;
+  const leg = $("#vol-legend"), sub = $("#vol-sub");
+  const unite = S.ui.maille === "mois" ? "mois" : S.ui.maille === "jour" ? "jour" : "semaine";
+  const cs = selCells(), keys = rangeKeys();
+  volData = keys.map(k => { const a = agg(cs.filter(c => pkey(c) === k)); a.key = k; return a; });
+  if (sub) sub.textContent = keys.length ? "KO retirés et KO restants, " + unite + " par " + unite : "";
+  if (!keys.length){
+    if (leg) leg.innerHTML = "";
+    wrap.innerHTML = '<div class="empty"><b>Aucune période dans la plage</b>Élargissez la plage, ou importez un export dans l\'onglet Import.</div>';
+    return;
+  }
+  const maxKo = Math.max.apply(null, volData.map(d => d.ko).concat([1]));
+  if (maxKo < 0.5){
+    if (leg) leg.innerHTML = "";
+    wrap.innerHTML = '<div class="empty"><b>Aucun KO sur cette plage</b>Rien à répartir : le brut est à 100 % sur toutes les périodes affichées.</div>';
+    return;
+  }
+
+  const n = volData.length;
+  const m = { t: 16, r: 16, b: 34, l: 46 };
+  /* Chaque barre garde une largeur minimale : au-delà, le graphique défile
+     plutôt que de se tasser en traits illisibles. */
+  /* clientWidth englobe le rembourrage du cadre : mesurer sans le retirer
+     donnait un SVG quelques pixels trop large, et donc une barre de défilement
+     à toutes les largeurs, même avec trois barres. */
+  const cw = getComputedStyle(wrap);
+  const padX = (parseFloat(cw.paddingLeft) || 0) + (parseFloat(cw.paddingRight) || 0);
+  const dispo = Math.max(wrap.clientWidth - padX, 320);
+  const slotMin = n > 40 ? 11 : 16;
+  const W = Math.max(dispo, m.l + m.r + n * slotMin);
+  const H = 260;
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  /* Trois barres étalées sur toute la largeur donneraient trois bâtonnets
+     perdus. Au-delà d'un pas confortable le groupe se centre au lieu de
+     s'étirer — la barre, elle, reste plafonnée à 24 px. */
+  /* Trois mois ne se dessinent pas comme quarante jours : sous cinq barres on
+     laisse la barre s'épaissir, sans quoi le graphique n'est plus que trois
+     bâtonnets perdus au milieu d'un panneau large. L'air dans le pas reste
+     majoritaire dans les deux cas. */
+  const capBw = n <= 5 ? 44 : 24;
+  const slot = Math.min(iw / n, n <= 5 ? 110 : 88);
+  const x0g = m.l + (iw - slot * n) / 2;
+  /* La grille s'arrête où les barres s'arrêtent : des lignes qui courent dans le
+     vide bien au-delà de la dernière barre font flotter le graphique. */
+  const pl = x0g, pr = x0g + slot * n;
+  const bw = Math.max(3, Math.min(capBw, slot * 0.6));
+
+  const pas = niceStep(maxKo, 4);
+  const hi = Math.max(pas, Math.ceil(maxKo / pas) * pas);
+  const y = v => m.t + ih - (v / hi) * ih;
+  const xc = i => x0g + slot * (i + 0.5);
+
+  let s = '<svg ' + SVGNS + ' viewBox="0 0 ' + W + " " + H + '" width="' + W + '" role="img" ' +
+    'aria-label="KO retirés et KO restants, ' + unite + ' par ' + unite + '">';
+  for (let v = 0; v <= hi + 1e-6; v += pas){
+    const yy = y(v);
+    s += '<line x1="' + pl.toFixed(1) + '" x2="' + pr.toFixed(1) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) +
+      '" stroke="var(--grid)" stroke-width="1"/>';
+    s += svgText(pl - 9, yy, n0(v), { anchor:"end", dom:"middle", mono:true, size:10.5 });
+  }
+  s += '<line x1="' + pl.toFixed(1) + '" x2="' + pr.toFixed(1) + '" y1="' + (m.t + ih) + '" y2="' + (m.t + ih) + '" stroke="var(--axis)"/>';
+  /* La bande de survol se pose DERRIÈRE les barres et ne prend pas le pointeur :
+     dessinée par-dessus, elle interceptait le survol et le clic de la barre
+     qu'elle venait justement désigner. */
+  s += '<rect id="vol-band" x="0" y="' + m.t + '" width="0" height="' + ih + '" rx="3" fill="var(--ink)" opacity="0" pointer-events="none"/>';
+
+  const GAP = 2;                       /* le vide qui sépare, jamais un contour */
+  volData.forEach((d, i) => {
+    const x0 = xc(i) - bw / 2;
+    const ret = Math.min(d.jtot, d.ko), res = Math.max(0, d.ko - ret);
+    const hTot = ih - (y(d.ko) - m.t);
+    const hRes = ih - (y(res) - m.t);
+    const hRet = Math.max(0, hTot - hRes);
+    const r = Math.min(4, bw / 2);
+    /* le sommet arrondi appartient au segment le plus haut qui existe */
+    if (res > 0.4){
+      s += '<path d="' + colPath(x0, y(d.ko), bw, hRes, r) + '" fill="var(--c-brut)"/>';
+      if (hRet > GAP + 0.4)
+        s += '<path d="' + colPath(x0, y(d.ko) + hRes + GAP, bw, hRet - GAP, 0) + '" fill="var(--c-expl)"/>';
+    } else if (hRet > 0.4){
+      s += '<path d="' + colPath(x0, y(d.ko), bw, hTot, r) + '" fill="var(--c-expl)"/>';
+    }
+    /* une valeur sur chaque barre serait du bruit : le total ne s'écrit que
+       lorsqu'il y a la place de le lire */
+    if (n <= 14 && slot >= 30)
+      s += svgText(xc(i), y(d.ko) - 6, n0(d.ko), { anchor:"middle", size:10.5, mono:true, fill:"var(--ink-2)", w:600 });
+    s += '<rect class="vhit" data-i="' + i + '" x="' + (xc(i) - slot / 2).toFixed(1) + '" y="' + m.t +
+      '" width="' + slot.toFixed(1) + '" height="' + ih + '" fill="transparent" style="cursor:pointer"/>';
+  });
+
+  const step = n > 16 ? Math.ceil(n / 12) : 1;
+  volData.forEach((d, i) => {
+    if (i % step === 0 || i === n - 1)
+      s += svgText(xc(i), m.t + ih + 17, perLabel(d.key), { anchor:"middle", size:10.5, fill:"var(--ink-2)", w:500 });
+  });
+  s += "</svg>";
+  /* Le SVG défile, l'infobulle non : elle reste posée sur le cadre, sinon elle
+     part avec le défilement et sort de l'écran. */
+  wrap.innerHTML = '<div class="cscroll">' + s + '</div><div class="tip" id="vol-tip"></div>';
+
+  const tot = volData.reduce((o, d) => { o.ko += d.ko; o.j += d.jtot; return o; }, { ko:0, j:0 });
+  if (leg) leg.innerHTML =
+    '<span><i style="background:var(--c-expl)"></i>KO retirés du décompte</span>' +
+    '<span><i style="background:var(--c-brut)"></i>KO restants</span>' +
+    '<span class="muted">La hauteur est le nombre de KO de la période. ' +
+    (tot.ko ? n0(tot.j) + " retirés sur " + n0(tot.ko) + " au total — cliquez une barre pour n'afficher qu'elle." 
+            : "Cliquez une barre pour n'afficher qu'elle.") + "</span>";
+
+  const svg = wrap.querySelector("svg"), tip = $("#vol-tip"), band = $("#vol-band");
+  const montre = (i, ev) => {
+    const d = volData[i]; if (!d) return;
+    const r = wrap.getBoundingClientRect(), rs = svg.getBoundingClientRect(), sc = W / rs.width;
+    const ret = Math.min(d.jtot, d.ko), res = Math.max(0, d.ko - ret);
+    band.setAttribute("x", (xc(i) - slot / 2).toFixed(1));
+    band.setAttribute("width", slot.toFixed(1));
+    band.setAttribute("opacity", "0.05");
+    tip.innerHTML = '<div class="tt">' + esc(perLong(d.key)) + "</div>" +
+      '<div class="tr"><span>Flux</span><b>' + n0(d.flux) + "</b></div>" +
+      '<div class="tr"><span>KO</span><b>' + n0(d.ko) + "</b></div>" +
+      '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px">' +
+        '<span><i class="tk" style="background:var(--c-expl)"></i>Retirés</span><b>' + n0(ret) + "</b></div>" +
+      (d.jtot > 0.5
+        ? '<div class="tr sm"><span>dont sur pièce</span><b>' + n0(d.jdoc) + "</b></div>" +
+          '<div class="tr sm"><span>par votre analyse</span><b>' + n0(d.jtot - d.jdoc) + "</b></div>"
+        : "") +
+      '<div class="tr"><span><i class="tk" style="background:var(--c-brut)"></i>Restants</span><b>' + n0(res) + "</b></div>" +
+      '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px"><span>Brut → net</span><b>' +
+        pf(d.brut) + " → " + pf(d.net) + "</b></div>";
+    tip.style.opacity = "1";
+    const cx = ev ? (ev.clientX - r.left) : (rs.left - r.left + xc(i) / sc);
+    tip.style.left = Math.min(Math.max(cx - 85, 4), Math.max(4, r.width - 190)) + "px";
+    tip.style.top = "6px";
+  };
+  wrap.querySelectorAll(".vhit").forEach(h => {
+    const i = +h.dataset.i;
+    h.addEventListener("mousemove", ev => montre(i, ev));
+    h.addEventListener("mouseenter", ev => montre(i, ev));
+    h.addEventListener("click", () => {
+      const k = volData[i].key;
+      S.ui.preset = "custom";
+      const b = jourBornes(k);
+      if (b){ S.ui.d1 = b[0]; S.ui.d2 = b[1]; }
+      syncSegs(); render();
+      toast(perLong(k) + " — plage réduite");
+      window.scrollTo({ top:0, behavior:"smooth" });
+    });
+  });
+  svg.addEventListener("mouseleave", () => { tip.style.opacity = "0"; band.setAttribute("opacity", "0"); });
+}
+/* Les bornes en dates d'une clé de période, pour que le clic sur une barre
+   recadre la plage exactement dessus. */
+function jourBornes(k){
+  if (estJour(k)) return [k, k];
+  if (k.includes("-W")){
+    const a = weekMonday(k), b = new Date(a); b.setUTCDate(a.getUTCDate() + 6);
+    return [a.toISOString().slice(0, 10), b.toISOString().slice(0, 10)];
+  }
+  const [y, mo] = k.split("-M").map(Number);
+  const a = new Date(Date.UTC(y, mo - 1, 1)), b = new Date(Date.UTC(y, mo, 0));
+  return [a.toISOString().slice(0, 10), b.toISOString().slice(0, 10)];
+}
+
 /* ---------------------------- tableau de bord ----------------------------
    Jauge en demi-cercle. Les deux jauges d'un écran partagent la même échelle —
    sans quoi 94,0 et 95,5 pourraient paraître identiques, ou inversés. L'échelle
@@ -3189,7 +3408,7 @@ function renderDash(){
       '<button class="btn" data-tabgo="import">Aller à l\'import</button></div></div>';
     $("#ctrl-sub").textContent = "";
     $("#ctrls").innerHTML = "";
-    drawEvo();
+    drawEvo(); drawVol();
     return;
   }
 
@@ -3255,7 +3474,7 @@ function renderDash(){
   $("#ctrls").innerHTML = ctr.map(c =>
     '<div class="alert ' + c.k + '"><span class="ic">' + (c.k === "ok" ? "✓" : "!") + '</span>' +
     '<span class="tx"><b>' + esc(c.t) + "</b><br>" + esc(c.d) + "</span></div>").join("");
-  drawEvo();
+  drawEvo(); drawVol();
 }
 
 /* ---------------------------- retards qualifiés ---------------------------- */
@@ -3828,7 +4047,7 @@ function gotoTab(name){
 }
 $$(".tab").forEach(b => b.addEventListener("click", () => gotoTab(b.dataset.tab)));
 function syncSegs(){
-  [["f-site", "site"], ["f-serv", "serv"], ["f-maille", "maille"], ["f-preset", "preset"]].forEach(([id, key]) =>
+  [["f-site", "site"], ["f-serv", "serv"], ["f-maille", "maille"], ["f-maille2", "maille"], ["f-preset", "preset"]].forEach(([id, key]) =>
     $$("#" + id + " button").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === S.ui[key]))));
 }
 function segBind(id, key){
@@ -3837,6 +4056,9 @@ function segBind(id, key){
   }));
 }
 segBind("f-site", "site"); segBind("f-serv", "serv"); segBind("f-maille", "maille");
+/* Le même état, offert deux fois : le filtre du haut et la maille posée
+   contre le graphique. Deux contrôles, une seule vérité. */
+segBind("f-maille2", "maille");
 segBind("f-preset", "preset");
 /* Passer en personnalisé ouvre le calendrier sur toute l'étendue des données :
    on rétrécit à partir de ce qu'on a, on ne part pas d'une plage vide. */
@@ -3918,7 +4140,7 @@ function openDefs(){ openModal(
     '<div class="sbody"><h3>' + t + "</h3><p style=\"margin:0\">" + d + "</p></div></div>").join("") +
   '</div><div class="note" style="margin-top:14px">Publiez toujours les trois ensemble, plus le nombre de KO restant à qualifier. Un net seul se retourne contre celui qui le présente.</div>' +
   '<div class="actions"><button class="btn pri" id="dl-close">Fermer</button></div></div>'); }
-let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (S.ui.tab === "dash") drawEvo(); }, 180); });
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (S.ui.tab === "dash"){ drawEvo(); drawVol(); } }, 180); });
 
 /* ---------------------------- analyse de texte ---------------------------- */
 function parseTable(text){
