@@ -2131,6 +2131,39 @@ function controls(){
   }
   a.over.forEach(c => raw.push({ k:"crit", t:"Justifications supérieures aux KO", tag: cellLbl(c) + " (" + n0(cellStats(c).raw) + " pour " + n0(c.ko) + " KO)",
     why:"Le surplus est ignoré dans le calcul, mais la saisie est à corriger." }));
+  /* ---- la preuve contre la cause ----
+     Ces deux contrôles sont l'audit que je faisais à la main, mis dans l'outil :
+     une justification que la donnée contredit, et un poste que la donnée justifie
+     sans que personne l'ait vu. Ils se refont tout seuls à chaque affichage. */
+  cs.map(c => realCell(c) || c).filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
+    .forEach(c => {
+      const nKo = {}, couv = {};
+      (c.koRefs || []).forEach(r => { const k = sansZeros(r); nKo[k] = (nKo[k] || 0) + 1; });
+      (c.lignes || []).forEach(l => {
+        if (l.st !== "ok") return;
+        const k = sansZeros(l.ref);
+        (l.postes || []).forEach(p => couv[k + "|" + p] = 1);
+        if (!(l.postes || []).length) couv[k + "|*"] = 1;
+      });
+      (c.lignes || []).forEach(l => {
+        const rd = reedRef(c, l.ref, l.postes);
+        if (!rd.length || l.st !== "ok") return;
+        if (rd.some(x => x.reel == null || x.reel > x.obj))
+          raw.push({ k:"crit", t:"Une justification que SAP contredit", tag: cellLbl(c) + " · " + l.ref,
+            why:"Le poste est bien recréé, mais son délai depuis la recréation dépasse l'objectif : la cause « " +
+              (CAT[l.cat] ? CAT[l.cat].l : l.cat) + " » ne tient pas. Rechargez l'extraction SAP pour la refaire poser." });
+      });
+      for (const k in (c.reed || {})){
+        const i = k.lastIndexOf("-"); if (i < 0) continue;
+        const ref = sansZeros(k.slice(0, i)), poste = k.slice(i + 1), v = c.reed[k];
+        if (!nKo[ref] || v.reel == null || !(v.reel <= v.obj)) continue;
+        if (couv[ref + "|" + poste] || couv[ref + "|*"]) continue;
+        raw.push({ k:"warn", t:"Un poste recréé conforme n'est pas retiré", tag: cellLbl(c) + " · " + ref + "-" + poste,
+          why:"SAP donne un délai de " + dec(v.reel, Number.isInteger(v.reel) ? 0 : 2) + " " + (v.u === "h" ? "h" : "j ouvrés") +
+            " depuis la recréation, pour un objectif de " + v.obj + " : ce KO devrait sortir du décompte. " +
+            "Relancez « Rejouer sur tout l'historique » dans les règles." });
+      }
+    });
   if (a.jtot > 0 && a.jman / a.jtot > 0.5 && (a.net - a.brut) > 0.005)
     raw.push({ k:"warn", t:"L'écart repose surtout sur du déclaratif", tag: dec(a.jman / a.jtot * 100, 0) + " % des KO retirés",
       why:"Publiez le net avec le documenté, sinon l'écart ne se défend pas." });
@@ -2641,13 +2674,76 @@ function dejaCouverts(cell){
 /* Passe les règles sur une liste de périodes.
    Idempotent : les lignes déjà posées par une règle sont refaites, les autres
    ne sont jamais touchées. `simule` n'écrit rien et rend seulement le compte. */
+/* ---------------- la réédition, devenue une règle comme les autres ----------------
+   Tant qu'elle vivait dans l'import SAP, elle ne passait qu'une fois : un réimport
+   PowerBI la laissait derrière. Depuis que la période garde `reed` — ce que SAP dit
+   de chaque poste recréé — elle se rejoue sans le fichier, se défait quand la preuve
+   ne la porte plus, et prime sur une saisie à la main : le délai recompté est une
+   pièce, la saisie une appréciation. */
+const REGLE_REED = "__reed";
+function reedLignes(cell){
+  const m = cell && cell.reed; if (!m) return [];
+  const nKo = {}, postesKo = {};
+  (cell.koRefs || []).forEach((r, i) => {
+    const k = sansZeros(r); nKo[k] = (nKo[k] || 0) + 1;
+    const p = String((cell.koPostes || [])[i] || "");
+    if (p) (postesKo[k] = postesKo[k] || {})[p] = 1;
+  });
+  const out = [];
+  for (const k in m){
+    const i = k.lastIndexOf("-"); if (i < 0) continue;
+    const ref = sansZeros(k.slice(0, i)), poste = k.slice(i + 1), v = m[k] || {};
+    if (!nKo[ref]) continue;                       /* ce KO n'est pas chargé */
+    if (postesKo[ref] && !postesKo[ref][poste]) continue;
+    if (v.reel == null || !(v.reel <= v.obj)) continue;   /* délai réel au-delà : le KO reste */
+    out.push({ ref, poste, v });
+  }
+  return out;
+}
 function passerRegles(cells, regles, simule){
   const actives = (regles || []).filter(r => r.actif);
-  const stats = { total:0, parRegle:{}, cellules:0 };
+  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0 };
   const out = [];
   cells.forEach(cell => {
-    const avant = (cell.lignes || []).filter(l => !l.regle);
-    const cov = dejaCouverts(cell);
+    const reed = reedLignes(cell);
+    const vises = {};
+    reed.forEach(x => { vises[x.ref + "|" + x.poste] = 1; });
+    /* une saisie portant exactement ce poste cède la place, et sa cause est gardée
+       dans le commentaire : rien n'est perdu, la meilleure preuve l'emporte */
+    const repris = [];
+    const avant = (cell.lignes || []).filter(l => {
+      if (l.regle) return false;
+      const ps = (l.postes || []).map(String);
+      if (!ps.length) return true;
+      /* Un poste que la réédition va reprendre laisse la place, quelle que soit la
+         ligne qui l'occupait : une ancienne réédition posée à la main par l'import
+         SAP, ou une saisie. Sans quoi le même KO serait justifié deux fois. */
+      if (!ps.every(p => vises[sansZeros(l.ref) + "|" + p])) return true;
+      if (l.cat !== "reedition")
+        repris.push({ ref:sansZeros(l.ref), postes:ps, cat:l.cat, com:l.com, src:l.src });
+      return false;
+    });
+    stats.repris += repris.length;
+    const ajoutReed = reed.map(x => {
+      const pr = repris.find(r => r.ref === x.ref && r.postes.indexOf(x.poste) >= 0);
+      return { id: uid(), ref:x.ref, postes:[x.poste], cat:"reedition", nb:1, src:"auto",
+        d: cell.koDates ? (cell.koDates[(cell.koRefs || []).findIndex((r, i) =>
+             sansZeros(r) === x.ref && String((cell.koPostes || [])[i] || "") === x.poste)] || "") : "",
+        com: "Poste recréé le " + frDay(x.v.cre) + " (ancien poste " + x.v.anc +
+             (x.v.dd ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
+             dec(x.v.reel, Number.isInteger(x.v.reel) ? 0 : 2) + (x.v.u === "h" ? " h" : " j ouvré" + (x.v.reel > 1 ? "s" : "")) +
+             " pour un objectif de " + x.v.obj + (x.v.u === "h" ? " h" : " j ouvrés") +
+             (pr ? " · remplace la saisie « " + (CAT[pr.cat] ? CAT[pr.cat].l : pr.cat) + " »" : ""),
+        st: "ok", regle: REGLE_REED };
+    });
+    stats.reed += ajoutReed.length;
+    const cov = dejaCouverts({ lignes: avant, koRefs: cell.koRefs, koPostes: cell.koPostes });
+    ajoutReed.forEach(l => { cov.parPoste.add(String(l.ref) + "|" + l.postes[0]); });
+    /* les références de l'export peuvent encore porter leurs zéros de tête */
+    (cell.koRefs || []).forEach((r, i) => {
+      const p = String((cell.koPostes || [])[i] || "");
+      if (p && cov.parPoste.has(sansZeros(r) + "|" + p)) cov.parPoste.add(String(r) + "|" + p);
+    });
     const reste = Object.assign({}, cov.parRef);
     const ajout = [];
     (cell.koRefs || []).forEach((refBrut, i) => {
@@ -2665,9 +2761,9 @@ function passerRegles(cells, regles, simule){
       }
     });
     const avaitDesRegles = (cell.lignes || []).some(l => l.regle);
-    if (ajout.length || avaitDesRegles){
+    if (ajout.length || ajoutReed.length || avaitDesRegles){
       stats.cellules++;
-      if (!simule) out.push(Object.assign({}, cell, { lignes: avant.concat(ajout) }));
+      if (!simule) out.push(Object.assign({}, cell, { lignes: avant.concat(ajoutReed, ajout) }));
     }
   });
   return { cellules: out, stats };
@@ -2760,7 +2856,10 @@ async function sauveRegles(){
 async function rejouerRegles(silencieux){
   const { cellules, stats } = passerRegles(Object.values(S.cells), S.regles, false);
   if (cellules.length) await bulkPut(cellules);
-  if (!silencieux) toast(stats.total ? n0(stats.total) + " KO documentés par vos règles" : "Aucun KO ne correspond aux règles");
+  if (!silencieux){
+    const n = stats.total + stats.reed;
+    toast(n ? n0(n) + " KO documentés automatiquement" : "Aucun KO ne correspond aux règles");
+  }
   return stats;
 }
 /* =========================================================================
@@ -3248,40 +3347,78 @@ function phraseRegle(r){
 /* La réédition de poste BR : une justification automatique, mais fournie par
    l'outil et non par une règle. Elle a sa carte ici pour que les deux mécanismes
    se voient au même endroit — en lecture seule, elle ne se règle pas. */
+/* Les règles que l'outil applique de lui-même, avec leur effet réel sur la plage
+   affichée. Elles étaient invisibles ou décrites à tort comme manuelles : une règle
+   qu'on ne voit pas est une règle qu'on ne peut pas contester. */
 function renderFournies(){
   const host = $("#regles-fournies"); if (!host) return;
-  const cs = selCells();
-  const a = agg(cs);
-  const r = a.cat.reedition || { doc:0, man:0 };
-  const n = Math.round(r.doc + r.man);
-  /* Périodes de réception qui ont des KO mais aucune réédition enregistrée :
-     c'est le signe que l'extraction SAP n'a pas encore été passée dessus. */
-  const manquantes = cs.map(c => realCell(c) || c)
-    .filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
-    .filter(c => c.service === "recep" && c.ko > 0 &&
-      !(c.lignes || []).some(l => l.cat === "reedition"));
-  host.innerHTML = '<div class="flab">Règle fournie par l\'outil</div>' +
-    '<div class="mlist"><div class="mcard fixe"><div class="mmain">' +
-      "<b>Litige BR réédité</b>" +
-      '<div class="rcond">Quand SAP recrée un poste BR après un litige, le KPI continue de compter ' +
-        "depuis la première création. L'outil recalcule le délai réel depuis la recréation et " +
-        "documente les postes qui tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon.</div>" +
-      '<div class="rmeta"><span>Réception</span><span>Compte comme : Automatique</span>' +
-        "<span>retire les KO du décompte</span></div>" +
-      '<div class="rcond" style="margin-top:7px"><b>Ne part pas toute seule.</b> La date de recréation ' +
-        "n'existe que dans SAP : il faut charger l'extraction, puis valider. Une règle ne peut pas la " +
-        "remplacer — elle lit l'export PowerBI, qui ne porte pas cette colonne." +
-        (manquantes.length
-          ? ' <span class="wtxt">' + n0(manquantes.length) + " période(s) de réception de la plage n'ont " +
-            "aucune réédition enregistrée</span> — " +
-            esc(manquantes.slice(0, 3).map(c => perLabel(c.periode) + " · " + SITES[c.site].l).join(", ")) +
-            (manquantes.length > 3 ? " et " + n0(manquantes.length - 3) + " autre(s)" : "") +
-            ". Soit l'extraction SAP n'y est pas encore passée, soit il n'y avait rien à corriger : " +
-            "seule l'extraction tranche."
-          : "") +
-      "</div></div>" +
-      '<div class="ract"><span class="rimpact">' + (n ? n0(n) + " KO" : "aucun KO") + "</span>" +
-        '<button class="btn sm" id="btn-go-sap">Charger l\'extraction SAP</button></div></div></div>';
+  const cs = selCells().map(c => realCell(c) || c).filter((c, i, l) => l.findIndex(x => x.id === c.id) === i);
+  const a = agg(selCells());
+  const flux = a.flux || 1;
+
+  /* 1. la réception hors litiges, appliquée au moment de l'import */
+  const recep = cs.filter(c => c.service === "recep");
+  const ecartes = recep.reduce((s, c) => s + (c.litiges || 0), 0);
+  const sansCompte = recep.filter(c => c.litiges == null).length;
+
+  /* 2. les postes recréés : ce que la règle retire vraiment, et ce qui lui manque */
+  let reedKo = 0, reedLignes = 0, reedConnus = 0, reedTard = 0;
+  cs.forEach(c => {
+    (c.lignes || []).forEach(l => { if (l.regle === REGLE_REED && l.st === "ok"){ reedLignes++; reedKo += l.nb; } });
+    for (const k in (c.reed || {})){ reedConnus++;
+      const v = c.reed[k]; if (!(v.reel != null && v.reel <= v.obj)) reedTard++; }
+  });
+  const sansPreuve = recep.filter(c => c.ko > 0 && !Object.keys(c.reed || {}).length);
+
+  const carte = (titre, quoi, meta, etat, impact, bouton) =>
+    '<div class="mcard fixe"><div class="mmain"><b>' + titre + "</b>" +
+      '<div class="rcond">' + quoi + "</div>" +
+      '<div class="rmeta">' + meta.map(x => "<span>" + x + "</span>").join("") + "</div>" +
+      (etat ? '<div class="rcond" style="margin-top:7px">' + etat + "</div>" : "") +
+    '</div><div class="ract"><span class="rimpact">' + impact + "</span>" + (bouton || "") + "</div></div>";
+
+  host.innerHTML = '<div class="flab">Règles de l\'outil — appliquées toutes seules</div>' +
+    '<p class="gp">Elles repassent à chaque import, sans rien à valider. Elles se défont d\'elles-mêmes ' +
+    'si la donnée cesse de les porter.</p>' +
+    '<div class="mlist">' +
+    carte("Réception hors litiges",
+      "À l'import, tout flux de réception dont le <code>Statut litige</code> n'est pas « Non concerné » " +
+      "sort du décompte : le litige a arrêté le temps, le flux n'est ni OK ni KO.",
+      ["Réception", "S'applique à l'import", "retire le flux du décompte"],
+      sansCompte
+        ? '<span class="wtxt">' + n0(sansCompte) + " période(s) chargée(s) avant que l'outil ne compte les litiges</span> — " +
+          "leur nombre n'est pas connu. Un réimport de ces semaines le rétablit."
+        : (recep.length && !ecartes
+          ? "Aucun flux en litige dans les exports chargés : le filtre est probablement déjà appliqué en amont, "
+            + "dans PowerBI. La règle reste en place — elle agira le jour où un export en portera."
+          : ""),
+      ecartes ? n0(ecartes) + " flux écartés"
+        : (recep.length ? "rien à écarter" : "aucune réception"), "") +
+    carte("Litige BR réédité",
+      "Quand SAP recrée un poste BR après un litige, le KPI continue de compter depuis la première " +
+      "création. La règle recompte le délai <b>depuis la recréation</b> et retire les postes qui " +
+      "tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon. Une recréation se " +
+      "reconnaît à son <code>N° Poste Référence</code>, ou au même poste de commande repris plus tard " +
+      "sur un BR en litige.",
+      ["Réception", "Compte comme : Automatique", "retire les KO du décompte"],
+      reedConnus
+        ? "La preuve vient de l'extraction SAP, déposée une fois : la règle la rejoue ensuite seule, " +
+          "à chaque import. <b>" + n0(reedConnus) + " poste" + sPl(reedConnus) + " recréé" + sPl(reedConnus) +
+          "</b> connu" + sPl(reedConnus) + " sur la plage" +
+          (reedTard ? ". " + n0(reedTard) + " d'entre eux dépassent l'objectif même depuis la recréation : " +
+            "ils restent comptés, et leur fiche montre les deux mesures" : "") + "." +
+          (sansPreuve.length
+            ? ' <span class="wtxt">' + n0(sansPreuve.length) + " période(s) de réception sans aucune donnée SAP</span> — " +
+              esc(sansPreuve.slice(0, 3).map(c => perLabel(c.periode) + " · " + SITES[c.site].l).join(", ")) +
+              (sansPreuve.length > 3 ? " et " + n0(sansPreuve.length - 3) + " autre(s)" : "") +
+              ". Chargez l'extraction qui les couvre."
+            : "")
+        : "<b>En attente de l'extraction SAP.</b> La date de recréation n'existe que dans SAP : " +
+          "l'export PowerBI ne porte pas cette colonne. Une fois l'extraction déposée, la règle " +
+          "tourne seule et n'a plus besoin du fichier.",
+      reedKo ? n0(reedKo) + " KO · " + ptf(reedKo / flux) : "aucun KO",
+      '<button class="btn sm" id="btn-go-sap">' + (reedConnus ? "Mettre à jour depuis SAP" : "Charger l\'extraction SAP") + "</button>") +
+    "</div>";
 }
 function renderModeles(){
   const host = $("#regles-modeles"); if (!host) return;
@@ -3799,8 +3936,11 @@ async function applyExport(){
   });
   await bulkPut(out);
   exportDraft = null;
-  const st = S.regles.length ? await rejouerRegles(true) : { total:0 };
+  /* Les règles repassent toujours, même sans règle écrite par vous : la réédition
+     en fait maintenant partie, et c'est justement au réimport qu'elle doit revenir. */
+  const st = await rejouerRegles(true);
   $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + out.length + " période(s) enregistrée(s).</b> Le tableau de bord est à jour." +
+    (st.reed ? " <b>" + n0(st.reed) + " KO</b> retirés par la règle des postes recréés." : "") +
     (st.total ? " <b>" + n0(st.total) + " KO</b> documentés par vos règles." : "") + "</div>";
   toast(out.length + " période(s) enregistrée(s)");
 }
@@ -4049,12 +4189,38 @@ $("#btn-clear-releve").addEventListener("click", () => { $("#ta-releve").value =
 let SAP_OUT = "#sap-out", SAP_APPLY = true, sapDraft = null;
 const frDate = d => String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear();
 const fmtDelai = (v, u) => u === "h" ? dec(v, 2) + " h" : n0(v) + " j ouvré" + (v > 1 ? "s" : "");
+/* L'heure, dans toutes les écritures rencontrées. SAP sort « 104759 » — six
+   chiffres collés, sans séparateur — là où le tableur écrit « 10:47 » et où un
+   export peut donner une fraction de journée (0,4499 = 10:47). Ne lire que la
+   forme à deux points revenait à déclarer sans heure des flux qui en ont une :
+   33 postes urgents restaient injustifiés pour cette seule raison. */
+function heureDe(v){
+  if (v == null) return null;
+  const t = String(v).trim(); if (!t) return null;
+  const sep = t.match(/(\d{1,2})\s*[:hH]\s*(\d{2})/);
+  if (sep) return { h:+sep[1], m:+sep[2] };
+  if (/^\d{5,6}$/.test(t)){                       /* HHMMSS ou HMMSS */
+    const p = t.padStart(6, "0");
+    const h = +p.slice(0, 2), m = +p.slice(2, 4);
+    if (h < 24 && m < 60) return { h, m };
+  }
+  if (/^\d{3,4}$/.test(t)){                       /* HHMM ou HMM */
+    const p = t.padStart(4, "0");
+    const h = +p.slice(0, 2), m = +p.slice(2, 4);
+    if (h < 24 && m < 60) return { h, m };
+  }
+  const f = parseFloat(t.replace(",", "."));      /* fraction de journée */
+  if (isFinite(f) && f > 0 && f < 1){
+    const mn = Math.round(f * 1440);
+    return { h:Math.floor(mn / 60) % 24, m:mn % 60 };
+  }
+  return null;
+}
 function parseDT(dv, tv){
   const d = parseDate(dv); if (!d) return null;
-  const src = (tv != null && String(tv).trim() !== "") ? String(tv) : String(dv == null ? "" : dv);
-  const m = src.match(/(\d{1,2})\s*[:hH]\s*(\d{2})/);
+  const hm = heureDe(tv) || heureDe(dv);
   const out = new Date(d.getTime());
-  if (m){ out.setHours(+m[1], +m[2], 0, 0); return { d:out, t:true }; }
+  if (hm){ out.setHours(hm.h, hm.m, 0, 0); return { d:out, t:true }; }
   return { d:out, t:false };
 }
 /* Un poste BR retrouvé parmi les KO chargés : soit la référence porte encore
@@ -4258,38 +4424,26 @@ function analyseSap(src){
 async function applySap(){
   if (!sapDraft) return;
   const reed = sapDraft.reed || {};
-  /* toutes les périodes touchées : celles qu'on justifie, et celles où l'on n'a
-     qu'une base de calcul à corriger */
-  const ids = new Set(Object.keys(sapDraft.plan).concat(Object.keys(reed)));
+  /* L'import SAP n'écrit plus de justification : il dépose la preuve — ce que SAP
+     dit de chaque poste recréé — et c'est la règle qui justifie, ici et à chaque
+     import suivant. Une seule mécanique, donc un seul endroit où elle peut se
+     tromper, et elle se défait quand la preuve ne la porte plus. */
+  const ids = new Set(Object.keys(reed));
   const out = [...ids].map(cid => {
     const c = S.cells[cid]; if (!c) return null;
-    const list = sapDraft.plan[cid] || [];
-    /* on ne remplace que les justifications portant exactement ce poste :
-       les autres postes de la même demande gardent leur cause */
-    const vises = {};
-    list.forEach(({ it }) => { vises[it.key] = 1; vises[it.ref + "\u0000" + it.poste] = 1; });
-    const vise = l => {
-      if (!l.ref) return false;
-      if (vises[String(l.ref)]) return true;
-      return (l.postes || []).some(p => vises[String(l.ref) + "\u0000" + String(p)]);
-    };
-    const add = list.map(({ it, n }) => ({ id:uid(), ref:it.ref, postes:[it.poste], cat:"reedition", nb:n, src:"auto",
-      d: it.em.toISOString().slice(0, 10),
-      com: "Poste recréé le " + frDate(it.cre) + " (ancien poste " + it.anc +
-           (it.deduit ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
-           fmtDelai(it.reel, it.unite) + " pour un objectif de " + it.obj + (it.unite === "h" ? " h" : " j ouvrés"), st:"ok" }));
-    return Object.assign({}, c, { lignes: c.lignes.filter(l => !vise(l)).concat(add),
-      reed: Object.assign({}, c.reed || {}, reed[cid] || {}) });
+    return Object.assign({}, c, { reed: Object.assign({}, c.reed || {}, reed[cid] || {}) });
   }).filter(Boolean);
-  const gain = Object.values(sapDraft.plan).reduce((s, l) => s + l.reduce((x, p) => x + p.n, 0), 0);
   await bulkPut(out);
+  const st = await rejouerRegles(true);
   const nb = Object.values(reed).reduce((s2, m) => s2 + Object.keys(m).length, 0);
   $(SAP_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)">' +
-    (gain ? "<b>" + n0(gain) + " KO documentés.</b> Ils apparaissent en « Litige BR réédité » dans le registre." : "") +
-    (nb ? (gain ? " Et " : "<b>") + n0(nb) + " poste" + sPl(nb) + " recréé" + sPl(nb) + (gain ? " " : "</b> ") +
-      (nb > 1 ? "comptent" : "compte") + " désormais leur délai depuis la recréation, y compris " +
-      (nb > 1 ? "ceux" : "celui") + " qui restent en retard." : "") + "</div>";
-  toast(n0(gain) + " KO documentés"); sapDraft = null;
+    "<b>" + n0(nb) + " poste" + sPl(nb) + " recréé" + sPl(nb) + " enregistré" + sPl(nb) + ".</b> " +
+    "La règle en retire <b>" + n0(st.reed) + " KO</b> du décompte" +
+    (st.repris ? ", dont " + n0(st.repris) + " qui portai" + (st.repris > 1 ? "ent" : "t") +
+      " une autre cause — celle-ci est gardée dans le commentaire de la ligne" : "") +
+    ". Les autres restent comptés : leur délai dépasse l'objectif même depuis la recréation." +
+    "</div>";
+  toast(n0(st.reed) + " KO retirés par la règle"); sapDraft = null;
 }
 $("#btn-parse-sap").addEventListener("click", () => analyseSap($("#ta-sap").value));
 $("#btn-clear-sap").addEventListener("click", () => { $("#ta-sap").value = ""; $("#sap-out").innerHTML = ""; sapDraft = null; });
