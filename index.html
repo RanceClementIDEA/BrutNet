@@ -565,6 +565,8 @@ th.n{font-family:var(--f-disp)}
 .btn.danger:hover{background:color-mix(in srgb,var(--crit) 12%,transparent);border-color:var(--crit)}
 .btn.sm{padding:3px 9px;min-height:26px;font-size:11.5px;border-radius:6px}
 .btn.big{padding:9px 18px;min-height:40px;font-size:13.5px}
+/* flèches d'ordre des règles : carrées, pour ne pas peser à côté de « Modifier » */
+.btn.sm.ico{padding:3px 6px;min-width:26px;font-size:13px;line-height:1;font-variant:normal}
 .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .btn:disabled:hover{background:var(--surface);border-color:var(--line-2)}
 .btn:disabled:active{transform:none}
@@ -1394,6 +1396,15 @@ function normJours(j){
   return out;
 }
 function normCell(c){
+  const n = normCellBrut(c);
+  /* Le poids des lignes se relit sur le détail chargé : une justification vaut
+     le nombre de flux qu'elle couvre, pas le nombre qu'on avait saisi le jour où
+     le détail n'était pas encore là. Se refait à chaque écriture, donc suit
+     l'export. */
+  n.lignes.forEach(l => { const p = poidsLigne(n, l); if (p !== l.nb) l.nb = p; });
+  return n;
+}
+function normCellBrut(c){
   return {
     id: c.id || cellId(c.periode, c.site, c.service),
     periode: c.periode, site: c.site, service: c.service,
@@ -2071,6 +2082,36 @@ function cmpPoste(a, b){
   if (okb) return 1;
   return String(a).localeCompare(String(b), "fr");
 }
+/* ------------------- un poste peut porter plusieurs flux -------------------
+   Une même DT à un même poste revient plusieurs fois dans l'export quand la
+   ligne déplace plusieurs objets : même demande, même poste, des codes objet
+   différents, et autant de flux comptés par le KPI. Une justification posée sur
+   ce poste les explique tous — elle doit donc en retirer autant, pas un seul.
+   Sans ce décompte, justifier un poste en quatre exemplaires en retirait un et
+   rendait les trois autres inatteignables : aucune règle ne pouvait plus les
+   viser, et ils ne comptaient nulle part. */
+function occKo(cell){
+  const o = cell && cell.__occ;
+  if (o && o.n === (cell.koRefs || []).length) return o.m;
+  const m = {};
+  (cell && cell.koRefs || []).forEach((r, i) => {
+    const p = String((cell.koPostes || [])[i] || "");
+    if (p) { const k = sansZeros(r) + "|" + p; m[k] = (m[k] || 0) + 1; }
+  });
+  try { Object.defineProperty(cell, "__occ", { value:{ n:(cell.koRefs || []).length, m }, configurable:true }); } catch(e){}
+  return m;
+}
+/* Ce qu'une ligne retire réellement du décompte. Les postes nommés valent ce que
+   l'export en montre ; à défaut de détail chargé, la quantité saisie fait foi. */
+function poidsLigne(cell, l){
+  const ps = (l.postes || []).map(String).filter(Boolean);
+  if (!ps.length) return Math.max(0, +l.nb || 0);
+  if (!(cell.koRefs || []).length) return Math.max(0, +l.nb || 0);
+  const m = occKo(cell), k = sansZeros(l.ref);
+  let n = 0, vu = false;
+  ps.forEach(p => { const q = m[k + "|" + p]; if (q){ n += q; vu = true; } });
+  return vu ? n : Math.max(0, +l.nb || 0);
+}
 /* Les postes déjà couverts par une justification, pour une référence donnée.
    Une ligne peut porter des postes nommés (l.postes) ou seulement une quantité (l.nb). */
 function coverage(cell, ref){
@@ -2107,9 +2148,17 @@ function toQualify(){
   for (const k in grp){
     const g = grp[k], cov = coverage(g.cell, g.ref);
     const totalCell = (g.cell.koRefs || []).reduce((s, r) => s + (String(r) === g.ref ? 1 : 0), 0) || g.n;
-    let libres = g.postes.filter(p => !cov.postes.has(p));
-    const parQty = Math.min(cov.qty, Math.max(0, totalCell - cov.postes.size));
-    const resteCell = Math.max(0, totalCell - cov.postes.size - parQty);
+    /* Un poste n'est proposé qu'une fois même s'il porte plusieurs flux : le
+       cocher les justifie tous. */
+    let libres = [...new Set(g.postes.filter(p => !cov.postes.has(p)))];
+    /* Un poste couvert retire tous les flux qu'il porte, pas un par poste :
+       sinon le reste annoncé dépassait les postes encore proposés. */
+    const occ = occKo(g.cell), kref = sansZeros(g.ref);
+    let couvPostes = 0;
+    cov.postes.forEach(p => { couvPostes += occ[kref + "|" + p] || 1; });
+    couvPostes = Math.min(couvPostes, totalCell);
+    const parQty = Math.min(cov.qty, Math.max(0, totalCell - couvPostes));
+    const resteCell = Math.max(0, totalCell - couvPostes - parQty);
     const reste = Math.min(g.n, resteCell);   /* jamais plus que ce que la plage montre */
     if (reste <= 0) continue;
     libres.sort(cmpPoste);
@@ -2131,6 +2180,11 @@ function controls(){
   }
   a.over.forEach(c => raw.push({ k:"crit", t:"Justifications supérieures aux KO", tag: cellLbl(c) + " (" + n0(cellStats(c).raw) + " pour " + n0(c.ko) + " KO)",
     why:"Le surplus est ignoré dans le calcul, mais la saisie est à corriger." }));
+  /* Deux règles sur un même KO : le résultat est juste, mais c'est l'ordre de la
+     liste qui a tranché. Autant le dire plutôt que de le laisser deviner. */
+  (typeof conflitsRegles === "function" ? conflitsRegles() : []).forEach(c =>
+    raw.push({ k:"warn", t:"Deux règles visent les mêmes KO", tag: c.na + " → " + c.nb + " (" + n0(c.n) + " KO)",
+      why:"Un KO ne reçoit qu'une cause : c'est la règle la plus haute dans la liste qui la pose. L'ordre se change dans l'onglet Import." }));
   /* ---- la preuve contre la cause ----
      Ces deux contrôles sont l'audit que je faisais à la main, mis dans l'outil :
      une justification que la donnée contredit, et un poste que la donnée justifie
@@ -2145,6 +2199,24 @@ function controls(){
         (l.postes || []).forEach(p => couv[k + "|" + p] = 1);
         if (!(l.postes || []).length) couv[k + "|*"] = 1;
       });
+      /* Une justification qui ne vise plus rien. Elle continue pourtant à retirer
+         ses KO du décompte : c'est le cas d'un export corrigé où la ligne n'est
+         plus en retard, ou d'une référence saisie à côté. Sans ce contrôle, elle
+         se fond dans le net sans que rien ne la signale. */
+      if ((c.koRefs || []).length){
+        const occ = occKo(c);
+        const perdues = (c.lignes || []).filter(l => {
+          if (l.st !== "ok" || !(+l.nb > 0)) return false;
+          const k = sansZeros(l.ref), ps = (l.postes || []).map(String);
+          if (ps.length) return !ps.some(p => occ[k + "|" + p]);
+          return !nKo[k];
+        });
+        if (perdues.length) raw.push({ k:"crit", t:"Justification sans KO correspondant",
+          tag: cellLbl(c) + " · " + perdues.slice(0, 3).map(l => l.ref + ((l.postes || []).length ? " p." + l.postes.join("/") : "")).join(", ") +
+            (perdues.length > 3 ? " +" + (perdues.length - 3) : ""),
+          why:"L'export chargé ne porte plus ce retard : la ligne retire " + n0(perdues.reduce((s, l) => s + (+l.nb || 0), 0)) +
+            " KO qui n'existent plus. Vérifiez la référence, ou supprimez la justification." });
+      }
       (c.lignes || []).forEach(l => {
         const rd = reedRef(c, l.ref, l.postes);
         if (!rd.length || l.st !== "ok") return;
@@ -2700,9 +2772,9 @@ function reedLignes(cell){
   }
   return out;
 }
-function passerRegles(cells, regles, simule){
+function passerRegles(cells, regles, simule, conflits){
   const actives = (regles || []).filter(r => r.actif);
-  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0 };
+  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0, conflits:{} };
   const out = [];
   cells.forEach(cell => {
     const reed = reedLignes(cell);
@@ -2726,7 +2798,8 @@ function passerRegles(cells, regles, simule){
     stats.repris += repris.length;
     const ajoutReed = reed.map(x => {
       const pr = repris.find(r => r.ref === x.ref && r.postes.indexOf(x.poste) >= 0);
-      return { id: uid(), ref:x.ref, postes:[x.poste], cat:"reedition", nb:1, src:"auto",
+      return { id: uid(), ref:x.ref, postes:[x.poste], cat:"reedition",
+        nb: (occKo(cell)[x.ref + "|" + x.poste] || 1), src:"auto",
         d: cell.koDates ? (cell.koDates[(cell.koRefs || []).findIndex((r, i) =>
              sansZeros(r) === x.ref && String((cell.koPostes || [])[i] || "") === x.poste)] || "") : "",
         com: "Poste recréé le " + frDay(x.v.cre) + " (ancien poste " + x.v.anc +
@@ -2736,7 +2809,7 @@ function passerRegles(cells, regles, simule){
              (pr ? " · remplace la saisie « " + (CAT[pr.cat] ? CAT[pr.cat].l : pr.cat) + " »" : ""),
         st: "ok", regle: REGLE_REED };
     });
-    stats.reed += ajoutReed.length;
+    stats.reed += ajoutReed.reduce((s, l) => s + l.nb, 0);
     const cov = dejaCouverts({ lignes: avant, koRefs: cell.koRefs, koPostes: cell.koPostes });
     ajoutReed.forEach(l => { cov.parPoste.add(String(l.ref) + "|" + l.postes[0]); });
     /* les références de l'export peuvent encore porter leurs zéros de tête */
@@ -2751,13 +2824,27 @@ function passerRegles(cells, regles, simule){
       if (poste && cov.parPoste.has(ref + "|" + poste)) return;
       if (!poste && reste[ref] > 0){ reste[ref]--; return; }
       if (!poste && cov.parRef[ref] > 0 && reste[ref] === 0) return;
+      /* Une seule cause par KO : c'est la première règle de la liste qui la pose.
+         Les suivantes qui visaient le même KO sont notées — deux règles qui se
+         disputent un KO, c'est l'ordre de la liste qui tranche, et il vaut mieux
+         que cela se voie que de le découvrir dans un chiffre. */
+      let gagnante = null;
       for (const r of actives){
         if (!regleVise(r, cell, i, ref)) continue;
+        if (!gagnante){ gagnante = r; if (simule && !conflits) break; }
+        else { const k = gagnante.id + ">" + r.id; stats.conflits[k] = (stats.conflits[k] || 0) + 1; }
+      }
+      if (gagnante){
+        const r = gagnante;
+        /* Un poste qui porte plusieurs flux ne donne qu'une ligne, du poids de
+           ce qu'il porte : sans quoi la règle en posait une par flux et le
+           décompte les additionnait deux fois. */
+        if (poste) cov.parPoste.add(ref + "|" + poste);
+        const w = poste ? (occKo(cell)[sansZeros(ref) + "|" + poste] || 1) : 1;
         ajout.push({ id: uid(), ref, postes: poste ? [poste] : [], cat: r.cause,
-          nb: 1, src: r.src || "auto", com: r.nom, d: (cell.koDates || [])[i] || "",
+          nb: w, src: r.src || "auto", com: r.nom, d: (cell.koDates || [])[i] || "",
           st: CAT[r.cause] && CAT[r.cause].j ? "ok" : "rejet", regle: r.id });
-        stats.total++; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + 1;
-        break;                                  /* une seule cause par KO */
+        stats.total += w; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + w;
       }
     });
     const avaitDesRegles = (cell.lignes || []).some(l => l.regle);
@@ -2768,6 +2855,33 @@ function passerRegles(cells, regles, simule){
   });
   return { cellules: out, stats };
 }
+/* ---- les règles qui se disputent un même KO ----
+   Quand deux règles actives visent le même KO, la première de la liste pose sa
+   cause et la seconde ne pose rien. Le résultat est juste — une seule cause par
+   KO — mais le départage tient à l'ordre de création, que personne ne voit.
+   On le donne à voir, avec le nombre de KO en jeu, et on laisse remonter une
+   règle dans la liste pour trancher autrement. */
+let CONFLITS = null;
+function signatureRegles(){
+  return S.regles.map(r => r.id + (r.actif ? "1" : "0")).join(",") + "#" + Object.keys(S.cells).length;
+}
+function conflitsRegles(){
+  const sig = signatureRegles();
+  if (CONFLITS && CONFLITS.sig === sig) return CONFLITS.l;
+  const actives = S.regles.filter(r => r.actif);
+  let l = [];
+  if (actives.length > 1){
+    const { stats } = passerRegles(Object.values(S.cells), S.regles, true, true);
+    const nom = id => (S.regles.find(r => r.id === id) || {}).nom || "règle supprimée";
+    l = Object.entries(stats.conflits).map(([k, n]) => {
+      const [a, b] = k.split(">");
+      return { a, b, n, na:nom(a), nb:nom(b) };
+    }).sort((x, y) => y.n - x.n);
+  }
+  CONFLITS = { sig, l };
+  return l;
+}
+function oublieConflits(){ CONFLITS = null; }
 /* Ce qu'une règle changerait sur les périodes affichées, sans rien écrire. */
 function simuleRegle(r){
   const cells = selCells().map(c => realCell(c) || c);
@@ -2845,6 +2959,7 @@ function chargeReglesLocal(){
 }
 async function sauveRegles(){
   S.regles = normRegles(S.regles);
+  oublieConflits();
   try { localStorage.setItem(LSREGLES, JSON.stringify(S.regles)); } catch(e){}
   const doc = { regles: S.regles, maj: new Date().toISOString() };
   try {
@@ -2854,6 +2969,7 @@ async function sauveRegles(){
 }
 /* Rejoue toutes les règles sur les périodes enregistrées. */
 async function rejouerRegles(silencieux){
+  oublieConflits();
   const { cellules, stats } = passerRegles(Object.values(S.cells), S.regles, false);
   if (cellules.length) await bulkPut(cellules);
   if (!silencieux){
@@ -3400,7 +3516,8 @@ function renderFournies(){
       "tiennent l'objectif — 3 h si le flux est urgent, 2 jours ouvrés sinon. Une recréation se " +
       "reconnaît à son <code>N° Poste Référence</code>, ou au même poste de commande repris plus tard " +
       "sur un BR en litige.",
-      ["Réception", "Compte comme : Automatique", "retire les KO du décompte"],
+      ["Réception", "Compte comme : Automatique", "retire les KO du décompte",
+       "passe avant les vôtres et avant une saisie à la main"],
       reedConnus
         ? "La preuve vient de l'extraction SAP, déposée une fois : la règle la rejoue ensuite seule, " +
           "à chaque import. <b>" + n0(reedConnus) + " poste" + sPl(reedConnus) + " recréé" + sPl(reedConnus) +
@@ -3459,7 +3576,17 @@ function renderRegles(){
       n0(dispo) + " colonnes de l'export sont disponibles pour en écrire une.</div>";
     return;
   }
-  host.innerHTML = '<div class="rlist">' + S.regles.map(r => {
+  const cfl = conflitsRegles();
+  const perdu = {}, gagne = {};
+  cfl.forEach(c => { perdu[c.b] = (perdu[c.b] || 0) + c.n; (gagne[c.b] = gagne[c.b] || []).push(c.na); });
+  host.innerHTML = (cfl.length
+    ? '<div class="note" style="border-left-color:var(--warn)"><b>Deux règles visent les mêmes KO.</b> ' +
+      "Un KO ne reçoit qu'une cause : c'est la règle la plus haute dans la liste qui la pose. " +
+      cfl.slice(0, 3).map(c => "<b>" + esc(c.na) + "</b> prend " + n0(c.n) + " KO à <b>" + esc(c.nb) + "</b>").join(" · ") +
+      (cfl.length > 3 ? " · et " + n0(cfl.length - 3) + " autre(s)" : "") +
+      ". Utilisez les flèches pour changer qui passe en premier.</div>"
+    : "") +
+    '<div class="rlist">' + S.regles.map((r, idx) => {
     const n = simuleRegle(r);
     return '<div class="rcard' + (r.actif ? "" : " off") + '">' +
       '<label class="sw" title="' + (r.actif ? "Désactiver" : "Activer") + '"><input type="checkbox" data-ract="' + r.id + '"' +
@@ -3468,8 +3595,14 @@ function renderRegles(){
         '<div class="rcond">Quand ' + phraseRegle(r) + " → <b>" + esc(CAT[r.cause] ? CAT[r.cause].l : r.cause) + "</b></div>" +
         '<div class="rmeta"><span>' + (r.service === "tous" ? "Les deux services" : SERVS[r.service].l) + "</span>" +
         "<span>Compte comme : " + esc(SRC[r.src] || r.src) + "</span>" +
-        "<span>" + (CAT[r.cause] && CAT[r.cause].j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span></div></div>" +
+        "<span>" + (CAT[r.cause] && CAT[r.cause].j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span>" +
+        (perdu[r.id] ? '<span class="warn-t">' + n0(perdu[r.id]) + " KO pris par " + esc(gagne[r.id].join(", ")) + "</span>" : "") +
+        "</div></div>" +
       '<div class="ract"><span class="rimpact" title="sur la plage affichée">' + (n ? n0(n) + " KO" : "—") + "</span>" +
+        (S.regles.length > 1
+          ? '<button class="btn sm ico" data-rup="' + r.id + '" title="Passer avant"' + (idx === 0 ? " disabled" : "") + ">↑</button>" +
+            '<button class="btn sm ico" data-rdn="' + r.id + '" title="Passer après"' + (idx === S.regles.length - 1 ? " disabled" : "") + ">↓</button>"
+          : "") +
         '<button class="btn sm" data-redit="' + r.id + '">Modifier</button>' +
         '<button class="btn sm danger" data-rdel="' + r.id + '">×</button></div></div>';
   }).join("") + "</div>";
@@ -4745,7 +4878,14 @@ function openFiche(cid, lid){
       f("Site", SITES[c.site].l) +
       f("Service", SERVS[c.service].l) +
       f("KO concernés", n0(l.nb), true) +
-      f("Postes", (l.postes || []).length ? esc(l.postes.join(", ")) : "quantité seule", true) +
+      /* Un poste peut porter plusieurs flux — même demande, même ligne, plusieurs
+         codes objet. Le dire ici évite de lire « 1 poste, 4 KO » comme une erreur. */
+      f("Postes", (l.postes || []).length
+          ? esc(l.postes.join(", ")) + (l.nb > l.postes.length
+              ? ' <span class="muted">— ' + n0(l.nb) + " flux sur " +
+                (l.postes.length > 1 ? "ces postes" : "ce poste") + "</span>"
+              : "")
+          : "quantité seule", true) +
       /* En réception la ligne est toujours là : savoir que l'opérateur n'est pas
          renseigné, et pourquoi, vaut mieux qu'une ligne qui disparaît. */
       (c.service === "recep"
@@ -6101,6 +6241,18 @@ document.addEventListener("click", async e => {
   }
   const ed = e.target.closest("[data-redit]");
   if (ed){ modalRegle(ed.dataset.redit); return; }
+  /* L'ordre de la liste décide qui pose sa cause quand deux règles visent le
+     même KO. Le rendre modifiable, c'est rendre ce départage au lecteur. */
+  const mv = e.target.closest("[data-rup]") || e.target.closest("[data-rdn]");
+  if (mv){
+    const id = mv.dataset.rup || mv.dataset.rdn, pas = mv.dataset.rup ? -1 : 1;
+    const i = S.regles.findIndex(x => x.id === id), j = i + pas;
+    if (i < 0 || j < 0 || j >= S.regles.length) return;
+    const t = S.regles[i]; S.regles[i] = S.regles[j]; S.regles[j] = t;
+    await sauveRegles(); await rejouerRegles(true);
+    toast("« " + S.regles[j].nom + " » passe " + (pas < 0 ? "avant" : "après")); render();
+    return;
+  }
   const de = e.target.closest("[data-rdel]");
   if (de){
     const r = S.regles.find(x => x.id === de.dataset.rdel);
