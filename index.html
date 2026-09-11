@@ -23,6 +23,17 @@
      tombent sous le seuil de lisibilité : ces trois tons les remplacent pour
      le texte — même teinte, contraste tenu dans les deux thèmes. */
   --s1-t:#1a5fb4; --s2-t:#b4501f; --s3-t:#0e7a54;
+  /* Une couleur, un sens, partout dans l'outil :
+       orange — le brut, le retard tel qu'il est compté ;
+       vert   — ce qui est expliqué, quelle que soit la pièce ;
+       bleu   — le net, ce qui reste une fois l'explication faite.
+     Trois intensités par sens : le trait, le texte, l'aplat. Les alias sont
+     déclarés une seule fois — ce sont les jetons visés qui changent de thème. */
+  --c-brut:var(--s2); --c-brut-t:var(--s2-t); --c-brut-f:var(--s2-soft);
+  --c-expl:var(--s3); --c-expl-t:var(--s3-t); --c-expl-f:var(--s3-soft);
+  --c-net:var(--s1);  --c-net-t:var(--s1-t);  --c-net-f:var(--s1-soft);
+  /* « établi par votre analyse » : même vert, moins plein */
+  --c-analyse:color-mix(in srgb, var(--s3) 45%, var(--surface));
   --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
   --good-ink:#046504; --warn-ink:#8a5c00; --crit-ink:#a12525;
   --grid:#e4e9ee; --axis:#c3ccd4;
@@ -144,12 +155,12 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .gsub b{color:var(--ink)}
 /* le chiffre de tête */
 .wnum{font-family:var(--f-disp);font-weight:700;font-size:clamp(44px,6vw,68px);line-height:1;
-  letter-spacing:-.04em;margin:10px 0 2px;color:var(--s3)}
+  letter-spacing:-.04em;margin:10px 0 2px;color:var(--c-net-t)}
 .wnum small{font-size:.34em;font-weight:600;color:var(--ink-2);margin-left:4px;letter-spacing:0}
 .wnum-l{font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
 .wnum-l b{color:var(--ink)}
 /* tuiles de périmètre, colorées par l'état */
-.kt{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--s1);
+.kt{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--c-net);
   border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px;display:flex;flex-direction:column;
   gap:2px;min-width:0;cursor:pointer;transition:.12s}
 .kt:hover{border-color:var(--line-2);transform:translateY(-1px)}
@@ -160,8 +171,8 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .kt .ktd{font-size:11.5px;color:var(--ink-2);font-family:var(--f-mono);white-space:nowrap}
 /* net en bleu, brut en orange, l'écart expliqué en vert : chaque chiffre de la
    tuile porte sa couleur, on les compare sans lire les libellés */
-.kt .kbrut{color:var(--s2-t);font-weight:600}
-.kt .kgain{color:var(--s3-t);font-weight:600}
+.kt .kbrut{color:var(--c-brut-t);font-weight:600}
+.kt .kgain{color:var(--c-expl-t);font-weight:600}
 .kt .ktr{font-size:11.5px;color:var(--muted);margin-top:5px;padding-top:6px;border-top:1px solid var(--line);white-space:nowrap}
 .kt.vide{cursor:default;opacity:.6} .kt.vide .ktv{color:var(--muted)}
 /* barres horizontales : comparer des grandeurs */
@@ -169,8 +180,20 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .hb{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;cursor:pointer}
 .hb .hbl{font-size:12.5px;color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hb .hbv{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:600}
-.hb .hbt{grid-column:1/-1;height:6px;border-radius:4px;background:var(--surface-3)}
-.hb .hbt i{display:block;height:100%;border-radius:4px;background:var(--s2)}
+.hb .hbt{grid-column:1/-1;height:6px;border-radius:4px;background:var(--c-expl-f)}
+.hb .hbt i{display:block;height:100%;border-radius:4px;background:var(--c-expl)}
+/* Barre des causes : la part appuyée sur une pièce, puis celle établie par
+   votre analyse — même vert, le plein contre le tramé. Un écart de 2 px en
+   couleur de fond sépare les deux, sans trait. */
+.cbar{grid-column:1/-1;display:flex;gap:2px;height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden}
+.cbar i{display:block;height:100%;border-radius:4px}
+.cbar .piece{background:var(--c-expl)}
+.cbar .analyse{background:var(--c-analyse)}
+.ckey{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:11.5px;color:var(--muted);margin-top:12px}
+.ckey span{display:inline-flex;align-items:center;gap:6px}
+.ckey i{width:11px;height:8px;border-radius:2px;flex:none}
+.ckey .piece{background:var(--c-expl)}
+.ckey .analyse{background:var(--c-analyse)}
 .hb:hover .hbl{color:var(--ink)}
 .wt .bcta{padding-top:12px}
 .wempty{color:var(--muted);font-size:12.5px;padding:14px 0}
@@ -187,7 +210,7 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .bl .nm{flex:1;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bl .vl{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
 .bl .vl .ar{font-family:var(--f-body);color:var(--muted);font-weight:400;margin:0 1px}
-.bl .vl .st{color:var(--s3);font-weight:600}
+.bl .vl .st{color:var(--c-expl-t);font-weight:600}
 .bl[data-drill]{cursor:pointer;padding-left:8px;margin-left:-8px;border-radius:6px;transition:background .12s}
 .bl[data-drill]:hover{background:var(--surface-2)}
 .bl[data-drill]:hover .nm{color:var(--ink)}
@@ -241,7 +264,9 @@ body.simple .adv{display:none!important}
 .fbox span{font-size:12px;color:var(--ink-2);line-height:1.5}
 .fbox i{font-style:normal;font-size:10px;font-weight:700;font-family:var(--f-disp);letter-spacing:.05em;text-transform:uppercase;margin-top:3px}
 .fneed{color:var(--crit-ink)} .fopt{color:var(--muted)}
-.fbox.s1{border-left:3px solid var(--s1)} .fbox.s2{border-left:3px solid var(--s2)} .fbox.s3{border-left:3px solid var(--s3)}
+.fbox.s1{border-left:3px solid var(--c-brut)} .fbox.s2{border-left:3px solid var(--c-expl)}
+/* votre analyse : même vert, trait discontinu — la pièce en moins */
+.fbox.s3{border-left:3px dashed var(--c-expl)}
 .fbox.tool{background:var(--accent-soft);border-color:var(--accent-line);flex:1}
 .fbox.out{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px}
 .fbox.out b{flex:none} .fbox.out span{flex:1 1 100%}
@@ -253,7 +278,7 @@ body.simple .adv{display:none!important}
 .lbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line-2);gap:2px;background:var(--line-2)}
 .lbar .lseg{display:grid;place-items:center;min-width:2px}
 .lbar .ok{background:var(--good)}
-.lbar .d1{background:var(--s2)} .lbar .d2{background:var(--s3)}
+.lbar .d1{background:var(--c-expl)} .lbar .d2{background:var(--c-analyse)}
 .lbar .rest{background:var(--surface-3)}
 .lbar .ok span{font-size:11.5px;color:#fff;font-weight:600;font-family:var(--f-disp)}
 .lkey{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-size:12px;color:var(--ink-2)}
@@ -364,7 +389,7 @@ body.simple .adv{display:none!important}
 tr:hover .qq,tr:focus-within .qq{opacity:1}
 @media (hover:none){.qq{opacity:1;flex-wrap:wrap}}
 .qq button{font-size:11.5px;padding:3px 9px;border-radius:6px;border:1px solid var(--line-2);background:var(--surface);cursor:pointer;white-space:nowrap}
-.qq button:hover{background:var(--s3);color:#fff;border-color:var(--s3)}
+.qq button:hover{background:var(--c-expl);color:#fff;border-color:var(--c-expl)}
 .qq button.more{color:var(--muted)}
 .qbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:11px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
 .qbar .sp{margin-left:auto}
@@ -509,7 +534,7 @@ tr[data-fiche]:hover td:first-child,tr[data-ko]:hover td:first-child,tr[data-cel
 .fi .k{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;font-family:var(--f-disp)}
 .fi .v{font-size:13.5px}
 .fi .v.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500}
-.fq{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--s2);border-radius:0 8px 8px 0;padding:11px 14px;font-size:13px;line-height:1.6;margin-top:7px}
+.fq{background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--c-expl);border-radius:0 8px 8px 0;padding:11px 14px;font-size:13px;line-height:1.6;margin-top:7px}
 tr.clic:hover td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 tr.on td{background:var(--accent-soft)}
 tbody tr:last-child td{border-bottom:0}
@@ -522,10 +547,6 @@ th.n{font-family:var(--f-disp)}
 .trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* gap bar in matrix */
-.gapbar{position:relative;height:20px;min-width:150px;background:var(--surface-3);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
-.gapbar .b1{position:absolute;left:0;top:0;bottom:0;background:var(--s1);opacity:.85}
-.gapbar .b2{position:absolute;top:0;bottom:0;background:var(--s3);opacity:.9}
-.gapbar .tk{position:absolute;top:0;bottom:0;width:1px;background:var(--axis)}
 
 /* ---------- bits ---------- */
 /* Un bouton doit se viser sans effort et répondre au doigt comme à la souris :
@@ -554,9 +575,10 @@ th.n{font-family:var(--f-disp)}
   .icb{min-width:40px;min-height:40px}
 }
 .pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;font-family:var(--f-disp);letter-spacing:.02em;border:1px solid transparent;white-space:nowrap}
-.pill.auto{background:var(--s2-soft);color:var(--s2);border-color:color-mix(in srgb,var(--s2) 32%,transparent)}
-.pill.releve{background:var(--s2-soft);color:var(--s2);border-color:color-mix(in srgb,var(--s2) 32%,transparent)}
-.pill.manuel{background:var(--s3-soft);color:var(--s3);border-color:color-mix(in srgb,var(--s3) 32%,transparent)}
+/* Automatique et Relevé s'appuient sur une pièce, Manuel sur votre analyse :
+   même vert — ce sont deux justifications — le plein contre le contour. */
+.pill.auto,.pill.releve{background:var(--c-expl-f);color:var(--c-expl-t);border-color:color-mix(in srgb,var(--s3) 34%,transparent)}
+.pill.manuel{background:transparent;color:var(--c-expl-t);border-color:var(--c-expl);border-style:dashed}
 .pill.rejet{background:var(--surface-3);color:var(--muted);border-color:var(--line-2)}
 /* ---------- règles automatiques ---------- */
 .rlist{display:flex;flex-direction:column;gap:10px}
@@ -569,7 +591,7 @@ th.n{font-family:var(--f-disp)}
 .rcond code{background:var(--surface-3);border-radius:4px;padding:1px 5px;font-family:var(--f-mono);font-size:11.5px}
 .rmeta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px;font-size:11.5px;color:var(--muted)}
 .rcard .ract{display:flex;gap:6px;align-items:center;flex:none}
-.rimpact{font-family:var(--f-mono);font-size:12px;color:var(--s3);font-weight:600;white-space:nowrap}
+.rimpact{font-family:var(--f-mono);font-size:12px;color:var(--c-expl-t);font-weight:600;white-space:nowrap}
 .mlist{display:flex;flex-direction:column;gap:8px;margin:10px 0 18px}
 .mcard{border:1px dashed var(--line-2);border-radius:10px;padding:11px 14px;display:flex;gap:13px;
   align-items:center;flex-wrap:wrap}
@@ -592,7 +614,7 @@ th.n{font-family:var(--f-disp)}
 .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
 .sw i{position:absolute;inset:0;background:var(--line-2);border-radius:20px;transition:.15s}
 .sw i::after{content:"";position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.15s}
-.sw input:checked+i{background:var(--s3)}
+.sw input:checked+i{background:var(--accent)}
 .sw input:checked+i::after{transform:translateX(17px)}
 /* en-têtes de tableau triables */
 th[data-tri]{cursor:pointer;user-select:none;white-space:nowrap}
@@ -784,9 +806,9 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
             </div>
             <div class="fcol">
               <div class="fcap">Les trois taux</div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--s1)"></i><b>Brut</b><span>ce que le client subit</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--s2)"></i><b>Documenté</b><span>justifié, pièce à l'appui</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--s3)"></i><b>Net</b><span>documenté + votre analyse</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-brut)"></i><b>Brut</b><span>ce que le client subit</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-expl)"></i><b>Documenté</b><span>justifié, pièce à l'appui</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-net)"></i><b>Net</b><span>documenté + votre analyse</span></div>
             </div>
           </div>
         </div>
@@ -879,16 +901,16 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
                 <svg viewBox="0 0 620 168" role="img" aria-label="Chronologie d'un poste BR recréé après litige">
                   <line x1="40" y1="92" x2="580" y2="92" stroke="var(--axis)" stroke-width="2"/>
                   <g stroke="var(--axis)" stroke-width="2"><line x1="40" y1="84" x2="40" y2="100"/><line x1="200" y1="84" x2="200" y2="100"/><line x1="410" y1="84" x2="410" y2="100"/><line x1="565" y1="84" x2="565" y2="100"/></g>
-                  <g fill="var(--s1)"><circle cx="40" cy="92" r="6"/><circle cx="200" cy="92" r="6"/></g>
-                  <g fill="var(--s3)"><circle cx="410" cy="92" r="6"/><circle cx="565" cy="92" r="6"/></g>
+                  <g fill="var(--c-brut)"><circle cx="40" cy="92" r="6"/><circle cx="200" cy="92" r="6"/></g>
+                  <g fill="var(--c-net)"><circle cx="410" cy="92" r="6"/><circle cx="565" cy="92" r="6"/></g>
                   <g font-size="11" font-family="var(--f-body)" fill="var(--ink-2)" text-anchor="middle">
                     <text x="46" y="120">1ʳᵉ création</text><text x="200" y="120">litige</text>
                     <text x="410" y="120">recréation</text><text x="559" y="120">entrée marchandise</text>
                   </g>
-                  <path d="M40 62v-8h525v8" fill="none" stroke="var(--s1)" stroke-width="2"/>
-                  <text x="302" y="44" font-size="12" font-family="var(--f-disp)" font-weight="600" fill="var(--s1)" text-anchor="middle">délai mesuré par le KPI — gonflé</text>
-                  <path d="M410 138v8h155v-8" fill="none" stroke="var(--s3)" stroke-width="2"/>
-                  <text x="487" y="163" font-size="12" font-family="var(--f-disp)" font-weight="600" fill="var(--s3)" text-anchor="middle">délai réel — ce qui compte</text>
+                  <path d="M40 62v-8h525v8" fill="none" stroke="var(--c-brut)" stroke-width="2"/>
+                  <text x="302" y="44" font-size="12" font-family="var(--f-disp)" font-weight="600" fill="var(--c-brut)" text-anchor="middle">délai mesuré par le KPI — gonflé</text>
+                  <path d="M410 138v8h155v-8" fill="none" stroke="var(--c-net)" stroke-width="2"/>
+                  <text x="487" y="163" font-size="12" font-family="var(--f-disp)" font-weight="600" fill="var(--c-net)" text-anchor="middle">délai réel — ce qui compte</text>
                 </svg>
               </div>
               <div class="gmap">
@@ -2803,14 +2825,14 @@ function drawEvo(){
     return o;
   };
   const fondu = evoData.every(d => d.net != null && d.docu != null && Math.abs(d.net - d.docu) < 5e-5);
-  s += line(d => d.brut, "var(--s1)");
-  if (!fondu) s += line(d => d.docu, "var(--s2)");
-  s += line(d => d.net,  "var(--s3)");
+  s += line(d => d.brut, "var(--c-brut)");
+  if (!fondu) s += line(d => d.docu, "var(--c-expl)");
+  s += line(d => d.net,  "var(--c-net)");
   $("#evo-legend").innerHTML =
-    '<span><i style="background:var(--s1)"></i>Brut</span>' +
+    '<span><i style="background:var(--c-brut)"></i>Brut</span>' +
     (fondu
-      ? '<span><i style="background:linear-gradient(90deg,var(--s2) 50%,var(--s3) 50%)"></i>Documenté et net confondus</span>'
-      : '<span><i style="background:var(--s2)"></i>Documenté</span><span><i style="background:var(--s3)"></i>Net</span>') +
+      ? '<span><i style="background:linear-gradient(90deg,var(--c-expl) 50%,var(--c-net) 50%)"></i>Documenté et net confondus</span>'
+      : '<span><i style="background:var(--c-expl)"></i>Documenté</span><span><i style="background:var(--c-net)"></i>Net</span>') +
     '<span class="muted">La bande grisée mesure l\'écart brut → net.' +
     (fondu ? " Toutes les justifications s’appuient ici sur une pièce." : "") + "</span>";
   evoData.forEach((d, i) => {
@@ -2849,7 +2871,7 @@ function drawEvo(){
    Jauge en demi-cercle. Les deux jauges d'un écran partagent la même échelle —
    sans quoi 94,0 et 95,5 pourraient paraître identiques, ou inversés. L'échelle
    ne part pas de zéro : à 93-97 %, tout se jouerait sur le dernier degré. */
-function demiCercle(val, lo, col, lbl){
+function demiCercle(val, lo, col, lbl, fond){
   const R = 82, CX = 100, CY = 100, W = 14;
   const f = val == null ? 0 : Math.max(0, Math.min(1, (val * 100 - lo) / (100 - lo)));
   const pt = fr => { const th = Math.PI * (1 - fr);
@@ -2858,7 +2880,7 @@ function demiCercle(val, lo, col, lbl){
   return '<svg class="gg" viewBox="0 0 200 128" role="img" aria-label="' + esc(lbl) + " " + pf(val) +
       ", échelle " + dec(lo, 0) + ' à 100 %">' +
     '<path d="M' + (CX - R) + "," + CY + " A" + R + "," + R + " 0 0 1 " + (CX + R) + "," + CY +
-      '" fill="none" stroke="var(--surface-3)" stroke-width="' + W + '" stroke-linecap="round"/>' +
+      '" fill="none" stroke="' + (fond || "var(--surface-3)") + '" stroke-width="' + W + '" stroke-linecap="round"/>' +
     (f > 0.002
       ? '<path d="M' + (CX - R) + "," + CY + " A" + R + "," + R + " 0 0 1 " + x2 + "," + y2 +
         '" fill="none" stroke="' + col + '" stroke-width="' + W + '" stroke-linecap="round"/>'
@@ -2912,26 +2934,28 @@ function renderDash(){
   const px = v => v == null ? 0 : Math.max(0, Math.min(100, (v * 100 - lo) / (100 - lo) * 100));
 
   /* ---- deux cases côte à côte : le brut, puis le net ---- */
-  const jauge = (titre, val, col, sous, tag) =>
+  /* l'anneau de fond prend la teinte pâle de la jauge : ton sur ton, plus doux
+     qu'un gris qui n'appartient à rien */
+  const jauge = (titre, val, col, sous, tag, fond) =>
     '<div class="wt gt"><h3><i class="chip-c" style="background:' + col + '"></i>' + titre +
       (tag ? '<span class="btag">' + esc(tag) + "</span>" : "") + "</h3>" +
-    demiCercle(val, lo, col, titre) +
+    demiCercle(val, lo, col, titre, fond) +
     '<div class="gsub">' + sous + "</div></div>";
 
-  const t1 = jauge("Taux brut", a.brut, "var(--s1)",
-    n0(a.flux) + " flux · <b>" + n0(a.ko) + " KO</b> comptés en retard", rangeLabel());
-  const t2 = jauge("Taux net", a.net, "var(--s3)",
+  const t1 = jauge("Taux brut", a.brut, "var(--c-brut)",
+    n0(a.flux) + " flux · <b>" + n0(a.ko) + " KO</b> comptés en retard", rangeLabel(), "var(--c-brut-f)");
+  const t2 = jauge("Taux net", a.net, "var(--c-net)",
     "<b>" + ptf(a.net - a.brut) + "</b> d'écart expliqué · " + n0(a.jtot) + " KO justifiés" +
     (a.jtot - a.jdoc < 0.5
       ? ", tous appuyés sur une pièce"
       : " — " + n0(a.jdoc) + " sur pièce, " + n0(a.jtot - a.jdoc) + " par votre analyse"),
-    n0(a.reste) + " restent");
+    n0(a.reste) + " restent", "var(--c-net-f)");
 
   /* ---- les causes, en barres ---- */
   const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man }))
     .filter(r => r.n > 0.5).sort((x, y) => y.n - x.n).slice(0, 6);
   const maxC = cats.length ? cats[0].n : 1;
-  const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--s2)"></i>Retards expliqués' +
+  const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--c-expl)"></i>Retards expliqués' +
       '<span class="btag">' + n0(a.jtot) + " KO</span></h3>" +
     (cats.length
       ? '<div class="hbars">' + cats.map(c =>
@@ -2989,14 +3013,21 @@ function renderQualifies(){
   $("#causes-sub").textContent = a.jtot ? n0(a.jtot) + " KO retirés · " + ptf(a.net - a.brut) + " de taux" : "";
   $("#causes").innerHTML = rows.length
     ? rows.map(r => {
-        const w = (r.n / mx * 100).toFixed(1), pts = r.n / (a.flux || 1) * 100;
-        const col = r.man > r.doc ? "var(--s3)" : "var(--s2)";
+        const pts = r.n / (a.flux || 1) * 100;
+        /* La barre montre la part sur pièce et la part d'analyse au lieu de teindre
+           toute la cause selon sa majorité : à 51 % contre 49 % l'ancienne version
+           basculait d'une couleur à l'autre sans que rien n'ait vraiment changé. */
+        const wd = (r.doc / mx * 100).toFixed(1), wm = (r.man / mx * 100).toFixed(1);
         return '<div style="display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;margin-bottom:11px">' +
-          '<div style="font-size:13px;display:flex;align-items:center;gap:7px"><i class="chip-c" style="background:' + col + '"></i>' + esc(r.l) + "</div>" +
+          '<div style="font-size:13px;display:flex;align-items:center;gap:7px"><i class="chip-c" style="background:var(--c-expl)"></i>' + esc(r.l) + "</div>" +
           '<div class="ref nowrap">' + n0(r.n) + " KO · +" + dec(pts, 2) + " pt</div>" +
-          '<div style="grid-column:1/-1;height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden;border:1px solid var(--line)">' +
-          '<i style="display:block;height:100%;width:' + w + '%;background:' + col + '"></i></div></div>';
-      }).join("") + '<div class="muted" style="font-size:11.5px;margin-top:12px">Orange&nbsp;: appuyé sur une pièce. Vert&nbsp;: établi par votre analyse.</div>'
+          '<div class="cbar">' +
+            (r.doc > 0.05 ? '<i class="piece" style="width:' + wd + '%"></i>' : "") +
+            (r.man > 0.05 ? '<i class="analyse" style="width:' + wm + '%"></i>' : "") +
+          "</div></div>";
+      }).join("") +
+      '<div class="ckey"><span><i class="piece"></i>appuyé sur une pièce</span>' +
+      '<span><i class="analyse"></i>établi par votre analyse</span></div>'
     : '<div class="empty"><b>Rien de retiré pour l\'instant</b>Le net est égal au brut sur ce périmètre.</div>';
 
   const flat = [];
@@ -3556,9 +3587,9 @@ document.addEventListener("click", e => {
 function openDefs(){ openModal(
   '<div class="ph"><h2>Les trois taux, et pourquoi trois</h2><span class="sub">Ce qu\'il faut pouvoir dire en réunion</span></div>' +
   '<div class="pb"><div class="steps" style="border:1px solid var(--line);border-radius:9px">' +
-  [["Brut", "var(--s1)", "OK / (OK + KO) sur les flux comptés. Aucun retrait, aucune interprétation. C'est ce que le client subit, et c'est le seul chiffre que personne ne peut discuter."],
-   ["Documenté", "var(--s2)", "Le brut, moins les KO dont la justification s'appuie sur une pièce : une date de l'export, une réédition SAP, une ligne du relevé de l'exploitation. Elle se vérifie sans vous."],
-   ["Net", "var(--s3)", "Le documenté, plus les justifications que vous établissez par votre analyse. C'est ce que l'exploitation maîtrise réellement. Les deux se publient ensemble : le documenté est celui qu'un tiers peut recontrôler seul."],
+  [["Brut", "var(--c-brut)", "OK / (OK + KO) sur les flux comptés. Aucun retrait, aucune interprétation. C'est ce que le client subit, et c'est le seul chiffre que personne ne peut discuter."],
+   ["Documenté", "var(--c-expl)", "Le brut, moins les KO dont la justification s'appuie sur une pièce : une date de l'export, une réédition SAP, une ligne du relevé de l'exploitation. Elle se vérifie sans vous."],
+   ["Net", "var(--c-net)", "Le documenté, plus les justifications que vous établissez par votre analyse. C'est ce que l'exploitation maîtrise réellement. Les deux se publient ensemble : le documenté est celui qu'un tiers peut recontrôler seul."],
    ["Couverture", "var(--muted)", "La part du volume qui reste jugée. Un net élevé sur une couverture faible est un artefact, pas une performance : cela veut dire qu'on a retiré tellement de flux du jugement que le chiffre ne dit plus grand-chose."]]
   .map(([t, c, d]) => '<div class="step" style="grid-template-columns:12px 1fr"><i class="chip-c" style="background:' + c + ';margin-top:5px"></i>' +
     '<div class="sbody"><h3>' + t + "</h3><p style=\"margin:0\">" + d + "</p></div></div>").join("") +
