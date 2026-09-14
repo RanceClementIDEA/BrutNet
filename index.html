@@ -358,6 +358,27 @@ body.simple .adv{display:none!important}
 .lnk{appearance:none;background:none;border:0;padding:0;margin-left:6px;color:var(--accent);
   font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .lnk:hover{filter:brightness(1.15)}
+/* Le mode d'emploi, replié sous le dépôt : on l'ouvre la première fois, et les
+   semaines suivantes il ne prend pas de place. */
+.tuto{margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
+.tuto > summary{cursor:pointer;list-style:none;padding:11px 15px;font-family:var(--f-disp);
+  font-weight:600;font-size:13px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.tuto > summary::-webkit-details-marker{display:none}
+.tuto > summary::before{content:"";width:7px;height:7px;flex:none;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(-45deg);transition:transform .15s}
+.tuto[open] > summary::before{transform:rotate(45deg)}
+.tuto > summary:hover{background:var(--surface-3);border-radius:9px}
+.tuto .srail{padding:4px 15px 6px}
+.tuto .pit,.tuto > .hint{margin-left:15px;margin-right:15px}
+.tuto > .hint{display:block;padding-bottom:14px}
+/* Le retard, dans la couleur de son sens : orange quand le flux a dépassé,
+   neutre quand il est tombé le jour même — en retard quand même, mais d'une
+   journée —, vert quand il s'est terminé avant son échéance et que le KPI l'a
+   compté KO tout de même. */
+.ret-tard{color:var(--c-brut-t);font-weight:600}
+.ret-jour{color:var(--ink-2)}
+.ret-tot{color:var(--c-expl-t);font-weight:600}
 /* Traduire une cause écrite en clair : le libellé, son poids, et le choix. */
 .trad{display:flex;flex-direction:column;gap:7px;margin-top:10px}
 .tline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -468,6 +489,13 @@ details.mini > div{font-size:12.5px;color:var(--ink-2);line-height:1.65;margin-t
 .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .cbtn{appearance:none;text-align:left;background:var(--surface-2);border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;cursor:pointer;font-family:var(--f-body);color:var(--ink);font-size:13px;font-weight:500}
 .cbtn:hover,.cbtn.on{border-color:var(--accent);background:var(--accent-soft)}
+/* Vos causes se distinguent de celles de l'outil sans crier : un liseré, pas
+   une couleur de plus. La tuile de création, elle, est en pointillé — c'est un
+   geste, pas un choix. */
+.cbtn.mien{border-left:3px solid var(--accent-line)}
+.cbtn.neuve{border-style:dashed;color:var(--accent);font-weight:600}
+.cbtn.neuve small{color:var(--muted);font-weight:400}
+.cbtn.neuve:hover{border-style:solid}
 .cbtn small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
 
 /* ---------- mode d'emploi ---------- */
@@ -943,71 +971,67 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         <div class="pb">
           <div class="drop xl" id="depot">
             <label class="btn pri big" style="cursor:pointer">Choisir les fichiers…<input type="file" id="file-depot" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
-            <span class="dropi"><b>ou glissez-les ici.</b> Export PowerBI, extraction SAP, relevé journalier&nbsp;—
+            <span class="dropi"><b>ou glissez-les ici.</b> Export PowerBI, extraction SAP, relevé&nbsp;—
               ensemble ou séparément, dans n'importe quel ordre. Rien à choisir, rien à ranger.</span>
           </div>
           <div id="depot-out"></div>
           <div id="depot-muet" hidden></div>
 
-          <ol class="routine">
-            <li><span class="rn">1</span><div><b>PowerBI</b> — rapport <b>Volume Réception / Distribution LOG + MG</b>,
-              la période voulue, onglet <b>Détails lignes PowerBI</b> → <b>Dimensions</b> → <mark>tout cocher</mark>, puis
-              <b>Exporter les données</b>.</div></li>
-            <li><span class="rn">2</span><div><b>SAP</b> — l'extraction des réceptions sur la même période.
-              <span class="muted">Elle seule sait quels postes BR ont été recréés après litige.</span></div></li>
-            <li><span class="rn">3</span><div><b>Le relevé</b>, si vous en avez un — le tableau transcrit depuis les mails,
-              ou l'export avec une colonne <b>CAUSE</b> remplie par un responsable.
-              <span class="muted">L'outil trouve seul de quel site et de quel service il parle.</span></div></li>
-          </ol>
-          <p class="hint" style="margin:12px 0 0">Un fichier déjà passé peut être redéposé sans risque&nbsp;: il remplace,
-          il n'empile pas. Vos justifications à la main sont gardées à chaque fois.
-          <button class="lnk" id="lien-assistant">Première fois&nbsp;? Laissez-vous guider pas à pas</button></p>
+          <details class="tuto">
+            <summary>Où trouver ces fichiers</summary>
+            <ol class="srail">
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M9.5 2.5h4v4M13.5 2.5 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9.8v2.7a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Dans PowerBI, ouvrir <b>Volume Réception&nbsp;/ Distribution LOG&nbsp;+&nbsp;MG</b></li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Choisir la <b>période</b></li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2" stroke="currentColor" stroke-width="1.5"/><path d="m5.2 8.2 2 2 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Onglet <b>Détails lignes PowerBI</b> → <b>Dimensions</b> → <mark>tout cocher</mark></li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter les données</b></li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M3 5.4C3 4.4 5.2 3.6 8 3.6s5 .8 5 1.8M3 5.4v5.2c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V5.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8" stroke="currentColor" stroke-width="1.5"/></svg></i>Dans SAP, <b>l'extraction des réceptions</b> sur la même période</li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b>Le relevé</b>, si vous en avez un</li>
+              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 1.8 2.4 4.2v3.4c0 3.3 2.3 5.6 5.6 6.6 3.3-1 5.6-3.3 5.6-6.6V4.2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.9 7.9 1.5 1.5 2.9-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Les déposer ici, <b>tels quels</b></li>
+            </ol>
+            <div class="pit"><b>Le «&nbsp;tout cocher&nbsp;» n'est pas un détail.</b> Sans lui il manque <code>Statut litige</code>,
+              et les litiges de réception ne sont plus écartés&nbsp;: la réception MG affiche 396 KO au lieu de 280.</div>
+            <p class="hint" style="margin:10px 0 0">Inutile de convertir quoi que ce soit, ni de coller&nbsp;: le fichier part
+              tel qu'il sort. L'outil compte le brut tout seul et vous montre ce qu'il a trouvé.
+              Un fichier déjà passé peut être redéposé sans risque&nbsp;: il remplace, il n'empile pas, et vos
+              justifications à la main sont gardées à chaque fois.
+              <button class="lnk" id="lien-assistant">Ou laissez-vous guider pas à pas</button></p>
+          </details>
         </div>
       </div>
 
       <details class="panel">
-        <summary class="ph"><h2>D'où vient chaque chiffre</h2><span class="sub">Trois sources, trois taux</span></summary>
+        <summary class="ph"><h2>D'où vient chaque chiffre</h2><span class="sub">Quatre fichiers, vos saisies, et les trois taux</span></summary>
         <div class="pb">
           <div class="flow">
             <div class="fcol">
               <div class="fcap">Vos fichiers</div>
-              <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span></div>
-              <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span></div>
-              <div class="fbox s2"><b>Relevé journalier Distri MG</b><span>causes déclarées par l'exploitation</span></div>
+              <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span><i class="fneed">donne le brut</i></div>
+              <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span><i class="fopt">pièce</i></div>
+              <div class="fbox s2"><b>Relevé transcrit</b><span>MG ou Logistiport, distribution ou réception</span><i class="fopt">pièce</i></div>
+              <div class="fbox s2"><b>Export avec colonne CAUSE</b><span>les lignes KO de Logistiport, la cause écrite à côté</span><i class="fopt">pièce</i></div>
+              <div class="fbox s3"><b>Vos saisies à la main</b><span>ce que vous qualifiez dans « À justifier »</span><i class="fopt">votre analyse</i></div>
             </div>
             <div class="farr" aria-hidden="true">
               <svg viewBox="0 0 40 120" width="40" height="120"><path d="M2 60h30" stroke="var(--line-2)" stroke-width="2" fill="none"/><path d="M28 54l8 6-8 6" stroke="var(--line-2)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <div class="fcol">
               <div class="fcap">Les trois taux</div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--c-brut)"></i><b>Brut</b><span>ce que le client subit</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--c-expl)"></i><b>Documenté</b><span>justifié, pièce à l'appui</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--c-net)"></i><b>Net</b><span>documenté + votre analyse</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-brut)"></i><b>Brut</b><span>ce que le client subit — l'export seul</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-expl)"></i><b>Documenté</b><span>+ SAP et les relevés : justifié, pièce à l'appui</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-net)"></i><b>Net</b><span>+ vos saisies à la main : c'est le chiffre qu'on publie</span></div>
             </div>
           </div>
         </div>
       </details>
 
-      <p class="gp srcnote"><b>Un fichier à la fois, ou quelque chose cloche&nbsp;?</b> Chaque source garde
-      son bloc ci-dessous&nbsp;: la marche à suivre en détail à gauche, le dépôt et son compte rendu
-      complet à droite. C'est là qu'on va voir pourquoi un fichier a été refusé, ou ce qu'un import
-      a exactement changé. Au quotidien, le dépôt du haut suffit.</p>
+
+      <p class="gp srcnote"><b>Les quatre fichiers que l'outil sait lire.</b> Au quotidien vous les déposez
+      ensemble en haut. Ouvrez un bloc pour en passer un seul, ou pour voir son compte rendu en détail.</p>
 
       <details class="panel src" id="pan-export">
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="3" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 11.6V9M8.6 11.6V6.6M11.6 11.6v-3.6M14.6 11.6V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></i><h2>1 · Export PowerBI</h2><span class="sub">Donne le brut</span></summary>
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="3" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 11.6V9M8.6 11.6V6.6M11.6 11.6v-3.6M14.6 11.6V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></i><h2>1 · Export PowerBI</h2><span class="sub">Tous les flux, OK et KO — il donne le brut</span></summary>
         <div class="pb">
-          <div class="srcgrid">
-            <div class="srcl">
-              <div class="flab">La marche à suivre</div>
-              <ol class="srail">
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M9.5 2.5h4v4M13.5 2.5 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9.8v2.7a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Ouvrir le rapport <b>Volume Réception&nbsp;/ Distribution LOG&nbsp;+&nbsp;MG</b></li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Choisir la <b>période</b> à exporter</li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2" stroke="currentColor" stroke-width="1.5"/><path d="m5.2 8.2 2 2 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Onglet de gauche&nbsp;: <b>Détails lignes PowerBI</b> puis <b>Dimensions</b>, <mark>tout cocher</mark></li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter les données</b></li>
-              </ol>
-              <div class="pit"><b>L'étape à ne pas sauter&nbsp;: tout cocher.</b> C'est elle qui fait sortir les 50 colonnes. Sans elles, l'outil perd <code>Statut litige</code> — les litiges de réception ne sont plus écartés, la réception MG affiche 396 KO au lieu de 280 — et vos règles automatiques n'ont plus rien à lire.</div>
-            </div>
-            <div class="srcr">
+            
 
               <div class="drop">
                 <label class="btn pri big" style="cursor:pointer">Ouvrir l'export PowerBI…<input type="file" id="file-export" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
@@ -1034,27 +1058,14 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
                 <div><b>Statut litige</b><span>en réception, tout ce qui n'est pas « Non concerné » est écarté du décompte</span></div>
               </div>
               <div class="pit"><b>Le piège.</b> Un export peut être incomplet sans le dire — 516 flux manquants avaient fait passer un brut de 88,8&nbsp;% pour 95,7&nbsp;%. L'outil compare le volume aux semaines précédentes et vous alerte.</div>
-            </div>
-          </details>
-            </div>
-          </div>
-          <div id="export-out"></div>
         </div>
+              </details>
       </details>
 
-      <details class="panel src" id="pan-sap" >
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><path d="M3 5.4C3 4.1 6.1 3 10 3s7 1.1 7 2.4M3 5.4v9.2C3 15.9 6.1 17 10 17s7-1.1 7-2.4V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 10c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4" stroke="currentColor" stroke-width="1.6"/></svg></i><h2>2 · Extraction SAP</h2><span class="sub">Réception — la colonne que PowerBI n'a pas</span></summary>
+      <details class="panel src" id="pan-sap">
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><path d="M3 5.4C3 4.1 6.1 3 10 3s7 1.1 7 2.4M3 5.4v9.2C3 15.9 6.1 17 10 17s7-1.1 7-2.4V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M3 10c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4" stroke="currentColor" stroke-width="1.6"/></svg></i><h2>2 · Extraction SAP</h2><span class="sub">Réception — les postes BR recréés après litige</span></summary>
         <div class="pb">
-          <div class="srcgrid">
-            <div class="srcl">
-              <div class="flab">La marche à suivre</div>
-              <ol class="srail">
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Lancer <b>Suivi_BR</b> sur la <b>date choisie</b></li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter</b> le résultat</li>
-              </ol>
-              <div class="pit"><b>Après la période, pas pendant.</b> Un poste recréé après la date d'extraction n'y figure pas&nbsp;: il resterait compté en retard.</div>
-            </div>
-            <div class="srcr">
+            
 
               <div class="drop">
                 <label class="btn pri big" style="cursor:pointer">Ouvrir l'extraction SAP…<input type="file" id="file-sap" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
@@ -1094,31 +1105,25 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
                 <div><b>Ce que ça pèse</b><span>150 KO documentés sur la période — sans cette étape, la réception MG tombe de 97,4 % à 94,7 %</span></div>
               </div>
               <div class="pit"><b>Le piège.</b> Le fichier SAP a une date d'extraction&nbsp;: les postes recréés après elle sont invisibles. Extrayez SAP <i>après</i> la période, pas pendant.</div>
-            </div>
-          </details>
-            </div>
-          </div>
-          <div id="sap-out"></div>
         </div>
+              </details>
       </details>
 
-      <details class="panel src" id="pan-releve" >
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="4" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 5.4 10 10.6l7.2-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><h2>3 · Relevé de l'exploitation</h2><span class="sub">Les causes déclarées — MG, Logistiport, distribution ou réception</span></summary>
+      <details class="panel src" id="pan-releve">
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="4" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 5.4 10 10.6l7.2-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><h2>3 · Relevé transcrit</h2><span class="sub">Une ligne par DT, une catégorie — MG, Logistiport, distribution ou réception</span></summary>
         <div class="pb">
-          <p class="gp" style="margin-bottom:14px"><b>Deux formes acceptées, l'outil reconnaît les deux.</b>
-            Le <b>relevé quotidien</b> transcrit depuis les mails — une colonne <code>N° DT</code> et une colonne
-            <code>Catégorie</code> suffisent ; la marche à suivre ci-dessous. Ou <b>l'export lui-même</b>, ses lignes KO
-            avec une colonne <code>CAUSE</code> ajoutée à côté : c'est ce qu'un responsable produit le plus vite, et
-            l'identifiant de flux vise alors le <b>poste exact</b>, pas seulement la DT.
-            <span class="muted">Le site et le service sont trouvés tout seuls. Une cause écrite en clair que l'outil
-            ne connaît pas encore vous est présentée une fois, à traduire — ensuite il s'en souvient.</span></p>
-          <div class="srcgrid">
-            <div class="srcl">
-              <div class="flab">La marche à suivre, pour la forme transcrite</div>
-              <ol class="srail">
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Ouvrir le ou les mails — une conversation de plusieurs jours convient</li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M4.6 6V2.6h6.8V6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.2" y="6" width="11.6" height="5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><path d="M4.6 9.6h6.8v3.8H4.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></i><b>Imprimer → Enregistrer en PDF</b></li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.2 9.3 6 13 7.3 9.3 8.6 8 12.4 6.7 8.6 3 7.3 6.7 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.4 11.2v2.4M11.2 12.4h2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></i>Demander à <b>ChatGPT</b> ou <b>Gemini</b> de lire le PDF et d'en faire un tableau<details class="mini pr"><summary>Le prompt à copier</summary><div><span class="codeblk rl" data-copy>Tu reçois une archive de mails (fichier PDF, .eml, .mht ou dossier exporté) : chaque message a pour objet « Retard du JJ/MM » et contient le relevé du jour sous forme de capture d'écran. Ta mission est de transcrire ces captures en un seul tableau.
+            
+              <div class="form" style="margin-bottom:11px">
+                <div class="f"><label for="r-site">Site</label><select id="r-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>
+                <div class="f"><label for="r-serv">Service</label><select id="r-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>
+                <div class="f"><label for="r-date">Semaine, si besoin</label><input type="date" id="r-date"><span class="hint" id="r-week">facultatif</span></div>
+              </div>
+
+              <p class="gp" style="margin-bottom:12px"><b>Le relevé arrive en capture d'écran dans les mails.</b>
+          Imprimez la conversation en PDF, demandez à <b>ChatGPT</b> ou <b>Gemini</b> de la transcrire avec le prompt
+          ci-dessous, puis déposez le tableau obtenu. Les intitulés reconnus&nbsp;: <code>N° DT</code> et
+          <code>Catégorie</code> suffisent, les autres sont un bonus.
+          <details class="mini pr"><summary>Le prompt à copier</summary><div><span class="codeblk rl" data-copy>Tu reçois une archive de mails (fichier PDF, .eml, .mht ou dossier exporté) : chaque message a pour objet « Retard du JJ/MM » et contient le relevé du jour sous forme de capture d'écran. Ta mission est de transcrire ces captures en un seul tableau.
 
 1. Descends TOUT le fil, du premier message au dernier. Ne t'arrête pas au message le plus récent : les mails cités plus bas dans une réponse comptent autant que celui du haut. Compte d'abord combien de mails « Retard du » tu trouves, annonce ce nombre, puis traite-les un par un dans l'ordre chronologique.
 
@@ -1163,18 +1168,8 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
 
 13. L'ordre des colonnes n'a pas d'importance pour l'outil qui lira le fichier — les intitulés, si.
 
-14. Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx) ou CSV, une seule feuille nommée « Retards », en-têtes en première ligne. Si tu ne peux pas produire de fichier, le tableau dans la réponse me suffit : je le copierai.</span></div></details></li>
-              </ol>
-              <div class="pit"><b>Pourquoi ce détour.</b> Le relevé arrive en capture d'écran&nbsp;: il n'y a aucun tableau à lire dans le mail. L'assistant fait la transcription, l'outil fait le rapprochement. <b>L'ordre des colonnes n'a pas d'importance</b> — elles sont reconnues par leur nom.</div>
-            </div>
-            <div class="srcr">
-              <div class="form" style="margin-bottom:11px">
-                <div class="f"><label for="r-site">Site</label><select id="r-site"><option value="mag">MG</option><option value="log">Logistiport</option></select></div>
-                <div class="f"><label for="r-serv">Service</label><select id="r-serv"><option value="distri">Distribution</option><option value="recep">Réception</option></select></div>
-                <div class="f"><label for="r-date">Semaine, si besoin</label><input type="date" id="r-date"><span class="hint" id="r-week">facultatif</span></div>
-              </div>
-
-              <div class="drop">
+14. Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx) ou CSV, une seule feuille nommée « Retards », en-têtes en première ligne. Si tu ne peux pas produire de fichier, le tableau dans la réponse me suffit : je le copierai.</span></div></details></p>
+          <div class="drop">
                 <label class="btn pri big" style="cursor:pointer">Ouvrir le tableau du relevé…<input type="file" id="file-releve" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
                 <span class="dropi">le <code>.xlsx</code> ou <code>.csv</code> obtenu, ou le mail en <code>.eml</code> / <code>.mht</code></span>
               </div>
@@ -1214,11 +1209,21 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
                 </div>
               </div>
               <p class="gp" style="margin-top:10px">Le KO d'une DT ne sort du décompte que si <b>aucune</b> de ses causes n'est barrée, et un flux urgent n'en sort jamais. Ces lignes restent enregistrées&nbsp;: la cause est connue, elle n'efface simplement pas le retard.</p>
-            </div>
-          </details>
-            </div>
+        </div>
+              </details>
+      </details>
+
+      <details class="panel src" id="pan-cause">
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.4" y="2.6" width="15.2" height="14.8" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.4 7.2h15.2M7.6 7.2v10.2" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 11.2h4.6M10.4 13.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><h2>4 · Export avec une colonne CAUSE</h2><span class="sub">L'export et ses lignes KO, la cause écrite à côté par un responsable</span></summary>
+        <div class="pb">
+          <div class="drop">
+            <label class="btn pri big" style="cursor:pointer">Ouvrir le fichier…<input type="file" id="file-cause" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
+            <span class="dropi">l'export tel quel, plus une colonne <code>CAUSE</code></span>
           </div>
-          <div id="releve-out"></div>
+          <p class="hint" style="margin:0">La référence est l'<code>Identifiant flux début</code>&nbsp;: la cause se pose
+          alors sur le <b>poste exact</b>, pas sur la DT entière. Une cause écrite en clair que l'outil ne connaît pas
+          encore vous est présentée une fois, à traduire — ensuite il s'en souvient.</p>
+          <div id="cause-out"></div>
         </div>
       </details>
 
@@ -1236,6 +1241,14 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
           <div id="regles-fournies"></div>
           <div id="regles-modeles"></div>
           <div id="regles-liste"></div>
+          <div class="resto">
+            <div class="flab">Vos causes</div>
+            <p class="hint" style="margin:0 0 10px">Les causes de l'outil ne disent pas tout. Celles que vous ajoutez
+            servent partout&nbsp;: une règle les pose, un relevé s'y traduit, une saisie les choisit. Elles sont
+            enregistrées avec les règles, donc partagées avec l'équipe.</p>
+            <div class="actions"><button class="btn" id="btn-cause-new">Ajouter une cause</button></div>
+            <div id="mes-causes"></div>
+          </div>
         </div>
       </details>
 
@@ -1478,6 +1491,53 @@ const CATS = [
   {k:"nr",           l:"Non renseignée",         p:"tous",   s:"releve", j:false}
 ];
 const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
+/* ---------------- vos causes à vous ----------------
+   La liste ci-dessus est celle du métier tel qu'on le connaissait en écrivant
+   l'outil. Elle ne couvrira jamais tout : une fermeture de zone, une servitude,
+   un chantier arrêté — des causes qui reviennent, et qu'il faut pouvoir nommer
+   sans attendre. Elles s'ajoutent ici, à la suite, et se comportent en tout
+   point comme les autres : une règle peut les poser, un relevé s'y traduire,
+   une saisie les choisir.
+
+   Le champ qui compte est `j` : une cause qui justifie retire le KO du net, une
+   cause qui ne justifie pas le documente sans l'effacer. C'est la seule
+   question à laquelle il faut répondre en la créant, et elle est posée en
+   clair. */
+const CAT_MIENNES = new Set();
+function cleCause(lib){
+  const b = CAT_ALIAS.norm(lib).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "cause";
+  let k = "u_" + b, n = 2;
+  while (CAT[k]) k = "u_" + b + "_" + (n++);
+  return k;
+}
+function normCats(list){
+  if (!Array.isArray(list)) return [];
+  return list.map(c => c && {
+    k: String(c.k || "").slice(0, 40),
+    l: String(c.l || "").trim().slice(0, 60),
+    p: ["tous", "distri", "recep"].indexOf(c.p) >= 0 ? c.p : "tous",
+    s: "manuel", j: c.j !== false, mien: true,
+    d: String(c.d || "").trim().slice(0, 200)
+  }).filter(c => c && c.k && c.l);
+}
+/* Repose l'ensemble des causes personnalisées : on retire les précédentes puis
+   on remet celles-ci, pour que deux chargements ne les empilent pas. */
+function poseCats(list){
+  CAT_MIENNES.forEach(k => { delete CAT[k];
+    const i = CATS.findIndex(c => c.k === k); if (i >= 0) CATS.splice(i, 1);
+    const j = SANS.indexOf(k); if (j >= 0) SANS.splice(j, 1); });
+  CAT_MIENNES.clear();
+  normCats(list).forEach(c => {
+    if (CAT[c.k]) return;
+    CATS.push(c); CAT[c.k] = c; CAT_MIENNES.add(c.k);
+    if (!c.j) SANS.push(c.k);
+    CAT_ALIAS.map[CAT_ALIAS.norm(c.l)] = c.k;
+    CAT_ALIAS.map[CAT_ALIAS.norm(c.k)] = c.k;
+  });
+  S.cats = CATS.filter(c => c.mien).map(c => ({ k:c.k, l:c.l, p:c.p, j:c.j, d:c.d }));
+  return S.cats;
+}
+const mesCauses = () => CATS.filter(c => c.mien);
 const QUICK = { distri:["reliquat", "grues", "litiges"], recep:["douane", "fournisseur", "reedition"] };
 const SANS = CATS.filter(c => !c.j).map(c => c.k);
 /* libellés bruts du relevé -> clés internes */
@@ -1614,6 +1674,7 @@ const S = {
         ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
   regles: [],
   causes: {},                      /* libellés libres du relevé -> catégorie de l'outil */
+  cats: [],                        /* les causes que vous avez ajoutées vous-même */
   cible: 99,                       /* taux net visé, réglable — colore les tuiles */
   plancher: PLANCHER_DEF,          /* première date montrée au tableau de bord */
   backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
@@ -1822,6 +1883,54 @@ function ctxRef(cell, ref, postes, col){
     const v = ctxVal(cell, i, col); if (v) s.add(v);
   });
   return Array.from(s).sort();
+}
+/* ---------------- de combien ce retard est-il en retard ? ----------------
+   La question se pose différemment selon le service, et l'export porte la
+   réponse dans les deux cas.
+
+   Réception : l'indicateur compte lui-même un délai — « Valeur KPI » face à
+   « Objectif », en jours ouvrés ou en heures. L'écart des deux est le retard.
+
+   Distribution : l'indicateur est une livraison à date. L'écart se lit entre
+   l'échéance et la fin réelle. Un écart de zéro jour n'est pas « à l'heure » :
+   la confirmation devait tomber la veille ouvrée, et la moitié des KO de
+   distribution sont exactement là — d'où l'écriture en J, qui dit la journée
+   plutôt qu'une durée. J−1 et au-delà, le flux s'est terminé AVANT son
+   échéance : c'est l'anomalie de calcul, et elle se voit d'un coup d'œil.
+
+   Rend { v, t } : une valeur triable et son écriture. */
+function retardKo(cell, ref, postes){
+  if (!cell || !ref) return null;
+  const un = (ctxRef(cell, ref, postes, "Unité de mesure") || [])[0] || "";
+  if (cell.service === "recep"){
+    const val = nombre((ctxRef(cell, ref, postes, "Valeur KPI") || [])[0]);
+    const obj = nombre((ctxRef(cell, ref, postes, "Objectif") || [])[0]);
+    if (val == null || obj == null) return null;
+    const e = val - obj;
+    const h = /heure/i.test(un);
+    /* Le délai de réception n'est pas toujours entier : « 2,83 jours » pour un
+       objectif de 2 fait 0,8 jour de dépassement, pas 1. Arrondir à l'entier
+       écrivait « +1 j » sur un écart de vingt heures, et « +0 j » sur un vrai
+       dépassement. La décimale n'apparaît que là où elle change le sens. */
+    const petit = Math.abs(e) < 10 && Math.abs(e % 1) > 0.05;
+    return { v: h ? e / 24 : e,
+      t: (e > 0 ? "+" : e < 0 ? "−" : "") +
+         (petit ? dec(Math.abs(e), 1) : n0(Math.abs(e))) + (h ? " h" : " j") };
+  }
+  const fin = jourDe((ctxRef(cell, ref, postes, "Date fin") || [])[0]);
+  const due = jourDe((ctxRef(cell, ref, postes, "Date fin prévue") || [])[0]);
+  if (!fin || !due) return null;
+  const j = Math.round((fin - due) / 864e5);
+  return { v: j, t: j === 0 ? "J+0" : (j > 0 ? "J+" + j : "J−" + Math.abs(j)) };
+}
+/* Une date écrite comme l'outil l'a rangée — 02/09/2026 — ou en ISO. */
+function jourDe(s){
+  const t = String(s || "").trim();
+  let m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  return null;
 }
 function opsRef(cell, ref, postes){
   if (!cell || cell.service !== "recep") return [];
@@ -2498,7 +2607,8 @@ function toQualify(){
     libres.sort(cmpPoste);
     if (libres.length > reste) libres = libres.slice(0, reste);
     out.push({ cell:g.cell, ref:g.ref, n:reste, total:totalCell, postes:libres, d:g.d || "",
-      ops: opsRef(g.cell, g.ref, libres.length ? libres : null) });
+      ops: opsRef(g.cell, g.ref, libres.length ? libres : null),
+      ret: retardKo(g.cell, g.ref, libres.length ? libres : null) });
   }
   return out;
 }
@@ -4098,6 +4208,11 @@ function cmpTri(a, b, cle){
     case "ko":     return a.n - b.n;
     case "per":    return a.cell.periode.localeCompare(b.cell.periode);
     case "op":     return String((a.ops || [])[0] || "").localeCompare(String((b.ops || [])[0] || ""), "fr");
+    /* les retards inconnus en fin de liste, dans les deux sens */
+    case "ret":    { const x = a.ret ? a.ret.v : null, y = b.ret ? b.ret.v : null;
+                     if (x == null && y == null) return 0;
+                     if (x == null) return 1; if (y == null) return -1;
+                     return x - y; }
     default:       return 0;
   }
 }
@@ -4145,6 +4260,10 @@ function renderAJustifier(){
     ? '<div class="tw"><table data-tritable="aj"><thead><tr><th style="width:26px"></th>' +
       th("ref", "Référence", S.ui.ajTri, S.ui.ajSens) +
       th("date", "Date", S.ui.ajTri, S.ui.ajSens) +
+      th("ret", "Retard", S.ui.ajTri, S.ui.ajSens, "n",
+        "L'écart entre l'attendu et le réel. En distribution, en journées : J+0 veut dire terminé le jour de l'échéance, " +
+        "alors que la confirmation devait tomber la veille ouvrée ; J−1 et au-delà, le flux s'est terminé avant son échéance. " +
+        "En réception, la valeur de l'indicateur moins son objectif.") +
       th("ko", "KO", S.ui.ajTri, S.ui.ajSens, "n") +
       (opVisible ? th("op", "Opérateur", S.ui.ajTri, S.ui.ajSens) : "") +
       th("per", "Période · périmètre", S.ui.ajTri, S.ui.ajSens) +
@@ -4156,6 +4275,8 @@ function renderAJustifier(){
           '<td class="ref nowrap">' + esc(r.ref) +
             (r.postes.length ? ' <span class="pill po" title="postes ' + esc(r.postes.slice(0, 14).join(", ")) + (r.postes.length > 14 ? "…" : "") + '">' + r.postes.length + " poste" + (r.postes.length > 1 ? "s" : "") + "</span>" : "") + "</td>" +
           '<td class="ref nowrap muted">' + frDay(r.d) + "</td>" +
+          '<td class="n nowrap' + (r.ret ? (r.ret.v > 0 ? " ret-tard" : r.ret.v < 0 ? " ret-tot" : " ret-jour") : " muted") + '">' +
+            (r.ret ? esc(r.ret.t) : "—") + "</td>" +
           '<td class="n"' + (r.n > 1 ? ' style="color:var(--ink)"' : ' style="color:var(--muted)"') + ">" + r.n +
             (part ? '<span class="muted" style="font-weight:400"> / ' + r.total + "</span>" : "") + "</td>" +
           (opVisible ? '<td class="nowrap">' + ((r.ops || []).length
@@ -4309,6 +4430,32 @@ function renderModeles(){
         "</span>" +
         '<button class="btn sm" data-rmod="' + m.k + '"' + (e.n ? "" : " disabled") + ">Voir la règle</button></div></div>";
     }).join("") + "</div>";
+}
+/* Vos causes, telles qu'on les revoit : ce qu'elles font au chiffre, et de quoi
+   les retirer. Une cause retirée ne supprime pas les justifications déjà
+   posées — elles retombent en « Autre » et restent lisibles. */
+function renderMesCauses(){
+  const host = $("#mes-causes"); if (!host) return;
+  const list = mesCauses();
+  if (!list.length){ host.innerHTML = '<p class="hint" style="margin:10px 0 0">Aucune pour l\'instant — ' +
+    "l'outil en propose vingt-six, elles suffisent souvent.</p>"; return; }
+  const usage = k => {
+    let n = 0;
+    Object.values(S.cells).forEach(c => (c.lignes || []).forEach(l => { if (l.cat === k) n++; }));
+    return n + (S.regles || []).filter(r => r.cause === k).length * 0;
+  };
+  host.innerHTML = '<div class="mlist" style="margin-top:10px">' + list.map(c => {
+    const n = usage(c.k), nr = (S.regles || []).filter(r => r.cause === c.k).length;
+    return '<div class="mcard fixe"><div class="mmain"><b>' + esc(c.l) + "</b>" +
+      '<div class="rcond">' + (c.j
+        ? "Retire le KO du décompte."
+        : '<span class="wtxt">Ne retire pas le KO</span> — la ligne est gardée pour la trace.') +
+      " " + (c.p === "tous" ? "Les deux services." : c.p === "distri" ? "Distribution." : "Réception.") +
+      (c.d ? ' <span class="muted">' + esc(c.d) + "</span>" : "") + "</div>" +
+      '<div class="rmeta">' + (n ? n0(n) + " justification" + sPl(n) + " posée" + sPl(n) : "pas encore employée") +
+        (nr ? " · " + n0(nr) + " règle" + sPl(nr) + " s'en sert" : "") + "</div></div>" +
+      '<div class="ract"><button class="btn sm danger" data-catdel="' + esc(c.k) + '">Retirer</button></div></div>';
+  }).join("") + "</div>";
 }
 function renderRegles(){
   renderFournies();
@@ -4484,7 +4631,7 @@ function render(){
     if (S.ui.tab === "dash") renderDash();
     if (S.ui.tab === "justif") renderAJustifier();
     if (S.ui.tab === "qualif") renderQualifies();
-    if (S.ui.tab === "import"){ renderCellsTable(); renderRegles(); }
+    if (S.ui.tab === "import"){ renderCellsTable(); renderRegles(); renderMesCauses(); }
     if (S.ui.tab === "reglages") renderDonnees();
     renderCounts();
   });
@@ -5031,6 +5178,46 @@ function releveCols(lignes){
    garde la traduction. Le relevé suivant qui emploie les mêmes mots tombe juste
    tout seul. */
 const LSCAUSES = "taux-net-causes";
+const LSCATS = "taux-net-mes-causes";
+/* Les réglages d'équipe, tels qu'un instantané de la base les rend : causes
+   ajoutées, règles, traduction des libellés. Ils se lisent d'un bloc et avant
+   les périodes, dans cet ordre — une règle renvoie à une cause, une période
+   renvoie aux deux. */
+function lisReglages(docs){
+  const d = (docs || []).find(x => x.id === DOC_REGLES);
+  if (!d) return;
+  const o = d.o || {};
+  poseCats(o.cats);
+  S.regles = normRegles(o.regles);
+  S.causes = normCauses(o.causes);
+}
+function chargeCatsLocal(){
+  try { const raw = localStorage.getItem(LSCATS); if (raw) poseCats(JSON.parse(raw)); } catch(e){}
+}
+async function sauveCats(){
+  try { localStorage.setItem(LSCATS, JSON.stringify(S.cats || [])); } catch(e){}
+  const doc = { regles: S.regles, causes: S.causes || {}, cats: S.cats || [], maj: new Date().toISOString() };
+  try {
+    if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
+    else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+  } catch(e){}
+}
+/* Créer une cause et la rendre utilisable tout de suite. */
+async function creeCause(lib, perim, justifie, note){
+  const l = String(lib || "").trim();
+  if (!l) return null;
+  const deja = CATS.find(c => CAT_ALIAS.norm(c.l) === CAT_ALIAS.norm(l));
+  if (deja) return deja.k;
+  const k = cleCause(l);
+  poseCats((S.cats || []).concat([{ k, l, p:perim || "tous", j: justifie !== false, d: note || "" }]));
+  await sauveCats();
+  return k;
+}
+async function retireCause(k){
+  if (!CAT[k] || !CAT[k].mien) return;
+  poseCats((S.cats || []).filter(c => c.k !== k));
+  await sauveCats();
+}
 function causeConnue(brut){
   const n = CAT_ALIAS.norm(brut || "");
   if (!n) return CAT_ALIAS.map[""];
@@ -5051,7 +5238,7 @@ function normCauses(o){
 async function sauveCauses(){
   S.causes = normCauses(S.causes);
   try { localStorage.setItem(LSCAUSES, JSON.stringify(S.causes)); } catch(e){}
-  const doc = { regles: S.regles, causes: S.causes, maj: new Date().toISOString() };
+  const doc = { regles: S.regles, causes: S.causes, cats: S.cats || [], maj: new Date().toISOString() };
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
@@ -5234,7 +5421,8 @@ function renderCauses(cible, libelles, apres){
   const liste = Object.entries(libelles || {}).sort((a, b) => b[1] - a[1]);
   if (!liste.length){ el.innerHTML = ""; return; }
   const opts = k => CATS.filter(c => c.j || c.k === "nr")
-    .map(c => '<option value="' + c.k + '"' + (c.k === k ? " selected" : "") + ">" + esc(c.l) + "</option>").join("");
+    .map(c => '<option value="' + c.k + '"' + (c.k === k ? " selected" : "") + ">" + esc(c.l) + "</option>").join("") +
+    '<option value="' + OPT_NEW + '">＋ Ajouter une cause…</option>';
   el.innerHTML = '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><b>' +
     n0(liste.length) + " cause" + sPl(liste.length) + " que l'outil ne sait pas encore lire.</b> " +
     "Dites à quoi elle" + sPl(liste.length) + " correspond" + (liste.length > 1 ? "ent" : "") +
@@ -5245,8 +5433,20 @@ function renderCauses(cible, libelles, apres){
       '<select data-cause="' + esc(lab) + '">' + opts(causeConnue(lab) || "nr") + "</select></div>").join("") +
     "</div></div>";
   $$("select[data-cause]", el).forEach(s => s.addEventListener("change", async () => {
-    S.causes = S.causes || {};
     const n = CAT_ALIAS.norm(s.dataset.cause);
+    /* Le libellé du relevé fait un bon point de départ pour la cause qu'on
+       s'apprête à créer : c'est exactement les mots qui manquaient. */
+    if (s.value === OPT_NEW){
+      s.value = causeConnue(s.dataset.cause) || "nr";
+      modalCause("tous", async k => {
+        if (!k) return;
+        S.causes = S.causes || {}; S.causes[n] = k;
+        await sauveCauses();
+        if (typeof apres === "function") await apres();
+      }, s.dataset.cause);
+      return;
+    }
+    S.causes = S.causes || {};
     if (s.value === "nr") delete S.causes[n]; else S.causes[n] = s.value;
     await sauveCauses();
     if (typeof apres === "function") await apres();
@@ -5370,9 +5570,9 @@ function couplePourReleve(rows){
   return best;
 }
 let depotEnCours = false;
-async function deposeTout(fichiers){
+async function deposeTout(fichiers, cible){
   if (depotEnCours) return;
-  const out = $("#depot-out");
+  const out = $(cible || "#depot-out");
   const liste = Array.from(fichiers || []);
   if (!liste.length) return;
   depotEnCours = true;
@@ -5472,10 +5672,11 @@ async function deposeTout(fichiers){
   /* S'il reste des causes écrites en clair que l'outil ne sait pas lire, c'est la
      seule chose qu'il reste à décider : on la pose sous le compte rendu, et
      traduire relance l'analyse du relevé sans redemander le fichier. */
-  out.insertAdjacentHTML("beforeend", '<div id="depot-trad"></div>');
-  renderCauses("#depot-trad", aTraduire, async () => {
+  const idTrad = (cible || "#depot-out").replace("#", "") + "-trad";
+  out.insertAdjacentHTML("beforeend", '<div id="' + idTrad + '"></div>');
+  renderCauses("#" + idTrad, aTraduire, async () => {
     await rejoueReleve();
-    const el = $("#depot-trad");
+    const el = $("#" + idTrad);
     const n = Object.values(S.cells).reduce((s, c) =>
       s + (c.lignes || []).filter(l => l.src === "releve" && l.st === "ok").length, 0);
     if (el) el.insertAdjacentHTML("afterbegin",
@@ -5492,6 +5693,15 @@ $("#file-depot").addEventListener("change", e => {
   const f = Array.from(e.target.files || []);
   e.target.value = "";
   deposeTout(f);
+});
+/* Le quatrième type de fichier — l'export et sa colonne CAUSE — passe par le
+   même chemin que le dépôt du haut : c'est la reconnaissance qui décide, pas le
+   champ où on l'a posé. Seul le compte rendu s'affiche dans son propre bloc. */
+const fc = $("#file-cause");
+if (fc) fc.addEventListener("change", e => {
+  const f = Array.from(e.target.files || []);
+  e.target.value = "";
+  deposeTout(f, "#cause-out");
 });
 (function depotGlisse(){
   const z = $("#depot");
@@ -5796,12 +6006,30 @@ $("#file-sap").addEventListener("change", e => {
 
 function causeGridHtml(service, id){
   const list = CATS.filter(c => c.j && (c.p === "tous" || c.p === service));
-  return '<div class="cgrid" id="' + id + '">' + list.map(c =>
-    '<button type="button" class="cbtn" data-cat="' + c.k + '">' + esc(c.l) +
-    (c.d ? "<small>" + esc(c.d.length > 62 ? c.d.slice(0, 60) + "…" : c.d) + "</small>" : "") + "</button>").join("") + "</div>";
+  return '<div class="cgrid" id="' + id + '" data-serv="' + esc(service || "tous") + '">' + list.map(c =>
+    '<button type="button" class="cbtn' + (c.mien ? " mien" : "") + '" data-cat="' + c.k + '">' + esc(c.l) +
+    (c.d ? "<small>" + esc(c.d.length > 62 ? c.d.slice(0, 60) + "…" : c.d) + "</small>" : "") + "</button>").join("") +
+    '<button type="button" class="cbtn neuve" data-cat="' + OPT_NEW + '">＋ Ajouter une cause' +
+    "<small>si aucune de celles-ci ne dit ce qui s'est passé</small></button></div>";
 }
 function wireCauseGrid(id, onPick){
   $$("#" + id + " .cbtn").forEach(b => b.addEventListener("click", () => {
+    /* La tuile de création n'est pas un choix : elle ouvre le formulaire, et
+       c'est la cause qui en sort qui devient le choix. */
+    if (b.dataset.cat === OPT_NEW){
+      const g = $("#" + id), serv = g ? g.dataset.serv || "tous" : "tous";
+      modalCause(serv, k => {
+        if (!k) return;
+        const grid = $("#" + id);
+        if (grid){ grid.outerHTML = causeGridHtml(serv, id);
+          const n = $("#" + id); if (n) n.dataset.serv = serv;
+          wireCauseGrid(id, onPick);
+          const cible = $("#" + id + ' .cbtn[data-cat="' + k + '"]');
+          if (cible) cible.click();
+        } else onPick(k);
+      });
+      return;
+    }
     $$("#" + id + " .cbtn").forEach(x => x.classList.toggle("on", x === b));
     onPick(b.dataset.cat);
   }));
@@ -6132,7 +6360,8 @@ function catOptions(service, sel){
     list.map(c => '<option value="' + c.k + '"' + (c.k === sel ? " selected" : "") + ">" + esc(c.l) + "</option>").join("") + "</optgroup>" : "";
   const ok = CATS.filter(c => c.j && (c.p === "tous" || c.p === service));
   const no = CATS.filter(c => !c.j && (c.p === "tous" || c.p === service));
-  return grp("Retirent le KO du décompte", ok) + grp("Gardées pour la trace — le KO reste compté", no);
+  return grp("Retirent le KO du décompte", ok) + grp("Gardées pour la trace — le KO reste compté", no) +
+    '<optgroup label="—"><option value="' + OPT_NEW + '">＋ Ajouter une cause…</option></optgroup>';
 }
 function modalJustif(cellId_, ligneId){
   const cells = Object.values(S.cells).sort((a, b) => b.periode.localeCompare(a.periode));
@@ -6162,7 +6391,16 @@ function modalJustif(cellId_, ligneId){
       ? "<b>Cette cause retire le KO du décompte.</b> " + esc(ct.d || "Ces KO sortent du décompte net.")
       : "<b>Cette cause ne retire pas le KO.</b> Une urgence ou un retard expliquent la situation sans l'excuser : la ligne est enregistrée pour la trace, le KO reste compté.") : "";
   };
-  $("#j-cat").addEventListener("change", upNote); upNote();
+  $("#j-cat").addEventListener("change", e => {
+    if (e.target.value === OPT_NEW){
+      const nc = S.cells[$("#j-cell").value] || c;
+      e.target.value = (l && l.cat) || "reliquat";
+      modalCause(nc.service, k => { if (k) modalJustif(nc.id, ligneId); });
+      return;
+    }
+    upNote();
+  });
+  upNote();
   $("#j-cell").addEventListener("change", () => {
     const nc = S.cells[$("#j-cell").value];
     $("#j-cat").innerHTML = catOptions(nc.service, $("#j-cat").value); upNote();
@@ -6323,6 +6561,19 @@ document.addEventListener("click", e => {
     return;
   }
   if (e.target.closest("#btn-wizard2, #ac-wizard, #lien-assistant")) openWizard();
+  if (e.target.closest("#btn-cause-new")){ modalCause("tous"); return; }
+  const cd = e.target.closest("[data-catdel]");
+  if (cd){
+    const k = cd.dataset.catdel, c = CAT[k];
+    let n = 0;
+    Object.values(S.cells).forEach(x => (x.lignes || []).forEach(l => { if (l.cat === k) n++; }));
+    const nr = (S.regles || []).filter(r => r.cause === k).length;
+    if (!confirm("Retirer la cause « " + (c ? c.l : k) + " » ?" +
+      (n ? "\n\n" + n + " justification(s) la portent : elles restent, mais s'afficheront en « Autre »." : "") +
+      (nr ? "\n" + nr + " règle(s) s'en servent : elles ne poseront plus rien tant qu'on ne leur a pas donné une autre cause." : ""))) return;
+    retireCause(k).then(() => { toast("Cause retirée"); render(); });
+    return;
+  }
 });
 
 /* ---------------------------- exports ---------------------------- */
@@ -6841,8 +7092,11 @@ async function restRefresh(){
   try {
     const docs = await restGetAll();
     const m = {};
+    /* Le document des réglages d'abord : les périodes qui suivent renvoient aux
+       causes qu'il porte. Lu après elles, une cause ajoutée serait perdue. */
+    lisReglages(docs.map(x => ({ id:x.id, o:x.data })));
     docs.forEach(({ id, data:o }) => {
-      if (id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
+      if (id === DOC_REGLES) return;
       if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = id; m[c.id] = c; }
     });
     S.cells = mergeSnapshot(m); saveLocal();
@@ -6933,8 +7187,9 @@ async function connectFirebase(cfg){
     }
     S.fbUnsub = fsMod.onSnapshot(col, s => {
       const m = {};
+      lisReglages(s.docs ? s.docs.map(d => ({ id:d.id, o:d.data() })) : []);
       s.forEach(d => { const o = d.data();
-        if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
+        if (d.id === DOC_REGLES) return;
         if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
       S.cells = mergeSnapshot(m); saveLocal();
       if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré dans la base");
@@ -7299,9 +7554,65 @@ function regleIncomplete(r){
   }
   return "";
 }
-function optCauses(service, sel){
-  return CATS.filter(c => c.p === "tous" || c.p === service || service === "tous")
-    .map(c => '<option value="' + c.k + '"' + (c.k === sel ? " selected" : "") + ">" + esc(c.l) + (c.j ? "" : " — le KO reste compté)") + "</option>").join("");
+/* Le menu des causes, avec vos ajouts à part et, en dernier, de quoi en créer
+   une sans quitter la règle qu'on est en train d'écrire. */
+const OPT_NEW = "__new";
+function optCauses(service, sel, sansAjout){
+  const vis = c => c.p === "tous" || c.p === service || service === "tous";
+  const opt = c => '<option value="' + c.k + '"' + (c.k === sel ? " selected" : "") + ">" +
+    esc(c.l) + (c.j ? "" : " — le KO reste compté") + "</option>";
+  const four = CATS.filter(c => vis(c) && !c.mien), mien = CATS.filter(c => vis(c) && c.mien);
+  return '<optgroup label="Causes de l\'outil">' + four.map(opt).join("") + "</optgroup>" +
+    (mien.length ? '<optgroup label="Vos causes">' + mien.map(opt).join("") + "</optgroup>" : "") +
+    (sansAjout ? "" : '<optgroup label="—"><option value="' + OPT_NEW + '">＋ Ajouter une cause…</option></optgroup>');
+}
+/* Le petit formulaire de création. Trois champs, dont un seul demande à
+   réfléchir : est-ce que cette cause retire le retard du net, ou est-ce qu'elle
+   l'explique sans l'effacer ? */
+function modalCause(perim, apres, depart){
+  openModal('<div class="ph"><h2>Ajouter une cause</h2>' +
+    '<span class="sub">Elle rejoint la liste et sert partout — règles, relevés, saisie</span></div>' +
+    '<div class="pb">' +
+    '<div class="form"><div class="f wide"><label for="nc-lib">Nom de la cause</label>' +
+      '<input type="text" id="nc-lib" maxlength="60" value="' + esc(depart || "") + '" placeholder="ex. Fermeture de zone"></div>' +
+      '<div class="f"><label for="nc-per">Service concerné</label><select id="nc-per">' +
+        '<option value="tous"' + (perim === "tous" || !perim ? " selected" : "") + ">Les deux</option>" +
+        '<option value="distri"' + (perim === "distri" ? " selected" : "") + ">Distribution</option>" +
+        '<option value="recep"' + (perim === "recep" ? " selected" : "") + ">Réception</option></select></div></div>" +
+    '<div class="flab" style="margin-top:16px">Ce qu\'elle fait au chiffre</div>' +
+    '<div class="cgrid" style="margin-top:8px">' +
+      '<button class="cbtn on" id="nc-oui" data-j="1">Elle justifie le retard' +
+        "<small>le KO sort du décompte : il est expliqué, pièce ou analyse à l'appui</small></button>" +
+      '<button class="cbtn" id="nc-non" data-j="0">Elle l\'explique seulement' +
+        "<small>le KO reste compté : on sait pourquoi, mais il pèse quand même</small></button>" +
+    "</div>" +
+    '<div class="f wide" style="margin-top:14px"><label for="nc-note">Précision, si besoin</label>' +
+      '<input type="text" id="nc-note" maxlength="200" placeholder="à quoi la reconnaît-on ? (facultatif)"></div>' +
+    '<div id="nc-out"></div></div>' +
+    '<div class="wfoot"><button class="btn" data-close>Annuler</button><span class="sp"></span>' +
+    '<button class="btn pri" id="nc-ok">Ajouter</button></div>');
+  let justifie = true;
+  const maj = () => { $("#nc-oui").classList.toggle("on", justifie); $("#nc-non").classList.toggle("on", !justifie); };
+  $("#nc-oui").addEventListener("click", () => { justifie = true; maj(); });
+  $("#nc-non").addEventListener("click", () => { justifie = false; maj(); });
+  setTimeout(() => { const i = $("#nc-lib"); if (i) i.focus(); }, 40);
+  $("#nc-ok").addEventListener("click", async () => {
+    const lib = $("#nc-lib").value.trim();
+    const out = $("#nc-out");
+    if (!lib){ out.innerHTML = '<div class="note" style="margin-top:12px;border-left-color:var(--crit)">Il faut un nom.</div>';
+      $("#nc-lib").focus(); return; }
+    const deja = CATS.find(c => CAT_ALIAS.norm(c.l) === CAT_ALIAS.norm(lib));
+    if (deja && !deja.mien){
+      out.innerHTML = '<div class="note" style="margin-top:12px;border-left-color:var(--warn)"><b>' +
+        esc(deja.l) + "</b> existe déjà dans la liste de l'outil — c'est elle qu'il faut choisir.</div>";
+      return;
+    }
+    const k = await creeCause(lib, $("#nc-per").value, justifie, $("#nc-note").value.trim());
+    closeModal();
+    toast("Cause « " + lib + " » ajoutée");
+    if (typeof apres === "function") apres(k);
+    render();
+  });
 }
 function ligneCond(i, c){
   const cols = optCols(c.col);
@@ -7411,6 +7722,17 @@ function modalRegle(id, preset){
     return r;
   };
   const majCauses = () => { $("#rg-cause").innerHTML = optCauses($("#rg-serv").value, r.cause); };
+  /* Choisir « Ajouter une cause… » ouvre le formulaire et repose le menu sur la
+     cause qui vient d'être créée : la règle en cours n'est pas perdue. */
+  $("#rg-cause").addEventListener("change", e => {
+    if (e.target.value !== OPT_NEW) return;
+    const avant = r.cause;
+    e.target.value = avant;
+    modalCause($("#rg-serv").value, k => {
+      r.cause = k || avant;
+      modalRegle(null, r);       /* on rouvre la règle, la cause neuve choisie */
+    });
+  });
   const apercu = () => {
     lis();
     const pb = regleIncomplete(r);
@@ -7677,6 +7999,10 @@ function wiz3(){
 
 /* ---------------------------- initialisation ---------------------------- */
 (function init(){
+  /* Les causes ajoutées se posent avant tout : les périodes qu'on va relire y
+     renvoient, et une justification dont la cause n'existe pas encore retombe
+     en « Autre ». */
+  chargeCatsLocal();
   const local = loadLocal();
   if (local && Object.keys(local).length) S.cells = local;
   else { S.cells = seedCells(); saveLocal(); }
@@ -7713,8 +8039,9 @@ async function connectStore(){
       }
       db.collection(FB_COLLECTION).onSnapshot(snap => {
         const m = {};
+          lisReglages(snap.docs.map(d => ({ id:d.id, o:d.data() })));
         snap.docs.forEach(d => { const o = d.data();
-          if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
+          if (d.id === DOC_REGLES) return;
           if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
         S.cells = mergeSnapshot(m); saveLocal();
         if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré en ligne");
