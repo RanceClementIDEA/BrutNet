@@ -3445,7 +3445,13 @@ function passerRegles(cells, regles, simule, conflits){
     const noteTenu = l => {
       const s = srcDe(l);
       const ps = (l.postes || []).map(String).filter(Boolean);
-      if (!ps.length){ tenuPar["#" + sansZeros(l.ref)] = s; return; }
+      if (!ps.length){
+        /* Sur une référence tenue par plusieurs pièces, c'est celle qu'une règle
+           ne peut pas reprendre qui explique le blocage — pas la saisie. */
+        const k = "#" + sansZeros(l.ref);
+        if (!tenuPar[k] || tenuPar[k] === "manuel") tenuPar[k] = s;
+        return;
+      }
       ps.forEach(po => { tenuPar[String(l.ref) + "|" + po] = s;
                          tenuPar[sansZeros(l.ref) + "|" + po] = s; });
     };
@@ -3478,6 +3484,31 @@ function passerRegles(cells, regles, simule, conflits){
       if (l.regle || l.src !== "manuel" || l.st !== "ok") return;
       (l.postes || []).map(String).filter(Boolean).forEach(p => { mains[sansZeros(l.ref) + "|" + p] = l; });
     });
+    /* ---- une saisie posée en quantité cède aussi la place ----
+       « Passe devant une saisie à la main » était vrai poste par poste, et faux
+       pour une saisie posée en quantité : elle ne nomme aucun poste, consommait
+       le budget de sa référence, et la règle passait son tour quel que soit son
+       rang dans la liste. On remontait la règle, rien ne bougeait. La quantité
+       se traite donc comme le poste : la saisie cède ses places, et elle ne
+       disparaît que si les règles les reprennent TOUTES — sinon la reprise est
+       annulée et la saisie reste entière. Deux saisies en quantité sur la même
+       référence : on n'y touche pas, il n'y a pas de partage sûr. */
+    const mainsQte = {};
+    avant.forEach(l => {
+      if (l.regle || l.src !== "manuel" || l.st !== "ok") return;
+      if ((l.postes || []).map(String).filter(Boolean).length) return;
+      const rn = sansZeros(l.ref);
+      if (rn in mainsQte){ mainsQte[rn] = null; return; }
+      const nb = Math.max(0, +l.nb || 0);
+      mainsQte[rn] = nb ? { l, nb, reste: nb, cede: 0, pris: 0 } : null;
+    });
+    /* Le budget en quantité, séparé : ce qu'une règle n'a pas le droit de
+       reprendre — relevé, réédition, règle illisible — et la saisie qu'elle peut. */
+    const resteFixe = {};
+    Object.keys(reste).forEach(rn => {
+      const m = mainsQte[rn];
+      resteFixe[rn] = Math.max(0, reste[rn] - (m ? m.nb : 0));
+    });
     const prises = new Map();          /* ligne manuelle -> postes que les règles reprennent */
     (cell.koRefs || []).forEach((refBrut, i) => {
       const ref = String(refBrut), rn = sansZeros(ref);
@@ -3495,9 +3526,14 @@ function passerRegles(cells, regles, simule, conflits){
          justifié : la référence se retrouvait justifiée plus de fois qu'elle
          n'était en KO, et le plafond de la période masquait l'écart en absorbant
          le surplus d'une autre référence. */
-      if (!main && reste[rn] > 0){ reste[rn]--;
-        noteBloc(i, ref, tenuPar["#" + rn] || "autre");
-        return; }
+      let cedeIci = false;
+      if (!main){
+        if (resteFixe[rn] > 0){ resteFixe[rn]--;
+          noteBloc(i, ref, tenuPar["#" + rn] || "autre");
+          return; }
+        const mq = mainsQte[rn];
+        if (mq && mq.reste > 0){ mq.reste--; mq.cede++; cedeIci = true; }
+      }
       /* Une seule cause par KO : c'est la première règle de la liste qui la pose.
          Les suivantes qui visaient le même KO sont notées — deux règles qui se
          disputent un KO, c'est l'ordre de la liste qui tranche, et il vaut mieux
@@ -3523,6 +3559,9 @@ function passerRegles(cells, regles, simule, conflits){
           ligne._main = main;
           if (!prises.has(main)) prises.set(main, new Set());
           prises.get(main).add(poste);
+        } else if (cedeIci){
+          const mq = mainsQte[rn];
+          ligne._main = mq.l; mq.pris++;
         }
         ajout.push(ligne);
         stats.total += w; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + w;
@@ -3536,11 +3575,23 @@ function passerRegles(cells, regles, simule, conflits){
       const tous = (l.postes || []).map(String).filter(Boolean);
       if (tous.length && tous.every(p => postes.has(p))) lachees.add(l);
     });
+    /* La saisie en quantité ne part que si toute sa quantité a été cédée ET que
+       chaque place cédée a trouvé une règle. Une place cédée pour rien — aucune
+       règle ne visait ce KO — suffit à tout annuler : sinon le KO sortirait sans
+       justification du tout. */
+    Object.keys(mainsQte).forEach(rn => {
+      const m = mainsQte[rn];
+      if (m && m.reste === 0 && m.cede > 0 && m.pris === m.cede) lachees.add(m.l);
+    });
     const ajoutNet = ajout.filter(l => {
       if (!l._main) return true;
       if (!lachees.has(l._main)){                            /* reprise abandonnée */
         stats.total -= (+l.nb || 0);
         stats.parRegle[l.regle] = (stats.parRegle[l.regle] || 0) - (+l.nb || 0);
+        /* Le compteur de la règle baisse : l'écran doit dire pourquoi, sinon on
+           se retrouve à chercher des KO qui ont disparu sans un mot. */
+        const t = stats.tenus[l.regle] || (stats.tenus[l.regle] = {});
+        t.manuel = (t.manuel || 0) + (+l.nb || 0);
         return false;
       }
       const c = l._main;
@@ -3631,7 +3682,7 @@ function impactsRegles(){
 const TENU_LBL = {
   releve: "déjà tenus par le relevé — une règle ne reprend jamais une déclaration de l'exploitation",
   reedition: "déjà tenus par la réédition de poste BR",
-  manuel: "déjà tenus par une saisie posée en quantité, sans poste nommé",
+  manuel: "tenus par une saisie à la main que ces règles ne reprennent pas en entier — elle reste en place",
   regle: "déjà tenus par une règle devenue illisible sur ces périodes",
   autre: "déjà justifiés autrement"
 };
