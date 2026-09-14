@@ -358,6 +358,12 @@ body.simple .adv{display:none!important}
 .lnk{appearance:none;background:none;border:0;padding:0;margin-left:6px;color:var(--accent);
   font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .lnk:hover{filter:brightness(1.15)}
+/* Traduire une cause écrite en clair : le libellé, son poids, et le choix. */
+.trad{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.tline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tline .tlab{flex:1 1 200px;min-width:0;font-family:var(--f-mono);font-size:12px;color:var(--ink)}
+.tline select{flex:0 0 auto;max-width:100%}
+@media (max-width:560px){.tline select{flex:1 1 100%}}
 .dropi code{background:var(--surface);border:1px solid var(--accent-line);border-radius:4px;padding:1px 5px;
   font-family:var(--f-mono);font-size:11.5px}
 .mini.alt > summary{color:var(--muted);font-weight:500}
@@ -949,7 +955,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
               <b>Exporter les données</b>.</div></li>
             <li><span class="rn">2</span><div><b>SAP</b> — l'extraction des réceptions sur la même période.
               <span class="muted">Elle seule sait quels postes BR ont été recréés après litige.</span></div></li>
-            <li><span class="rn">3</span><div><b>Le relevé</b>, si vous en avez un — le tableau transcrit depuis les mails.
+            <li><span class="rn">3</span><div><b>Le relevé</b>, si vous en avez un — le tableau transcrit depuis les mails,
+              ou l'export avec une colonne <b>CAUSE</b> remplie par un responsable.
               <span class="muted">L'outil trouve seul de quel site et de quel service il parle.</span></div></li>
           </ol>
           <p class="hint" style="margin:12px 0 0">Un fichier déjà passé peut être redéposé sans risque&nbsp;: il remplace,
@@ -1096,11 +1103,18 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
       </details>
 
       <details class="panel src" id="pan-releve" >
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="4" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 5.4 10 10.6l7.2-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><h2>3 · Relevé journalier Distri MG</h2><span class="sub">Les causes déclarées chaque jour par l'exploitation</span></summary>
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="4" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.8 5.4 10 10.6l7.2-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><h2>3 · Relevé de l'exploitation</h2><span class="sub">Les causes déclarées — MG, Logistiport, distribution ou réception</span></summary>
         <div class="pb">
+          <p class="gp" style="margin-bottom:14px"><b>Deux formes acceptées, l'outil reconnaît les deux.</b>
+            Le <b>relevé quotidien</b> transcrit depuis les mails — une colonne <code>N° DT</code> et une colonne
+            <code>Catégorie</code> suffisent ; la marche à suivre ci-dessous. Ou <b>l'export lui-même</b>, ses lignes KO
+            avec une colonne <code>CAUSE</code> ajoutée à côté : c'est ce qu'un responsable produit le plus vite, et
+            l'identifiant de flux vise alors le <b>poste exact</b>, pas seulement la DT.
+            <span class="muted">Le site et le service sont trouvés tout seuls. Une cause écrite en clair que l'outil
+            ne connaît pas encore vous est présentée une fois, à traduire — ensuite il s'en souvient.</span></p>
           <div class="srcgrid">
             <div class="srcl">
-              <div class="flab">La marche à suivre</div>
+              <div class="flab">La marche à suivre, pour la forme transcrite</div>
               <ol class="srail">
                 <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Ouvrir le ou les mails — une conversation de plusieurs jours convient</li>
                 <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M4.6 6V2.6h6.8V6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.2" y="6" width="11.6" height="5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><path d="M4.6 9.6h6.8v3.8H4.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></i><b>Imprimer → Enregistrer en PDF</b></li>
@@ -1481,7 +1495,9 @@ const CAT_ALIAS = (() => {
     "documents ou identification manquants":"docs", "document manquant":"docs",
     "attente d arbitrage achats ou fournisseur":"arbitrage", "arbitrage":"arbitrage",
     "reception fractionnee a trancher":"fraction", "retard d exploitation":"retard",
-    "litige de stock":"litiges"
+    "litige de stock":"litiges",
+    /* le rebut, tel qu'un relevé l'écrit : c'est le flux déchets */
+    "rebut":"dechets", "rebuts":"dechets", "mise au rebut":"dechets", "dechet":"dechets"
   });
   return { map:m, norm };
 })();
@@ -1597,6 +1613,7 @@ const S = {
         q:"", qcat:"", qsrc:"", qst:"", vue:"simple", qscope:"", qshow:40,
         ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
   regles: [],
+  causes: {},                      /* libellés libres du relevé -> catégorie de l'outil */
   cible: 99,                       /* taux net visé, réglable — colore les tuiles */
   plancher: PLANCHER_DEF,          /* première date montrée au tableau de bord */
   backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
@@ -3482,7 +3499,10 @@ async function sauveRegles(){
   S.regles = normRegles(S.regles);
   oublieConflits();
   try { localStorage.setItem(LSREGLES, JSON.stringify(S.regles)); } catch(e){}
-  const doc = { regles: S.regles, maj: new Date().toISOString() };
+  /* Le même document porte les règles et la traduction des causes libres : deux
+     réglages d'équipe, un seul aller-retour, et aucun risque que l'un écrase
+     l'autre en se réenregistrant. */
+  const doc = { regles: S.regles, causes: S.causes || {}, maj: new Date().toISOString() };
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
@@ -4961,20 +4981,38 @@ let releveDraft = null;
    on retombe sur des lignes « référence ; catégorie ; commentaire ». */
 /* Le numéro de DT tel que le relevé l'écrit : « G 7551829 », « U 7562083 »,
    « n° 7555482 ». La lettre est un marqueur de circuit, pas le numéro. */
-function refReleve(raw){
+/* Un relevé peut désigner ses lignes de deux façons. Par le numéro de DT, quand
+   il est saisi à la main. Par l'identifiant de flux PowerBI —
+   « 0005392215-0007553086-0001 » — quand il est bâti sur l'export lui-même, ce
+   que fait un responsable qui ajoute une colonne « CAUSE » à côté des lignes KO.
+   L'outil, lui, range ses KO en DT + poste : l'identifiant doit être éclaté de
+   la même manière, sinon les deux ne se rencontrent jamais. Le poste est un
+   gain, pas une contrainte : la cause se pose sur la ligne exacte. */
+function refPosteReleve(raw, service){
   const s = String(raw == null ? "" : raw).trim().replace(/^n[°o]\s*/i, "");
+  if (RE_IDENT.test(s)) return splitRefPoste(s, service || "distri");
   const m = s.match(/\d{4,}/);
-  return m ? sansZeros(m[0]) : sansZeros(s);
+  return { ref: m ? sansZeros(m[0]) : sansZeros(s), poste:"" };
 }
+function refReleve(raw){ return refPosteReleve(raw, "distri").ref; }
 /* Reconnaissance des colonnes du relevé par leur en-tête. Un relevé converti en
    tableur porte ses libellés ; se fier à l'ordre des colonnes revient à lire la
    date à la place de la DT. Rend null si aucun en-tête n'est trouvé — on repasse
    alors au format libre « n° ; cause ; commentaire ». */
 function releveCols(lignes){
   const veut = {
-    ref:  h => /(^|\b)(n ?[°o] ?)?(dt|dts|demande|demandes|reference|references)(\b|$)/.test(h) && !/date/.test(h),
+    /* La référence d'un KO, sous les deux formes rencontrées : le numéro de DT
+       quand le relevé est saisi à la main, l'identifiant de flux quand il est
+       bâti sur l'export lui-même — ce que fait un responsable qui ajoute une
+       colonne « CAUSE » à côté des lignes KO. */
+    ref:  h => /identifiant flux( debut)?/.test(h) ||
+               (/(^|\b)(n ?[°o] ?)?(dt|dts|demande|demandes|reference|references)(\b|$)/.test(h) && !/date/.test(h)),
     cat:  h => /(categorie|cause|motif|type de retard)/.test(h),
-    com:  h => /(commentaire|statut|observation|remarque)/.test(h),
+    /* Le commentaire, sans attraper une colonne de résultat : « Statut/Résultat »
+       contient « statut » et vaut « KO » — recopié en commentaire, il remplaçait
+       la cause écrite par le responsable. */
+    com:  h => /(commentaire|observation|remarque)/.test(h) ||
+               (/statut/.test(h) && !/(resultat|litige|douane|qualite|avancement)/.test(h)),
     date: h => /(date rapport|date du releve|date releve|date jour|^date$|^jour$)/.test(h),
     nb:   h => /(nb ligne|nombre de ligne|nb ko|ko a justifier|lignes en retard|^lignes$|^nb$)/.test(h)
   };
@@ -4985,6 +5023,39 @@ function releveCols(lignes){
     if (ci.ref != null && ci.cat != null) return { ligne:i, ci };
   }
   return null;
+}
+/* ---------------- les causes écrites en clair ----------------
+   Un relevé rédigé par un responsable n'emploie pas le vocabulaire de l'outil :
+   « FERMETURE Z34 LOT », « SERVITUDE AU 09/09 »… Plutôt que de les jeter dans
+   « Non renseignée » à chaque import, on les lui fait traduire une fois, et on
+   garde la traduction. Le relevé suivant qui emploie les mêmes mots tombe juste
+   tout seul. */
+const LSCAUSES = "taux-net-causes";
+function causeConnue(brut){
+  const n = CAT_ALIAS.norm(brut || "");
+  if (!n) return CAT_ALIAS.map[""];
+  return CAT_ALIAS.map[n] || (S.causes && CAT[S.causes[n]] ? S.causes[n] : null);
+}
+function chargeCausesLocal(){
+  try { const raw = localStorage.getItem(LSCAUSES);
+    if (raw) S.causes = normCauses(JSON.parse(raw)); } catch(e){}
+}
+function normCauses(o){
+  const m = {};
+  if (o && typeof o === "object") Object.keys(o).forEach(k => {
+    const n = CAT_ALIAS.norm(k);
+    if (n && CAT[o[k]]) m[n] = o[k];
+  });
+  return m;
+}
+async function sauveCauses(){
+  S.causes = normCauses(S.causes);
+  try { localStorage.setItem(LSCAUSES, JSON.stringify(S.causes)); } catch(e){}
+  const doc = { regles: S.regles, causes: S.causes, maj: new Date().toISOString() };
+  try {
+    if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
+    else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+  } catch(e){}
 }
 /* Les KO chargés, indexés par référence, pour un site et un service donnés.
    C'est cette table que le relevé interroge : il apporte la cause, jamais les
@@ -4998,7 +5069,8 @@ function indexKo(site, service){
     if ((!tous && c.site !== site) || c.service !== service) return;
     (c.koRefs || []).forEach((r, i) => {
       const k = sansZeros(r);
-      (m[k] = m[k] || []).push({ cell:c, d:(c.koDates || [])[i] || "" });
+      (m[k] = m[k] || []).push({ cell:c, d:(c.koDates || [])[i] || "",
+        p: String((c.koPostes || [])[i] || "") });
     });
   });
   return m;
@@ -5016,13 +5088,21 @@ function analyseReleve(src){
   const tete = releveCols(lignes);
   const lues = [];
   let inconnues = 0;
+  const libelles = {};        /* les causes écrites en clair que l'outil ne sait pas encore lire */
   const prendre = (ref, catRaw, com, dateRaw, nbRaw) => {
-    const r = refReleve(ref);
+    const rp = refPosteReleve(ref, service), r = rp.ref, po = rp.poste;
     if (!/^\d/.test(r)) return;
-    let ck = CAT_ALIAS.map[CAT_ALIAS.norm(catRaw || "")];
-    if (!ck){ ck = "nr"; if (catRaw) inconnues++; }
+    const brutCat = String(catRaw == null ? "" : catRaw).trim();
+    let ck = causeConnue(brutCat);
+    if (!ck){ ck = "nr"; if (brutCat){ inconnues++; libelles[brutCat] = (libelles[brutCat] || 0) + 1; } }
     const dd = parseDate(dateRaw);
-    lues.push({ ref:r, cat:ck, com:String(com || "").trim(),
+    /* Faute de colonne de commentaire, la cause écrite en clair fait office : ce
+       sont les mots de celui qui a rempli le relevé, et c'est ce qu'on voudra
+       relire dans la fiche — « FERMETURE Z34 LOT » en dit plus que l'étiquette
+       de la catégorie où on l'a rangée. */
+    let cm = String(com || "").trim();
+    if (!cm && brutCat && CAT_ALIAS.norm(brutCat) !== CAT_ALIAS.norm(CAT[ck] ? CAT[ck].l : "")) cm = brutCat;
+    lues.push({ ref:r, poste:po, cat:ck, com:cm,
       d: dd ? isoDay(dd) : "", nb: Math.max(0, parseInt(nbRaw, 10) || 0) });
   };
   if (tete){
@@ -5044,9 +5124,13 @@ function analyseReleve(src){
   }
 
   /* 2. regroupement par DT : une catégorie qui ne retire pas le KO l'emporte (§ règles) */
+  /* Quand le relevé nomme le poste — un identifiant de flux le porte — chaque
+     poste fait son propre groupe : la cause se pose sur la ligne exacte plutôt
+     que sur la DT entière. Sans poste, on retombe sur le regroupement par DT. */
   const parDT = {};
   lues.forEach(l => {
-    const g = parDT[l.ref] || (parDT[l.ref] = { ref:l.ref, cats:[], com:[], dates:[], nb:0 });
+    const k = l.ref + (l.poste ? "|" + l.poste : "");
+    const g = parDT[k] || (parDT[k] = { ref:l.ref, poste:l.poste || "", cats:[], com:[], dates:[], nb:0 });
     g.cats.push(l.cat);
     if (l.com) g.com.push(l.com);
     if (l.d) g.dates.push(l.d);
@@ -5059,7 +5143,10 @@ function analyseReleve(src){
   const plan = {}, trouvees = [], absentes = [];
   let koVises = 0;
   Object.values(parDT).forEach(g => {
-    const hits = idx[g.ref] || [];
+    let hits = idx[g.ref] || [];
+    /* le poste nommé restreint aux KO de ce poste ; s'il n'y en a aucun, la DT
+       entière reste visée plutôt que de perdre la ligne */
+    if (g.poste){ const f = hits.filter(h => h.p === g.poste); if (f.length) hits = f; }
     if (!hits.length){ absentes.push(g); return; }
     /* la date du relevé ne sert qu'à trancher entre plusieurs périodes */
     let ret = hits;
@@ -5081,7 +5168,8 @@ function analyseReleve(src){
       let n = p.n;
       if (g.nb){ n = Math.min(p.n, reste); reste -= n; }
       if (n <= 0) return;
-      (plan[p.cell.id] = plan[p.cell.id] || []).push({ id:uid(), ref:g.ref, postes:[],
+      (plan[p.cell.id] = plan[p.cell.id] || []).push({ id:uid(), ref:g.ref,
+        postes: g.poste ? [g.poste] : [],
         cat, nb:n, src:"releve", d:p.d, com:g.com.join(" · ").slice(0, 200),
         st: bad ? "rejet" : "ok" });
       koVises += n;
@@ -5090,7 +5178,7 @@ function analyseReleve(src){
       cells:Object.keys(parCell), ecart: g.nb && g.nb !== Object.values(parCell).reduce((s, p) => s + p.n, 0) ? g.nb : 0 });
   });
 
-  releveDraft = { plan, site, service };
+  releveDraft = { plan, site, service, libelles, rows: brut || null };
   const nCell = Object.keys(plan).length;
   const justifs = Object.values(plan).flat();
   const ok = justifs.filter(l => l.st === "ok").reduce((s, l) => s + l.nb, 0);
@@ -5136,8 +5224,57 @@ function analyseReleve(src){
   if (RELEVE_APPLY && koVises) $("#btn-apply-releve").addEventListener("click", applyReleve);
   if (typeof wizReady === "function") wizReady(true);
 }
+/* ---------------- faire traduire les causes libres, une fois ----------------
+   Le dernier relevé passé est gardé en mémoire : traduire un libellé relance son
+   analyse et repose les causes, sans redemander le fichier. */
+let dernierReleve = null;
+function renderCauses(cible, libelles, apres){
+  const el = $(cible);
+  if (!el) return;
+  const liste = Object.entries(libelles || {}).sort((a, b) => b[1] - a[1]);
+  if (!liste.length){ el.innerHTML = ""; return; }
+  const opts = k => CATS.filter(c => c.j || c.k === "nr")
+    .map(c => '<option value="' + c.k + '"' + (c.k === k ? " selected" : "") + ">" + esc(c.l) + "</option>").join("");
+  el.innerHTML = '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><b>' +
+    n0(liste.length) + " cause" + sPl(liste.length) + " que l'outil ne sait pas encore lire.</b> " +
+    "Dites à quoi elle" + sPl(liste.length) + " correspond" + (liste.length > 1 ? "ent" : "") +
+    " : la traduction est gardée, le prochain relevé qui emploie les mêmes mots tombera juste tout seul." +
+    '<div class="trad">' + liste.map(([lab, n]) =>
+      '<div class="tline"><span class="tlab trunc" title="' + esc(lab) + '">' + esc(lab) + "</span>" +
+      '<span class="muted nowrap">' + n0(n) + " ligne" + sPl(n) + "</span>" +
+      '<select data-cause="' + esc(lab) + '">' + opts(causeConnue(lab) || "nr") + "</select></div>").join("") +
+    "</div></div>";
+  $$("select[data-cause]", el).forEach(s => s.addEventListener("change", async () => {
+    S.causes = S.causes || {};
+    const n = CAT_ALIAS.norm(s.dataset.cause);
+    if (s.value === "nr") delete S.causes[n]; else S.causes[n] = s.value;
+    await sauveCauses();
+    if (typeof apres === "function") await apres();
+  }));
+}
+/* Rejouer le dernier relevé avec les traductions du moment. */
+async function rejoueReleve(){
+  if (!dernierReleve || !dernierReleve.rows) return null;
+  const si = $("#r-site"), sv = $("#r-serv");
+  const memo = [si.value, sv.value];
+  si.value = dernierReleve.site; sv.value = dernierReleve.service;
+  const gardeOut = RELEVE_OUT, gardeSrc = RELEVE_SRC;
+  RELEVE_OUT = "#depot-muet";
+  RELEVE_SRC = { ta:"#ta-releve", date:"#r-date", site:"#r-site", serv:"#r-serv" };
+  releveDraft = null;
+  try {
+    analyseReleve(dernierReleve.rows);
+    if (releveDraft) await applyReleve();
+  } finally {
+    RELEVE_OUT = gardeOut; RELEVE_SRC = gardeSrc;
+    si.value = memo[0]; sv.value = memo[1];
+  }
+  await rejouerRegles(true);
+  return true;
+}
 async function applyReleve(){
   if (!releveDraft || !releveDraft.plan) return;
+  if (releveDraft.rows) dernierReleve = { rows: releveDraft.rows, site: releveDraft.site, service: releveDraft.service };
   let ecartes = 0, rognes = 0;
   const out = Object.entries(releveDraft.plan).map(([cid, add]) => {
     const c = S.cells[cid]; if (!c) return null;
@@ -5259,6 +5396,7 @@ async function deposeTout(fichiers){
     depotEnCours = false; return;
   }
   /* 2. passer chacun dans l'ordre, sans rien afficher au passage */
+  const aTraduire = {};
   const gardeE = EXPORT_OUT, gardeS = SAP_OUT, gardeR = RELEVE_OUT, gardeSrc = RELEVE_SRC;
   EXPORT_OUT = SAP_OUT = RELEVE_OUT = "#depot-muet";
   const faits = [];
@@ -5292,8 +5430,10 @@ async function deposeTout(fichiers){
         si.value = c.si; sv.value = c.sv;
         releveDraft = null; analyseReleve(x.rows);
         const g = releveDraft ? Object.values(releveDraft.plan).flat().reduce((s, l) => s + l.nb, 0) : 0;
+        const lib = releveDraft ? releveDraft.libelles : null;
         if (releveDraft && g) await applyReleve();
         si.value = memo[0]; sv.value = memo[1];
+        if (lib && Object.keys(lib).length) Object.assign(aTraduire, lib);
         faits.push({ x, n:g, note: n0(g) + " KO documenté" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l });
       }
     }
@@ -5329,6 +5469,20 @@ async function deposeTout(fichiers){
     (inconnus.length ? '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><b>' +
       n0(inconnus.length) + " fichier" + sPl(inconnus.length) + " non reconnu" + sPl(inconnus.length) + "</b> — " +
       inconnus.map(x => "<code>" + esc(x.f.name) + "</code>").join(", ") + ". Rien n'en a été pris.</div>" : "");
+  /* S'il reste des causes écrites en clair que l'outil ne sait pas lire, c'est la
+     seule chose qu'il reste à décider : on la pose sous le compte rendu, et
+     traduire relance l'analyse du relevé sans redemander le fichier. */
+  out.insertAdjacentHTML("beforeend", '<div id="depot-trad"></div>');
+  renderCauses("#depot-trad", aTraduire, async () => {
+    await rejoueReleve();
+    const el = $("#depot-trad");
+    const n = Object.values(S.cells).reduce((s, c) =>
+      s + (c.lignes || []).filter(l => l.src === "releve" && l.st === "ok").length, 0);
+    if (el) el.insertAdjacentHTML("afterbegin",
+      '<div class="note" style="margin-top:10px;border-left-color:var(--good)">Relevé rejoué — <b>' +
+      n0(n) + "</b> ligne" + sPl(n) + " de relevé justifie" + (n > 1 ? "nt" : "") + " maintenant.</div>");
+    render();
+  });
   toast(faits.filter(f => !f.ko).length + " fichier(s) intégré(s)");
   render();
 }
@@ -6688,7 +6842,7 @@ async function restRefresh(){
     const docs = await restGetAll();
     const m = {};
     docs.forEach(({ id, data:o }) => {
-      if (id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+      if (id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
       if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = id; m[c.id] = c; }
     });
     S.cells = mergeSnapshot(m); saveLocal();
@@ -6780,7 +6934,7 @@ async function connectFirebase(cfg){
     S.fbUnsub = fsMod.onSnapshot(col, s => {
       const m = {};
       s.forEach(d => { const o = d.data();
-        if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+        if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
         if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
       S.cells = mergeSnapshot(m); saveLocal();
       if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré dans la base");
@@ -7527,6 +7681,7 @@ function wiz3(){
   if (local && Object.keys(local).length) S.cells = local;
   else { S.cells = seedCells(); saveLocal(); }
   chargeReglesLocal();
+  chargeCausesLocal();
   setStatus("local", "Enregistré sur ce navigateur");
   /* Cible et plancher se lisent avant le premier rendu : sinon l'écran s'ouvre
      sur toute la série puis se recadre sous les yeux. */
@@ -7559,7 +7714,7 @@ async function connectStore(){
       db.collection(FB_COLLECTION).onSnapshot(snap => {
         const m = {};
         snap.docs.forEach(d => { const o = d.data();
-          if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); return; }
+          if (d.id === DOC_REGLES){ S.regles = normRegles(o && o.regles); S.causes = normCauses(o && o.causes); return; }
           if (o && o.periode && SITES[o.site] && SERVS[o.service]){ const c = normCell(o); c.id = d.id; m[c.id] = c; } });
         S.cells = mergeSnapshot(m); saveLocal();
         if (!S.pending && !S.writeErr) setStatus("ok", "Enregistré en ligne");
