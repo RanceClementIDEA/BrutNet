@@ -2335,8 +2335,10 @@ function controls(){
      sans que personne l'ait vu. Ils se refont tout seuls à chaque affichage. */
   cs.map(c => realCell(c) || c).filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
     .forEach(c => {
-      const nKo = {}, couv = {};
-      (c.koRefs || []).forEach(r => { const k = sansZeros(r); nKo[k] = (nKo[k] || 0) + 1; });
+      const nKo = {}, couv = {}, postesKo = {};
+      (c.koRefs || []).forEach((r, i) => { const k = sansZeros(r); nKo[k] = (nKo[k] || 0) + 1;
+        const p = String((c.koPostes || [])[i] || "");
+        if (p) (postesKo[k] = postesKo[k] || {})[p] = 1; });
       (c.lignes || []).forEach(l => {
         if (l.st !== "ok") return;
         const k = sansZeros(l.ref);
@@ -2373,6 +2375,10 @@ function controls(){
         const i = k.lastIndexOf("-"); if (i < 0) continue;
         const ref = sansZeros(k.slice(0, i)), poste = k.slice(i + 1), v = c.reed[k];
         if (!nKo[ref] || v.reel == null || !(v.reel <= v.obj)) continue;
+        /* Le contrôle doit poser exactement la même question que la règle, sinon
+           il crie au loup : une preuve gardée en réserve, dont le poste n'est pas
+           en KO, n'est pas un poste « manqué ». */
+        if (postesKo[ref] && !postesKo[ref][poste]) continue;
         if (couv[ref + "|" + poste] || couv[ref + "|*"]) continue;
         raw.push({ k:"warn", t:"Un poste recréé conforme n'est pas retiré", tag: cellLbl(c) + " · " + ref + "-" + poste,
           why:"SAP donne un délai de " + dec(v.reel, Number.isInteger(v.reel) ? 0 : 2) + " " + (v.u === "h" ? "h" : "j ouvrés") +
@@ -4884,26 +4890,39 @@ function analyseSap(src){
       per: weekKey(em.d), urg, reel, unite: urg ? "h" : "j", obj: urg ? 3 : 2,
       cre: toUTCDay(cre.d), em: toUTCDay(em.d) });
   }
-  const plan = {}, reed = {}, res = { ko:0, doc:0, hors:0, deja:0, tard:0 };
+  const plan = {}, reed = {}, res = { ko:0, doc:0, hors:0, deja:0, tard:0, dort:0, sansPeriode:0 };
   for (const it of items){
     const cands = it.site ? [cellId(it.per, it.site, "recep")]
       : [cellId(it.per, "mag", "recep"), cellId(it.per, "log", "recep")];
-    let hit = null, n = 0;
+    let hit = null, n = 0, dort = null;
     for (const cid of cands){
       const c = S.cells[cid]; if (!c) continue;
+      if (!dort) dort = c;                    /* la période existe, le KO pas encore */
       const k = koCount(c, it);
       if (k){ hit = c; n = k; break; }
     }
-    if (!hit){ res.hors++; continue; }
-    res.ko++;
     /* La recréation est notée pour TOUT poste retrouvé, même quand le délai reste
        au-delà de l'objectif : le KO est alors mérité, mais il doit se lire sur la
        bonne base. Sans cela la fiche continue d'afficher l'arrivée du BR, donc un
        délai que le litige a gonflé. */
-    (reed[hit.id] = reed[hit.id] || {})[it.key] = {
+    const preuve = {
       cre: it.cre.toISOString().slice(0, 10), anc: String(it.anc), dd: it.mode || 0,
       reel: it.reel == null ? null : Math.round(it.reel * 100) / 100,
       u: it.unite, obj: it.obj };
+    if (!hit){
+      res.hors++;
+      /* La preuve est gardée même sans KO en face. L'extraction se dépose une
+         fois ; le KO, lui, peut arriver après — un export élargi, une semaine
+         complétée, une correction. Sans cela c'était l'ordre des imports qui
+         décidait de ce qui serait justifiable un jour, et la promesse « déposée
+         une fois, rejouée toute seule » était fausse. La règle ne pose rien tant
+         que le KO n'existe pas : elle attend. */
+      if (dort){ (reed[dort.id] = reed[dort.id] || {})[it.key] = preuve; res.dort++; }
+      else res.sansPeriode++;
+      continue;
+    }
+    res.ko++;
+    (reed[hit.id] = reed[hit.id] || {})[it.key] = preuve;
     if (hit.lignes.some(l => l.cat === "reedition" && l.st === "ok" &&
         (String(l.ref) === it.key || (String(l.ref) === it.ref && (l.postes || []).map(String).indexOf(it.poste) >= 0)))){ res.deja++; continue; }
     if (it.reel == null || it.reel > it.obj){ res.tard++; continue; }
@@ -4924,7 +4943,8 @@ function analyseSap(src){
       '<div class="muted" style="margin-top:5px">' +
         (res.tard ? n0(res.tard) + " restent en retard réel · " : "") +
         (res.deja ? n0(res.deja) + " déjà enregistrés · " : "") +
-        (res.hors ? n0(res.hors) + " hors des périodes chargées · " : "") +
+        (res.dort ? n0(res.dort) + " gardés en réserve — pas de KO en face aujourd'hui, la règle les posera si l'export en apporte un · " : "") +
+        (res.sansPeriode ? n0(res.sansPeriode) + " sur des semaines non chargées · " : "") +
         (stat.urgSansHeure ? n0(stat.urgSansHeure) + " urgents sans heure — non documentés par prudence · " : "") +
         (stat.sansDate ? n0(stat.sansDate) + " sans date exploitable" : "") +
       "</div></div>" +
