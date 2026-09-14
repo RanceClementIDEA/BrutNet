@@ -757,7 +757,10 @@ th.n{font-family:var(--f-disp)}
 .rcond code{background:var(--surface-3);border-radius:4px;padding:1px 5px;font-family:var(--f-mono);font-size:11.5px}
 .rmeta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px;font-size:11.5px;color:var(--muted)}
 .rcard .ract{display:flex;gap:6px;align-items:center;flex:none}
-.rimpact{font-family:var(--f-mono);font-size:12px;color:var(--c-expl-t);font-weight:600;white-space:nowrap}
+.rimpact{font-family:var(--f-mono);font-size:12px;color:var(--c-expl-t);font-weight:600;white-space:nowrap;
+  display:inline-flex;flex-direction:column;align-items:flex-end;line-height:1.25}
+/* La portée bridée par une règle placée avant : sous le chiffre posé, en retrait. */
+.rimpact .sur{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted)}
 .mlist{display:flex;flex-direction:column;gap:8px;margin:10px 0 18px}
 .mcard{border:1px dashed var(--line-2);border-radius:10px;padding:11px 14px;display:flex;gap:13px;
   align-items:center;flex-wrap:wrap}
@@ -832,6 +835,28 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
 .ovl.on{display:flex}
 .modal{background:var(--surface);border:1px solid var(--line-2);border-radius:12px;box-shadow:0 20px 60px -20px rgba(0,0,0,.5);width:min(720px,100%)}
 .modal .ph{border-radius:12px 12px 0 0}
+/* Le volet « Mettre à jour » : le dépôt, puis la marche à suivre en quatre
+   vignettes. Deux colonnes tant que la place le permet, une seule ensuite. */
+.modal.wide{width:min(880px,100%)}
+.majgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px;margin-top:8px}
+@media (max-width:680px){.majgrid{grid-template-columns:1fr}}
+.mstep{display:flex;gap:12px;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:10px;padding:12px 13px;min-width:0}
+.mvis{flex:none;width:84px}
+.mvis svg{display:block;width:100%;height:auto}
+.mbody{min-width:0;display:flex;flex-direction:column;gap:6px}
+.mtit{font-family:var(--f-disp);font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px;
+  line-height:1.25}
+.mtit em{font-style:normal;width:18px;height:18px;border-radius:50%;background:var(--accent);
+  color:var(--accent-ink);display:grid;place-items:center;font-size:11px;flex:none}
+.mgo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.mgo li{font-size:12px;line-height:1.45;color:var(--ink-2);padding-left:13px;position:relative}
+.mgo li::before{content:"";position:absolute;left:0;top:6px;width:5px;height:5px;border-radius:50%;
+  background:var(--line-2)}
+.mgo b{color:var(--ink);font-weight:600}
+.mgo code{background:var(--surface-3);border-radius:4px;padding:0 4px;font-family:var(--f-mono);font-size:11px}
+.mgo mark{background:var(--warn);color:#3a2a00;border-radius:4px;padding:0 5px;font-weight:600}
+@media (max-width:420px){.mvis{width:64px}}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);background:var(--ink);color:var(--plane);padding:10px 16px;border-radius:9px;font-size:13px;font-weight:500;z-index:80;opacity:0;pointer-events:none;transition:.18s;box-shadow:var(--shadow);max-width:90vw}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.bad{background:var(--crit);color:#fff}
@@ -966,38 +991,11 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   <section class="view" id="v-import">
     <div class="stack">
 
-      <div class="panel" id="pan-depot">
-        <div class="ph"><h2>Mettre à jour</h2><span class="sub">Déposez vos fichiers — l'outil reconnaît chacun et fait le reste</span></div>
-        <div class="pb">
-          <div class="drop xl" id="depot">
-            <label class="btn pri big" style="cursor:pointer">Choisir les fichiers…<input type="file" id="file-depot" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
-            <span class="dropi"><b>ou glissez-les ici.</b> Export PowerBI, extraction SAP, relevé&nbsp;—
-              ensemble ou séparément, dans n'importe quel ordre. Rien à choisir, rien à ranger.</span>
-          </div>
-          <div id="depot-out"></div>
-          <div id="depot-muet" hidden></div>
-
-          <details class="tuto">
-            <summary>Où trouver ces fichiers</summary>
-            <ol class="srail">
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M9.5 2.5h4v4M13.5 2.5 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9.8v2.7a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Dans PowerBI, ouvrir <b>Volume Réception&nbsp;/ Distribution LOG&nbsp;+&nbsp;MG</b></li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2" y="3.2" width="12" height="10.3" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="M2 6.4h12M5.3 1.9v2.4M10.7 1.9v2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i>Choisir la <b>période</b></li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.2" stroke="currentColor" stroke-width="1.5"/><path d="m5.2 8.2 2 2 3.7-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Onglet <b>Détails lignes PowerBI</b> → <b>Dimensions</b> → <mark>tout cocher</mark></li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.4v7.2m0 0L5.3 6.9M8 9.6l2.7-2.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.6 11.2v1.4a1 1 0 0 0 1 1h8.8a1 1 0 0 0 1-1v-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><b>Exporter les données</b></li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M3 5.4C3 4.4 5.2 3.6 8 3.6s5 .8 5 1.8M3 5.4v5.2c0 1 2.2 1.8 5 1.8s5-.8 5-1.8V5.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 8c0 1 2.2 1.8 5 1.8s5-.8 5-1.8" stroke="currentColor" stroke-width="1.5"/></svg></i>Dans SAP, <b>l'extraction des réceptions</b> sur la même période</li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b>Le relevé</b>, si vous en avez un</li>
-              <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 1.8 2.4 4.2v3.4c0 3.3 2.3 5.6 5.6 6.6 3.3-1 5.6-3.3 5.6-6.6V4.2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="m5.9 7.9 1.5 1.5 2.9-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Les déposer ici, <b>tels quels</b></li>
-            </ol>
-            <div class="pit"><b>Le «&nbsp;tout cocher&nbsp;» n'est pas un détail.</b> Sans lui il manque <code>Statut litige</code>,
-              et les litiges de réception ne sont plus écartés&nbsp;: la réception MG affiche 396 KO au lieu de 280.</div>
-            <p class="hint" style="margin:10px 0 0">Inutile de convertir quoi que ce soit, ni de coller&nbsp;: le fichier part
-              tel qu'il sort. L'outil compte le brut tout seul et vous montre ce qu'il a trouvé.
-              Un fichier déjà passé peut être redéposé sans risque&nbsp;: il remplace, il n'empile pas, et vos
-              justifications à la main sont gardées à chaque fois.
-              <button class="lnk" id="lien-assistant">Ou laissez-vous guider pas à pas</button></p>
-          </details>
-        </div>
-      </div>
+      <!-- Le dépôt et sa marche à suivre vivent dans le volet « Mettre à jour »,
+           ouvert par le bouton du bandeau : c'est un geste, pas une lecture, et il
+           n'a rien à faire au milieu de ce qui s'explique. Seule la cible muette
+           reste ici — elle absorbe les comptes rendus des passages en série. -->
+      <div id="depot-muet" hidden></div>
 
       <details class="panel">
         <summary class="ph"><h2>D'où vient chaque chiffre</h2><span class="sub">Quatre fichiers, vos saisies, et les trois taux</span></summary>
@@ -1008,7 +1006,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
               <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span><i class="fneed">donne le brut</i></div>
               <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span><i class="fopt">pièce</i></div>
               <div class="fbox s2"><b>Relevé transcrit</b><span>MG ou Logistiport, distribution ou réception</span><i class="fopt">pièce</i></div>
-              <div class="fbox s2"><b>Export avec colonne CAUSE</b><span>les lignes KO de Logistiport, la cause écrite à côté</span><i class="fopt">pièce</i></div>
+              <div class="fbox s2"><b>Export Distri Logistiport</b><span>les lignes KO, la cause écrite à côté par un responsable</span><i class="fopt">pièce</i></div>
               <div class="fbox s3"><b>Vos saisies à la main</b><span>ce que vous qualifiez dans « À justifier »</span><i class="fopt">votre analyse</i></div>
             </div>
             <div class="farr" aria-hidden="true">
@@ -1026,7 +1024,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
 
 
       <p class="gp srcnote"><b>Les quatre fichiers que l'outil sait lire.</b> Au quotidien vous les déposez
-      ensemble en haut. Ouvrez un bloc pour en passer un seul, ou pour voir son compte rendu en détail.</p>
+      ensemble par <button class="lnk" id="lien-maj">Mettre à jour</button>, en haut à droite.
+      Ouvrez un bloc pour en passer un seul, ou pour voir son compte rendu en détail.</p>
 
       <details class="panel src" id="pan-export">
         <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="3" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 11.6V9M8.6 11.6V6.6M11.6 11.6v-3.6M14.6 11.6V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></i><h2>1 · Export PowerBI</h2><span class="sub">Tous les flux, OK et KO — il donne le brut</span></summary>
@@ -1214,7 +1213,7 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
       </details>
 
       <details class="panel src" id="pan-cause">
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.4" y="2.6" width="15.2" height="14.8" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.4 7.2h15.2M7.6 7.2v10.2" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 11.2h4.6M10.4 13.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><h2>4 · Export avec une colonne CAUSE</h2><span class="sub">L'export et ses lignes KO, la cause écrite à côté par un responsable</span></summary>
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.4" y="2.6" width="15.2" height="14.8" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.4 7.2h15.2M7.6 7.2v10.2" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 11.2h4.6M10.4 13.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><h2>4 · Export Distri Logistiport</h2><span class="sub">L'export et ses lignes KO, la cause écrite à côté par un responsable</span></summary>
         <div class="pb">
           <div class="drop">
             <label class="btn pri big" style="cursor:pointer">Ouvrir le fichier…<input type="file" id="file-cause" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
@@ -1662,6 +1661,16 @@ function joursOuvres(a, b){
   while (d.getTime() < stop && guard++ < 3000){ d.setUTCDate(d.getUTCDate() + 1); if (estOuvre(d)) n++; }
   return n;
 }
+/* Le même décompte, mais signé : une fin antérieure à l'échéance rend un nombre
+   négatif au lieu de zéro. Sert au repli du calcul de retard, où le sens du
+   dépassement est justement ce qu'on cherche à lire. */
+function joursOuvresSigne(a, b){
+  if (a == null || b == null) return null;
+  const da = new Date(a), db = new Date(b);
+  if (isNaN(da) || isNaN(db)) return null;
+  if (da.getTime() === db.getTime()) return 0;
+  return da.getTime() < db.getTime() ? joursOuvres(da, db) : -joursOuvres(db, da);
+}
 
 /* ---------------------------- état ---------------------------- */
 /* Le tableau de bord commence le lundi 13 juillet 2026 — début de la S29. Les
@@ -1748,7 +1757,11 @@ function normCellBrut(c){
      c : noms des colonnes
      d : valeurs distinctes, colonne par colonne
      v : par colonne, l'indice de la valeur de chaque KO (−1 = vide)          */
-const CTX_HORS = /^(annee|mois|annee mois|annee semaine|business unit|centre organisationnel|client|resultat|statut avancement|nombre de flux|unite de mesure|identifiant flux|date heure)/;
+/* « Unité de mesure » était écartée comme une colonne d'habillage. C'en est une
+   de fond : elle dit si l'indicateur se compte en jours ouvrés ou en heures, et
+   sans elle le retard d'un flux urgent s'écrivait en journées. Deux valeurs
+   distinctes en tout — elle ne pèse rien dans le dictionnaire. */
+const CTX_HORS = /^(annee|mois|annee mois|annee semaine|business unit|centre organisationnel|client|resultat|statut avancement|nombre de flux|identifiant flux|date heure)/;
 const CTX_MAXCOL = 32, CTX_MAXVAL = 60;
 const normCol = s => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -1885,43 +1898,71 @@ function ctxRef(cell, ref, postes, col){
   return Array.from(s).sort();
 }
 /* ---------------- de combien ce retard est-il en retard ? ----------------
-   La question se pose différemment selon le service, et l'export porte la
-   réponse dans les deux cas.
+   Le décompte ne se fait pas en jours de calendrier. Un flux dû le vendredi et
+   terminé le lundi a un jour ouvré de retard, pas trois ; le 14 juillet ne
+   compte pas davantage. L'export porte déjà la réponse, comptée dans le
+   calendrier de l'entreprise — samedis, dimanches, fériés et ponts déduits —
+   et c'est elle qu'on lit plutôt que de la recalculer : sur l'import de
+   septembre, « Valeur KPI » et un décompte ouvré refait à la main tombent
+   d'accord sur 20 068 lignes de distribution sur 20 153, et les 85 restantes
+   sont des jours de fermeture propres au site, que seul l'export connaît.
 
-   Réception : l'indicateur compte lui-même un délai — « Valeur KPI » face à
-   « Objectif », en jours ouvrés ou en heures. L'écart des deux est le retard.
+   Distribution : la valeur EST l'écart à l'échéance, en jours ouvrés. Zéro
+   n'est pas « à l'heure » : la confirmation devait tomber la veille ouvrée
+   (objectif −1), et la moitié des KO sont exactement là — d'où l'écriture en
+   J, qui dit la journée plutôt qu'une durée.
 
-   Distribution : l'indicateur est une livraison à date. L'écart se lit entre
-   l'échéance et la fin réelle. Un écart de zéro jour n'est pas « à l'heure » :
-   la confirmation devait tomber la veille ouvrée, et la moitié des KO de
-   distribution sont exactement là — d'où l'écriture en J, qui dit la journée
-   plutôt qu'une durée. J−1 et au-delà, le flux s'est terminé AVANT son
-   échéance : c'est l'anomalie de calcul, et elle se voit d'un coup d'œil.
+   Réception : la valeur est le délai de traitement ; le retard est ce qui
+   dépasse l'objectif.
 
-   Rend { v, t } : une valeur triable et son écriture. */
+   Urgents — KPI 5.2 et 2.2 : même mécanique, mais l'indicateur se compte en
+   heures. Trois heures et vingt minutes de dépassement s'écrivaient « J+1 »
+   tant que l'unité restait illisible ; elles s'écrivent « +3,3 h ».
+
+   Rend { v, t, d } : une valeur triable, son écriture, et la même chose en
+   clair pour l'infobulle. */
+function uniteKo(cell, ref, postes){
+  const u = (ctxRef(cell, ref, postes, "Unité de mesure") || [])[0] || "";
+  if (u) return /heure/i.test(u) ? "h" : "j";
+  /* Les périodes enregistrées avant que la colonne soit retenue n'ont pas
+     l'unité. Le libellé du KPI la porte aussi : les flux urgents — 5.2, 2.2 —
+     se comptent en heures, tous les autres en jours ouvrés. */
+  const k = (ctxRef(cell, ref, postes, "KPI (Code - Libellé)") || [])[0] || "";
+  return (/urgent/i.test(k) || /\b\d+\.2\b/.test(k)) ? "h" : "j";
+}
 function retardKo(cell, ref, postes){
   if (!cell || !ref) return null;
-  const un = (ctxRef(cell, ref, postes, "Unité de mesure") || [])[0] || "";
-  if (cell.service === "recep"){
-    const val = nombre((ctxRef(cell, ref, postes, "Valeur KPI") || [])[0]);
-    const obj = nombre((ctxRef(cell, ref, postes, "Objectif") || [])[0]);
-    if (val == null || obj == null) return null;
-    const e = val - obj;
-    const h = /heure/i.test(un);
-    /* Le délai de réception n'est pas toujours entier : « 2,83 jours » pour un
-       objectif de 2 fait 0,8 jour de dépassement, pas 1. Arrondir à l'entier
-       écrivait « +1 j » sur un écart de vingt heures, et « +0 j » sur un vrai
-       dépassement. La décimale n'apparaît que là où elle change le sens. */
-    const petit = Math.abs(e) < 10 && Math.abs(e % 1) > 0.05;
-    return { v: h ? e / 24 : e,
-      t: (e > 0 ? "+" : e < 0 ? "−" : "") +
-         (petit ? dec(Math.abs(e), 1) : n0(Math.abs(e))) + (h ? " h" : " j") };
+  const h = uniteKo(cell, ref, postes) === "h";
+  const val = nombre((ctxRef(cell, ref, postes, "Valeur KPI") || [])[0]);
+  const obj = nombre((ctxRef(cell, ref, postes, "Objectif") || [])[0]);
+  const recep = cell.service === "recep";
+  let e = null;
+  if (val != null && (recep || h)){ if (obj != null) e = val - obj; }
+  else if (val != null){ e = val; }
+  /* Repli : pas de valeur d'indicateur lisible. Les dates restent, et le
+     décompte se refait en jours ouvrés — jamais en calendaire. */
+  if (e == null && !recep && !h){
+    e = joursOuvresSigne(jourDe((ctxRef(cell, ref, postes, "Date fin prévue") || [])[0]),
+                         jourDe((ctxRef(cell, ref, postes, "Date fin") || [])[0]));
   }
-  const fin = jourDe((ctxRef(cell, ref, postes, "Date fin") || [])[0]);
-  const due = jourDe((ctxRef(cell, ref, postes, "Date fin prévue") || [])[0]);
-  if (!fin || !due) return null;
-  const j = Math.round((fin - due) / 864e5);
-  return { v: j, t: j === 0 ? "J+0" : (j > 0 ? "J+" + j : "J−" + Math.abs(j)) };
+  if (e == null) return null;
+  /* Le dépassement n'est pas toujours entier : « 2,83 jours » pour un objectif
+     de 2 fait 0,8 jour, pas 1. Arrondir écrivait « +1 j » sur vingt heures et
+     « +0 j » sur un vrai dépassement. La décimale n'apparaît qu'utile. */
+  const petit = Math.abs(e) < 10 && Math.abs(e % 1) > 0.05;
+  const chiffre = petit ? dec(Math.abs(e), 1) : n0(Math.abs(e));
+  const signe = e > 0 ? "+" : e < 0 ? "−" : "";
+  if (h) return { v: e / 24, t: signe + chiffre + " h",
+    d: e > 0 ? chiffre + " h au-delà de l'objectif"
+     : e < 0 ? chiffre + " h sous l'objectif" : "pile à l'objectif" };
+  const jr = j => chiffre + " jour" + (Math.abs(j) > 1 ? "s" : "") + " ouvré" + (Math.abs(j) > 1 ? "s" : "");
+  if (recep) return { v: e, t: signe + chiffre + " j",
+    d: e > 0 ? jr(e) + " au-delà de l'objectif"
+     : e < 0 ? jr(e) + " sous l'objectif" : "pile à l'objectif" };
+  return { v: e, t: e === 0 ? "J+0" : (e > 0 ? "J+" + chiffre : "J−" + chiffre),
+    d: e > 0 ? "terminé " + jr(e) + " après l'échéance"
+     : e < 0 ? "terminé " + jr(e) + " avant l'échéance"
+     : "terminé le jour de l'échéance — la confirmation devait tomber la veille ouvrée" };
 }
 /* Une date écrite comme l'outil l'a rangée — 02/09/2026 — ou en ISO. */
 function jourDe(s){
@@ -3519,13 +3560,32 @@ function conflitsRegles(){
   CONFLITS = { sig, l };
   return l;
 }
-function oublieConflits(){ CONFLITS = null; }
-/* Ce qu'une règle changerait sur les périodes affichées, sans rien écrire. */
+function oublieConflits(){ CONFLITS = null; IMPACTS = null; }
+/* Ce qu'une règle changerait sur les périodes affichées, sans rien écrire.
+   ATTENTION : la règle est passée SEULE. C'est sa portée, pas ce qu'elle pose
+   quand les autres sont là. */
 function simuleRegle(r){
   const cells = selCells().map(c => realCell(c) || c);
   const vues = {}; cells.forEach(c => { vues[c.id] = c; });
   const { stats } = passerRegles(Object.values(vues), [Object.assign({}, r, { actif:true })], true);
   return stats.total;
+}
+/* ---- ce que chaque règle pose VRAIMENT, les autres en place ----
+   Un KO ne reçoit qu'une cause, et c'est la règle la plus haute de la liste qui
+   la pose. Tant que la carte affichait la portée de la règle prise seule, le
+   chiffre ne bougeait pas d'un pouce quand on remontait une règle : la
+   hiérarchie fonctionnait dans les chiffres du tableau de bord, mais l'écran
+   n'en montrait rien, ce qui revient à ne pas fonctionner. Un seul passage,
+   toutes les règles ensemble, et on lit ce que chacune a posé. */
+let IMPACTS = null;
+function impactsRegles(){
+  const sig = signatureRegles() + "#" + S.regles.map(r => r.id).join(">") +
+    "#" + S.ui.site + S.ui.serv + S.ui.from + S.ui.to + S.ui.preset + S.ui.maille;
+  if (IMPACTS && IMPACTS.sig === sig) return IMPACTS.m;
+  const reels = {};
+  selCells().forEach(c => { const x = realCell(c) || c; reels[x.id] = x; });
+  const { stats } = passerRegles(Object.values(reels), S.regles, true);
+  return (IMPACTS = { sig, m: stats.parRegle || {} }).m;
 }
 /* L'effet réellement obtenu, règles déjà en place comprises. Compter les KO
    visés ne suffit pas : un KO déjà couvert par une justification de lot ne
@@ -3556,11 +3616,21 @@ const MODELES = [
     besoin:["Date début", "Date fin prévue"],
     r:{ nom:"Demande irréalisable", service:"distri", type:"dates", dateA:"Date début",
         dateB:"Date fin prévue", opD:"le", nD:0, ouvres:false, cause:"irrealisable", src:"auto", conds:[] } },
+  /* Ce modèle comparait les deux dates en jours de calendrier, et c'est ce qui
+     lui faisait trouver quelque chose. Repris en jours ouvrés sur l'import de
+     septembre, il ne reste rien : sur les 36 KO qu'il visait, 19 avaient leur
+     échéance un samedi ou le 14 juillet — terminés le vendredi ou la veille,
+     ils sont pile à l'heure, pas en avance — et les 17 autres sont des flux
+     urgents, comptés en heures, qui ont bien dépassé leur seuil de trois
+     heures. L'anomalie était dans la comparaison, pas dans le KPI. Le modèle
+     reste proposé, corrigé : s'il affiche « aucun KO », c'est la réponse. */
   { k:"ano", titre:"Livrée avant son échéance et pourtant KO",
-    pour:"La date de fin précède la date de fin prévue. Le KPI a compté un retard là où le flux était à l'heure.",
-    besoin:["Date fin", "Date fin prévue"],
+    pour:"La date de fin précède la date de fin prévue d'au moins un jour ouvré, sur un flux compté en jours. " +
+      "Attention : la plupart des cas qui en avaient l'air venaient d'une échéance tombant un samedi ou un férié.",
+    besoin:["Date fin", "Date fin prévue", "Unité de mesure"],
     r:{ nom:"Anomalie de calcul", service:"distri", type:"dates", dateA:"Date fin",
-        dateB:"Date fin prévue", opD:"ge", nD:1, ouvres:false, cause:"anomalie", src:"auto", conds:[] } },
+        dateB:"Date fin prévue", opD:"ge", nD:1, ouvres:true, cause:"anomalie", src:"auto",
+        conds:[{ col:"Unité de mesure", op:"est", val:"jour" }] } },
   { k:"dou", titre:"Blocage douane levé",
     pour:"La colonne Statut douane est passée à « Terminé » : le flux a attendu la douane, pas le magasin.",
     besoin:["Statut douane"],
@@ -3609,10 +3679,14 @@ async function sauveRegles(){
   S.regles = normRegles(S.regles);
   oublieConflits();
   try { localStorage.setItem(LSREGLES, JSON.stringify(S.regles)); } catch(e){}
-  /* Le même document porte les règles et la traduction des causes libres : deux
-     réglages d'équipe, un seul aller-retour, et aucun risque que l'un écrase
-     l'autre en se réenregistrant. */
-  const doc = { regles: S.regles, causes: S.causes || {}, maj: new Date().toISOString() };
+  /* Le même document porte les trois réglages d'équipe : les règles, la
+     traduction des causes libres du relevé, et les causes que vous avez
+     ajoutées. Un seul aller-retour — mais alors chaque écriture doit reposer
+     les trois, sinon enregistrer une règle efface les deux autres pour tout le
+     monde. Les causes ajoutées manquaient ici : elles ne survivaient que dans
+     le navigateur de celui qui les avait créées. */
+  const doc = { regles: S.regles, causes: S.causes || {}, cats: S.cats || [],
+                maj: new Date().toISOString() };
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
@@ -3643,7 +3717,7 @@ function toast(msg, bad){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.className = "toast" + (bad ? " bad" : ""); }, 3200);
 }
 function closeModal(){
-  $("#ovl").classList.remove("on"); $("#modal").innerHTML = "";
+  $("#ovl").classList.remove("on"); $("#modal").innerHTML = ""; $("#modal").className = "modal";
   EXPORT_OUT = "#export-out"; EXPORT_APPLY = true; RELEVE_OUT = "#releve-out"; RELEVE_APPLY = true;
   SAP_OUT = "#sap-out"; SAP_APPLY = true;
   RELEVE_SRC = { ta:"#ta-releve", date:"#r-date", site:"#r-site", serv:"#r-serv" };
@@ -4261,9 +4335,12 @@ function renderAJustifier(){
       th("ref", "Référence", S.ui.ajTri, S.ui.ajSens) +
       th("date", "Date", S.ui.ajTri, S.ui.ajSens) +
       th("ret", "Retard", S.ui.ajTri, S.ui.ajSens, "n",
-        "L'écart entre l'attendu et le réel. En distribution, en journées : J+0 veut dire terminé le jour de l'échéance, " +
-        "alors que la confirmation devait tomber la veille ouvrée ; J−1 et au-delà, le flux s'est terminé avant son échéance. " +
-        "En réception, la valeur de l'indicateur moins son objectif.") +
+        "L'écart entre l'attendu et le réel, compté en jours ouvrés — samedis, dimanches et fériés déduits, " +
+        "d'après le calendrier que l'export applique lui-même. " +
+        "En distribution, l'écart à l'échéance : J+0 veut dire terminé le jour de l'échéance, alors que la confirmation " +
+        "devait tomber la veille ouvrée ; J−1 et au-delà, le flux s'est terminé avant son échéance. " +
+        "En réception, ce qui dépasse l'objectif de délai. " +
+        "Les flux urgents — KPI 5.2 et 2.2 — se comptent en heures : « +3,3 h ».") +
       th("ko", "KO", S.ui.ajTri, S.ui.ajSens, "n") +
       (opVisible ? th("op", "Opérateur", S.ui.ajTri, S.ui.ajSens) : "") +
       th("per", "Période · périmètre", S.ui.ajTri, S.ui.ajSens) +
@@ -4275,7 +4352,8 @@ function renderAJustifier(){
           '<td class="ref nowrap">' + esc(r.ref) +
             (r.postes.length ? ' <span class="pill po" title="postes ' + esc(r.postes.slice(0, 14).join(", ")) + (r.postes.length > 14 ? "…" : "") + '">' + r.postes.length + " poste" + (r.postes.length > 1 ? "s" : "") + "</span>" : "") + "</td>" +
           '<td class="ref nowrap muted">' + frDay(r.d) + "</td>" +
-          '<td class="n nowrap' + (r.ret ? (r.ret.v > 0 ? " ret-tard" : r.ret.v < 0 ? " ret-tot" : " ret-jour") : " muted") + '">' +
+          '<td class="n nowrap' + (r.ret ? (r.ret.v > 0 ? " ret-tard" : r.ret.v < 0 ? " ret-tot" : " ret-jour") : " muted") + '"' +
+            (r.ret && r.ret.d ? ' title="' + esc(r.ret.d) + '"' : "") + ">" +
             (r.ret ? esc(r.ret.t) : "—") + "</td>" +
           '<td class="n"' + (r.n > 1 ? ' style="color:var(--ink)"' : ' style="color:var(--muted)"') + ">" + r.n +
             (part ? '<span class="muted" style="font-weight:400"> / ' + r.total + "</span>" : "") + "</td>" +
@@ -4486,15 +4564,19 @@ function renderRegles(){
   });
   const perdu = {}, gagne = {};
   cfl.forEach(c => { perdu[c.b] = (perdu[c.b] || 0) + c.n; (gagne[c.b] = gagne[c.b] || []).push(c.na); });
+  const imp = impactsRegles();
   host.innerHTML = (cfl.length
     ? '<div class="note" style="border-left-color:var(--warn)"><b>Deux règles visent les mêmes KO.</b> ' +
       "Un KO ne reçoit qu'une cause : c'est la règle la plus haute dans la liste qui la pose. " +
       cfl.slice(0, 3).map(c => "<b>" + esc(c.na) + "</b> prend " + n0(c.n) + " KO à <b>" + esc(c.nb) + "</b>").join(" · ") +
       (cfl.length > 3 ? " · et " + n0(cfl.length - 3) + " autre(s)" : "") +
-      ". Utilisez les flèches pour changer qui passe en premier.</div>"
+      ". Les flèches ↑ ↓ changent qui passe en premier — le compte de chaque règle suit.</div>"
     : "") +
     '<div class="rlist">' + S.regles.map((r, idx) => {
-    const n = simuleRegle(r);
+    /* Ce qu'elle pose, les autres en place — et sa portée seule quand les deux
+       diffèrent : c'est là que se lit le départage. */
+    const n = r.actif ? (imp[r.id] || 0) : 0;
+    const seule = simuleRegle(r);
     return '<div class="rcard' + (r.actif ? "" : " off") + '">' +
       '<label class="sw" title="' + (r.actif ? "Désactiver" : "Activer") + '"><input type="checkbox" data-ract="' + r.id + '"' +
         (r.actif ? " checked" : "") + '><i></i></label>' +
@@ -4508,7 +4590,13 @@ function renderRegles(){
         (aveugles[r.id] ? '<span class="warn-t">illisible sur ' + n0(aveugles[r.id]) + " période" +
           (aveugles[r.id] > 1 ? "s" : "") + " — colonne absente de l'export</span>" : "") +
         "</div></div>" +
-      '<div class="ract"><span class="rimpact" title="sur la plage affichée">' + (n ? n0(n) + " KO" : "—") + "</span>" +
+      '<div class="ract"><span class="rimpact" title="' +
+        (r.actif
+          ? "Ce que cette règle pose réellement sur la plage affichée, les autres règles en place" +
+            (seule > n ? " — elle en vise " + n0(seule) + ", les " + n0(seule - n) + " autres sont pris par une règle placée avant elle." : ".")
+          : "Règle désactivée — elle ne pose rien. Activée, elle viserait " + n0(seule) + " KO.") + '">' +
+        (r.actif ? (n ? n0(n) + " KO" : "—") : n0(seule) + " KO si active") +
+        (r.actif && seule > n ? '<i class="sur">sur ' + n0(seule) + "</i>" : "") + "</span>" +
         (S.regles.length > 1
           ? '<button class="btn sm ico" data-rup="' + r.id + '" title="Passer avant"' + (idx === 0 ? " disabled" : "") + ">↑</button>" +
             '<button class="btn sm ico" data-rdn="' + r.id + '" title="Passer après"' + (idx === S.regles.length - 1 ? " disabled" : "") + ">↓</button>"
@@ -5687,9 +5775,95 @@ async function deposeTout(fichiers, cible){
   toast(faits.filter(f => !f.ko).length + " fichier(s) intégré(s)");
   render();
 }
+/* ---------------------- le volet « Mettre à jour » ----------------------
+   Le geste de toutes les semaines : déposer, et voir ce que ça a fait. Il ne
+   vit pas dans la page — il s'ouvre par-dessus, depuis le bandeau, et se
+   referme. La marche à suivre tient sous le dépôt : quatre vignettes, les
+   gestes seulement, rien à lire. */
+const MAJ_VIS = {
+  bi: '<svg viewBox="0 0 120 76" fill="none" aria-hidden="true">' +
+      '<rect x="6" y="8" width="66" height="60" rx="4" fill="var(--surface-2)" stroke="var(--line-2)"/>' +
+      '<rect x="14" y="42" width="9" height="18" rx="1.5" fill="var(--accent)" opacity=".55"/>' +
+      '<rect x="27" y="32" width="9" height="28" rx="1.5" fill="var(--accent)" opacity=".75"/>' +
+      '<rect x="40" y="22" width="9" height="38" rx="1.5" fill="var(--accent)"/>' +
+      '<rect x="53" y="36" width="9" height="24" rx="1.5" fill="var(--accent)" opacity=".65"/>' +
+      '<path d="M14 16h32" stroke="var(--line-2)" stroke-width="2.5" stroke-linecap="round"/>' +
+      '<rect x="78" y="12" width="36" height="52" rx="4" fill="var(--surface)" stroke="var(--warn)" stroke-width="1.6"/>' +
+      ['20','32','44','56'].map(y =>
+        '<rect x="84" y="' + y + '" width="8" height="8" rx="2" fill="var(--warn)"/>' +
+        '<path d="M86 ' + (+y + 4) + 'l1.6 1.8 2.8-3.4" stroke="#3a2a00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>' +
+        '<path d="M96 ' + (+y + 4) + 'h12" stroke="var(--line-2)" stroke-width="2" stroke-linecap="round"/>').join("") +
+      "</svg>",
+  sap: '<svg viewBox="0 0 120 76" fill="none" aria-hidden="true">' +
+      '<path d="M14 20c0-4.4 8.1-8 18-8s18 3.6 18 8v36c0 4.4-8.1 8-18 8s-18-3.6-18-8z" fill="var(--surface-2)" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<path d="M14 20c0 4.4 8.1 8 18 8s18-3.6 18-8M14 38c0 4.4 8.1 8 18 8s18-3.6 18-8" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<path d="M58 38h18m0 0-6-5.5M76 38l-6 5.5" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect x="84" y="18" width="28" height="40" rx="3" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<path d="M90 28h16M90 36h16M90 44h10" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity=".7"/>' +
+      "</svg>",
+  rel: '<svg viewBox="0 0 120 76" fill="none" aria-hidden="true">' +
+      '<rect x="8" y="20" width="40" height="30" rx="3" fill="var(--surface-2)" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<path d="m9.5 22 18.5 14 18.5-14" stroke="var(--line-2)" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<path d="M56 35h16m0 0-5.5-5M72 35l-5.5 5" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<rect x="80" y="14" width="32" height="46" rx="3" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<path d="M80 24h32M92 24v36" stroke="var(--line-2)" stroke-width="1.4"/>' +
+      '<path d="M84 32h4M84 40h4M84 48h4" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M97 32h10M97 40h10M97 48h7" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity=".7"/>' +
+      "</svg>",
+  log: '<svg viewBox="0 0 120 76" fill="none" aria-hidden="true">' +
+      '<rect x="10" y="10" width="100" height="56" rx="4" fill="var(--surface)" stroke="var(--line-2)" stroke-width="1.6"/>' +
+      '<rect x="10" y="10" width="100" height="13" rx="4" fill="var(--surface-2)"/>' +
+      '<path d="M10 23h100M44 23v43M72 23v43" stroke="var(--line-2)" stroke-width="1.4"/>' +
+      '<rect x="72" y="10" width="38" height="56" rx="0" fill="var(--c-expl)" opacity=".14"/>' +
+      '<path d="M72 23h38" stroke="var(--line-2)" stroke-width="1.4"/>' +
+      ['32','44','56'].map(y =>
+        '<path d="M16 ' + y + 'h22M50 ' + y + 'h16" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/>' +
+        '<path d="M78 ' + y + 'h26" stroke="var(--c-expl)" stroke-width="2.4" stroke-linecap="round"/>').join("") +
+      '<path d="M78 17h22" stroke="var(--c-expl-t)" stroke-width="2.4" stroke-linecap="round"/>' +
+      "</svg>"
+};
+const MAJ_PAS = [
+  { v:"bi", t:"Export PowerBI", g:["Ouvrir <b>Volume Réception / Distribution LOG + MG</b>",
+      "Choisir la <b>période</b>",
+      "<b>Détails lignes PowerBI</b> → <b>Dimensions</b> → <mark>tout cocher</mark>",
+      "<b>Exporter les données</b>"] },
+  { v:"sap", t:"Extraction SAP", g:["L'extraction des <b>réceptions</b>, même période",
+      "Exporter en tableur"] },
+  { v:"rel", t:"Relevé transcrit", g:["Copier le <b>prompt</b> du bloc 3",
+      "Le coller avec les mails de retard",
+      "Récupérer le <code>.xlsx</code>"] },
+  { v:"log", t:"Export Distri Logistiport", g:["Le fichier du responsable, <b>colonne CAUSE</b> remplie",
+      "Le prendre <b>tel quel</b>"] }
+];
+function openMaj(){
+  openModal(
+    '<div class="ph"><h2>Mettre à jour</h2><span class="sub">Déposez vos fichiers — l\'outil reconnaît chacun et fait le reste</span></div>' +
+    '<div class="pb">' +
+      '<div class="drop xl" id="depot">' +
+        '<label class="btn pri big" style="cursor:pointer">Choisir les fichiers…' +
+        '<input type="file" id="file-depot" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>' +
+        '<span class="dropi"><b>ou glissez-les ici.</b> Les quatre ensemble ou un seul, ' +
+        'dans n\'importe quel ordre.</span></div>' +
+      '<div id="depot-out"></div>' +
+      '<div class="flab" style="margin-top:18px">Où les prendre</div>' +
+      '<div class="majgrid">' + MAJ_PAS.map((s, i) =>
+        '<div class="mstep"><div class="mvis">' + MAJ_VIS[s.v] + "</div>" +
+        '<div class="mbody"><div class="mtit"><em>' + (i + 1) + "</em>" + esc(s.t) + "</div>" +
+        '<ul class="mgo">' + s.g.map(x => "<li>" + x + "</li>").join("") + "</ul></div></div>").join("") +
+      "</div></div>" +
+    '<div class="wfoot"><button class="lnk" id="maj-wiz">Me guider pas à pas</button>' +
+    '<span class="sp"></span><button class="btn pri" id="maj-close">Fermer</button></div>');
+  $("#modal").classList.add("wide");
+  brancheDepot();
+  $("#maj-close").addEventListener("click", closeModal);
+  $("#maj-wiz").addEventListener("click", openWizard);
+}
 /* La liste de fichiers du champ est vivante : la vider avant de l'avoir recopiée
-   la vide aussi pour celui qui allait la lire. On prend une copie d'abord. */
-$("#file-depot").addEventListener("change", e => {
+   la vide aussi pour celui qui allait la lire. On prend une copie d'abord.
+   Le champ naît et meurt avec le volet : on écoute au niveau du document, sinon
+   l'écoute poserait sur un élément qui n'existe pas encore. */
+document.addEventListener("change", e => {
+  if (!e.target || e.target.id !== "file-depot") return;
   const f = Array.from(e.target.files || []);
   e.target.value = "";
   deposeTout(f);
@@ -5703,14 +5877,17 @@ if (fc) fc.addEventListener("change", e => {
   e.target.value = "";
   deposeTout(f, "#cause-out");
 });
-(function depotGlisse(){
+/* Le glisser-déposer s'attache à la zone elle-même — elle est recréée à chaque
+   ouverture du volet, donc on rebranche à chaque fois. */
+function brancheDepot(){
   const z = $("#depot");
-  if (!z) return;
+  if (!z || z.dataset.branche) return;
+  z.dataset.branche = "1";
   const stop = e => { e.preventDefault(); e.stopPropagation(); };
   ["dragenter", "dragover"].forEach(t => z.addEventListener(t, e => { stop(e); z.classList.add("over"); }));
   ["dragleave", "drop"].forEach(t => z.addEventListener(t, e => { stop(e); z.classList.remove("over"); }));
   z.addEventListener("drop", e => { const f = e.dataTransfer && e.dataTransfer.files; if (f && f.length) deposeTout(f); });
-})();
+}
 
 /* ------------------ extraction SAP : rééditions de postes BR ------------------ */
 let SAP_OUT = "#sap-out", SAP_APPLY = true, sapDraft = null;
@@ -6550,16 +6727,10 @@ document.addEventListener("click", e => {
   const tg = e.target.closest("[data-tabgo]");
   if (tg){ gotoTab(tg.dataset.tabgo); window.scrollTo({ top:0, behavior:"smooth" }); return; }
   if (e.target.closest("#btn-defs")){ openDefs(); return; }
-  /* « Mettre à jour » mène au dépôt, pas à l'assistant : c'est le geste de toutes
+  /* « Mettre à jour » ouvre le dépôt, pas l'assistant : c'est le geste de toutes
      les semaines, il doit tomber en une fois. L'assistant reste à un clic, pour
      la première fois ou quand on veut être tenu par la main. */
-  if (e.target.closest("#btn-wizard")){
-    gotoTab("import");
-    const z = $("#depot");
-    if (z){ z.scrollIntoView({ block:"center", behavior:"smooth" });
-      z.classList.add("over"); setTimeout(() => z.classList.remove("over"), 900); }
-    return;
-  }
+  if (e.target.closest("#btn-wizard, #lien-maj")){ openMaj(); return; }
   if (e.target.closest("#btn-wizard2, #ac-wizard, #lien-assistant")) openWizard();
   if (e.target.closest("#btn-cause-new")){ modalCause("tous"); return; }
   const cd = e.target.closest("[data-catdel]");
