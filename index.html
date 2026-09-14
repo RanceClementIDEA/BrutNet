@@ -1324,6 +1324,22 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
         <div class="pb" id="causes"></div>
       </div>
 
+      <!-- Les saisies à la main vieillissent : une cause choisie il y a deux mois
+           reste en place, même quand une règle dit mieux, et supprimer la règle ne
+           la retire pas — ce n'est pas elle qui l'a posée. De quoi les revoir par
+           cause, les reclasser ou les retirer en bloc. -->
+      <details class="panel" id="pan-mains">
+        <summary class="ph"><h2>Vos saisies à la main</h2>
+          <span class="sub" id="mains-sub">Les revoir par cause, les reclasser, les retirer</span></summary>
+        <div class="pb">
+          <p class="gp">Ce que vous — ou l'équipe — avez qualifié à la main, sur la plage affichée.
+          Une règle passe devant une saisie&nbsp;; une saisie, elle, ne bouge que si vous la bougez.
+          <b>Retirer une cause ici ne perd rien&nbsp;:</b> les KO retournent dans «&nbsp;À justifier&nbsp;»,
+          et les règles qui les visent les reprennent au passage suivant.</p>
+          <div id="mains-liste"></div>
+        </div>
+      </details>
+
       <div class="panel">
         <div class="ph">
           <h2>Détail</h2>
@@ -1745,7 +1761,13 @@ function normCellBrut(c){
       /* Marque de la règle qui a posé la ligne : c'est elle qui rend le rejeu
          défaisable. La perdre ici figerait les justifications automatiques et
          les ferait passer pour des saisies à la main. */
-      regle: l.regle || ""
+      regle: l.regle || "",
+      /* La saisie à la main que cette ligne a remplacée, mise de côté en clair.
+         Sans elle, retirer la règle effaçait définitivement le travail de
+         quelqu'un : la ligne de règle disparaissait, et la saisie qu'elle avait
+         reprise ne revenait pas. Une chaîne, pas un objet — Firestore n'accepte
+         pas de tableau dans un tableau, et `postes` en est un. */
+      rep: typeof l.rep === "string" ? l.rep.slice(0, 600) : ""
     }))
   };
 }
@@ -3361,7 +3383,32 @@ function passerRegles(cells, regles, simule, conflits){
     const gel = {};
     actives.forEach(r => { if (!regleEvaluable(r, cell)) gel[r.id] = 1; });
     const figees = [];
-    const avant = (cell.lignes || []).filter(l => {
+    /* ---- rendre les saisies que les règles avaient reprises ----
+       Une règle qui reprend une saisie ne la détruit pas : elle l'emporte avec
+       elle dans `rep`. À chaque passage on la remet en place d'abord, puis on
+       rejoue — si la règle la vise encore, elle la reprendra de nouveau ; si la
+       règle a été retirée ou désactivée, la saisie est simplement de retour.
+       Sans cela, supprimer une règle effaçait pour de bon le travail de
+       quelqu'un, et les KO qu'elle couvrait ressortaient sans aucune cause.
+       Une ligne gardée faute de pouvoir la rejuger garde la sienne au chaud. */
+    const rendues = [], dejaRendu = new Set();
+    (cell.lignes || []).forEach(l => {
+      if (!l.regle || l.regle === REGLE_REED || !l.rep || gel[l.regle]) return;
+      let r = null; try { r = JSON.parse(l.rep); } catch(e){ return; }
+      if (!r || !r.c || !CAT[r.c]) return;
+      /* Une saisie nommant dix postes est reprise par dix lignes de règle, qui
+         portent toutes la même copie : sans cette clé on la rendait dix fois, et
+         le budget de sa référence explosait — les règles se retrouvaient alors
+         bloquées par un fantôme qu'on venait de créer. */
+      const cle = r.i || [String(r.r || l.ref), (r.p || []).join("."), r.c, r.n, r.s].join("|");
+      if (dejaRendu.has(cle)) return;
+      dejaRendu.add(cle);
+      rendues.push({ id: String(r.i || uid()), ref: String(r.r || l.ref),
+        postes: Array.isArray(r.p) ? r.p.map(String) : [],
+        cat: r.c, nb: Math.max(0, +r.n || 0), src: SRC[r.s] ? r.s : "manuel",
+        com: String(r.m || ""), d: r.d || l.d || "", st: r.t === "rejet" ? "rejet" : "ok" });
+    });
+    const avant = (cell.lignes || []).concat(rendues).filter(l => {
       if (l.regle){
         if (l.regle === REGLE_REED) return false;      /* refaite depuis `reed` */
         if (gel[l.regle]){
@@ -3412,7 +3459,6 @@ function passerRegles(cells, regles, simule, conflits){
                : repriseDite(REGLE_REED, x.ref, x.poste)),
         st: "ok", regle: REGLE_REED };
     });
-    stats.reed += ajoutReed.reduce((s, l) => s + l.nb, 0);
     const cov = dejaCouverts({ lignes: avant, koRefs: cell.koRefs, koPostes: cell.koPostes });
     ajoutReed.forEach(l => { cov.parPoste.add(String(l.ref) + "|" + l.postes[0]); });
     /* Une ligne gardée faute de pouvoir la rejuger couvre quand même son poste :
@@ -3564,7 +3610,6 @@ function passerRegles(cells, regles, simule, conflits){
           ligne._main = mq.l; mq.pris++;
         }
         ajout.push(ligne);
-        stats.total += w; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + w;
       }
     });
     /* Chaque saisie visée n'est reprise que si les règles couvrent tous ses postes.
@@ -3586,10 +3631,8 @@ function passerRegles(cells, regles, simule, conflits){
     const ajoutNet = ajout.filter(l => {
       if (!l._main) return true;
       if (!lachees.has(l._main)){                            /* reprise abandonnée */
-        stats.total -= (+l.nb || 0);
-        stats.parRegle[l.regle] = (stats.parRegle[l.regle] || 0) - (+l.nb || 0);
-        /* Le compteur de la règle baisse : l'écran doit dire pourquoi, sinon on
-           se retrouve à chercher des KO qui ont disparu sans un mot. */
+        /* Le compteur de la règle sera plus bas : l'écran doit dire pourquoi,
+           sinon on cherche des KO qui ont disparu sans un mot. */
         const t = stats.tenus[l.regle] || (stats.tenus[l.regle] = {});
         t.manuel = (t.manuel || 0) + (+l.nb || 0);
         return false;
@@ -3600,6 +3643,11 @@ function passerRegles(cells, regles, simule, conflits){
       l.com = String(l.com || "").replace(/ · remplace la saisie .*$/, "") +
         " · remplace la saisie « " + (CAT[c.cat] ? CAT[c.cat].l : c.cat) + " »" +
         (c.com ? " (" + String(c.com).slice(0, 80) + ")" : "");
+      /* La saisie voyage avec la ligne qui l'a reprise : c'est ce qui permet de
+         la rendre intacte si la règle est retirée un jour. */
+      l.rep = JSON.stringify({ i: c.id || "", r: String(c.ref), p: (c.postes || []).map(String),
+        c: c.cat, n: Math.max(0, +c.nb || 0), s: c.src || "manuel",
+        m: String(c.com || "").slice(0, 200), d: c.d || "", t: c.st === "rejet" ? "rejet" : "ok" });
       delete l._main;
       return true;
     });
@@ -3615,8 +3663,21 @@ function passerRegles(cells, regles, simule, conflits){
        est repris, dans l'ordre annoncé — relevé, puis automatique, puis saisie —
        et la cause écartée passe en commentaire. */
     const base = avantNet.concat(ajoutReed, ajoutNet);
-    const aj = simule ? { lignes:base, ecartes:0, rognes:0 } : ajusteRef(cell, base, null);
+    /* Le garde-fou tourne aussi en simulation. Sans lui, le compte annoncé sur
+       la carte d'une règle était celui des lignes qu'elle VOULAIT poser, pas de
+       celles qui survivent au plafond : deux KO d'écart suffisent à faire douter
+       de tout le reste. */
+    const aj = ajusteRef(cell, base, null);
     stats.doubles += aj.ecartes + aj.rognes;
+    /* Le compte se lit sur le résultat, jamais sur les intentions : entre la
+       boucle et ici, une reprise a pu être abandonnée et une ligne rognée. */
+    aj.lignes.forEach(l => {
+      if (!l.regle) return;
+      const n = Math.max(0, +l.nb || 0);
+      if (l.regle === REGLE_REED){ stats.reed += n; return; }
+      stats.total += n;
+      stats.parRegle[l.regle] = (stats.parRegle[l.regle] || 0) + n;
+    });
     if (ajoutNet.length || ajoutReed.length || avaitDesRegles || lachees.size || aj.ecartes || aj.rognes){
       stats.cellules++;
       if (!simule) out.push(Object.assign({}, cell, { lignes: aj.lignes }));
@@ -4608,6 +4669,48 @@ function renderModeles(){
         '<button class="btn sm" data-rmod="' + m.k + '"' + (e.n ? "" : " disabled") + ">Voir la règle</button></div></div>";
     }).join("") + "</div>";
 }
+/* ---- vos saisies à la main, par cause ----
+   Une saisie posée il y a deux mois survit à tout : au réimport, au changement
+   de règles, à la suppression de la règle qui porte la même cause — puisque ce
+   n'est pas la règle qui l'a posée. Sans un endroit pour les revoir, on cherche
+   longtemps pourquoi une cause « reste » alors qu'on a tout retiré. */
+function mainsParCause(){
+  const par = {};
+  const vus = {};
+  selCells().forEach(c0 => { const c = realCell(c0) || c0; vus[c.id] = c; });
+  Object.values(vus).forEach(c => (c.lignes || []).forEach(l => {
+    if (l.regle || l.src !== "manuel") return;
+    const g = par[l.cat] || (par[l.cat] = { cat:l.cat, lignes:0, ko:0, refs:new Set(), ids:[] });
+    g.lignes++; g.ko += Math.max(0, +l.nb || 0); g.refs.add(sansZeros(l.ref));
+    g.ids.push(c.id + " " + l.id);
+  }));
+  return Object.values(par).sort((a, b) => b.ko - a.ko);
+}
+function renderMains(){
+  const host = $("#mains-liste"); if (!host) return;
+  const list = mainsParCause();
+  const tot = list.reduce((s, g) => s + g.ko, 0);
+  const sub = $("#mains-sub");
+  if (sub) sub.textContent = tot
+    ? n0(tot) + " KO qualifiés à la main, en " + n0(list.length) + " cause" + (list.length > 1 ? "s" : "")
+    : "Rien de saisi à la main sur cette plage";
+  if (!list.length){
+    host.innerHTML = '<div class="empty"><b>Aucune saisie à la main ici</b>' +
+      "Tout ce qui est qualifié vient d'un relevé, de SAP ou d'une règle.</div>";
+    return;
+  }
+  host.innerHTML = '<div class="rlist">' + list.map(g => {
+    const c = CAT[g.cat];
+    return '<div class="rcard"><div class="rmain"><b>' + esc(c ? c.l : g.cat) + "</b>" +
+      '<div class="rcond">' + n0(g.ko) + " KO · " + n0(g.lignes) + " ligne" + (g.lignes > 1 ? "s" : "") +
+        " · " + n0(g.refs.size) + " référence" + (g.refs.size > 1 ? "s" : "") + "</div>" +
+      '<div class="rmeta"><span>' +
+        (c && c.j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span>" +
+        "<span>une règle peut la reprendre</span></div></div>" +
+      '<div class="ract"><button class="btn sm" data-mainmv="' + esc(g.cat) + '">Changer la cause</button>' +
+      '<button class="btn sm danger" data-maindel="' + esc(g.cat) + '">Retirer</button></div></div>';
+  }).join("") + "</div>";
+}
 /* Vos causes, telles qu'on les revoit : ce qu'elles font au chiffre, et de quoi
    les retirer. Une cause retirée ne supprime pas les justifications déjà
    posées — elles retombent en « Autre » et restent lisibles. */
@@ -4822,7 +4925,7 @@ function render(){
     $("#rail").style.display = (S.ui.tab === "reglages" || S.ui.tab === "import") ? "none" : "";
     if (S.ui.tab === "dash") renderDash();
     if (S.ui.tab === "justif") renderAJustifier();
-    if (S.ui.tab === "qualif") renderQualifies();
+    if (S.ui.tab === "qualif"){ renderQualifies(); renderMains(); }
     if (S.ui.tab === "import"){ renderCellsTable(); renderRegles(); renderMesCauses(); }
     if (S.ui.tab === "reglages") renderDonnees();
     renderCounts();
@@ -4858,9 +4961,26 @@ function renderBanner(){
     if (!S.writeErr) toast("Base à jour");
   });
 }
+/* ---- les deux chiffres du bandeau ----
+   Ils se lisent côte à côte, ils doivent donc compter la même chose, sur le même
+   périmètre : des KO, sur la plage affichée. « À justifier » ceux qui n'ont pas
+   encore de cause, « Retards qualifiés » ceux qui en ont une ; leur somme est le
+   nombre de KO de la plage.
+
+   Ce n'était pas le cas. « Retards qualifiés » comptait des LIGNES, sur TOUT
+   l'historique — plancher et filtres compris. Une ligne posée en quantité pour
+   douze KO comptait pour une, une semaine masquée comptait quand même, et le
+   chiffre ne bougeait jamais quand l'autre bougeait : d'où l'impression qu'ils
+   sautent sans raison. Il vient maintenant de la même agrégation que le tableau
+   de bord, celle-là même qui écrit « N KO retirés » en tête du panneau. */
 function renderCounts(){
-  $("#cnt-justif").textContent = n0(Object.values(S.cells).reduce((s, c) => s + c.lignes.length, 0));
-  if (S.ui.tab !== "justif") $("#cnt-aj").textContent = n0(toQualify().reduce((s, r) => s + r.n, 0));
+  const aj = toQualify().reduce((s, r) => s + r.n, 0);
+  const ko = agg(selCells()).ko;
+  /* Qualifiés, pas « retirés » : une cause gardée pour la trace qualifie le KO
+     sans le sortir du décompte, et l'onglet la montre quand même. Le panneau
+     précise le sous-ensemble réellement retiré, sous son titre. */
+  $("#cnt-aj").textContent = n0(aj);
+  $("#cnt-justif").textContent = n0(Math.max(0, ko - aj));
 }
 /* =========================================================================
    Bloc 3 : import, formulaires, exports, initialisation
@@ -5393,6 +5513,65 @@ async function sauveCats(){
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
   } catch(e){}
+}
+/* ---- retirer ou reclasser les saisies à la main d'une cause ----
+   `vers` nul : on retire les lignes. Sinon on leur pose la cause choisie, en
+   gardant le commentaire et la trace de ce qu'elles étaient. Puis les règles
+   repassent : ce qu'elles visent, elles le reprennent. */
+async function retireMains(cat, vers){
+  const vus = {};
+  selCells().forEach(c0 => { const c = realCell(c0) || c0; vus[c.id] = c; });
+  const touchees = [];
+  let n = 0;
+  Object.values(vus).forEach(c => {
+    const avant = (c.lignes || []).length;
+    let lignes;
+    if (vers){
+      const anc = CAT[cat] ? CAT[cat].l : cat;
+      lignes = (c.lignes || []).map(l => {
+        if (l.regle || l.src !== "manuel" || l.cat !== cat) return l;
+        n++;
+        return Object.assign({}, l, { cat: vers,
+          st: CAT[vers] && CAT[vers].j ? "ok" : "rejet",
+          com: coupe([String(l.com || "").replace(/(?:^| · )était « .*? »$/, ""),
+            "était « " + anc + " »"].filter(Boolean).join(" · "), 400) });
+      });
+    } else {
+      lignes = (c.lignes || []).filter(l => {
+        const vise = !l.regle && l.src === "manuel" && l.cat === cat;
+        if (vise) n++;
+        return !vise;
+      });
+    }
+    if (vers ? n : lignes.length !== avant) touchees.push(Object.assign({}, c, { lignes }));
+  });
+  if (!touchees.length){ toast("Rien à changer"); return; }
+  await bulkPut(touchees);
+  await rejouerRegles(true);
+  toast(vers ? n0(n) + " saisie(s) reclassée(s) en « " + (CAT[vers] ? CAT[vers].l : vers) + " »"
+             : n0(n) + " saisie(s) retirée(s) — les KO sont revenus à justifier");
+  render();
+}
+function modalDeplaceMain(cat, g){
+  const c = CAT[cat];
+  openModal('<div class="ph"><h2>Changer la cause de ' + n0(g.lignes) + ' saisie(s)</h2>' +
+    '<span class="sub">' + esc(c ? c.l : cat) + " → une autre cause</span></div>" +
+    '<div class="pb"><p class="gp">Ces ' + n0(g.ko) + " KO sont qualifiés à la main en <b>" +
+      esc(c ? c.l : cat) + "</b>. La nouvelle cause s'applique à toutes ces lignes ; " +
+      "l'ancienne reste notée dans leur commentaire.</p>" +
+    '<div class="fgrp"><span class="flab">Nouvelle cause</span>' +
+    '<select id="mm-cat">' + optCauses("tous", "", true) + "</select></div>" +
+    '<div id="mm-out" class="hint" style="margin-top:10px"></div></div>' +
+    '<div class="wfoot"><button class="btn" id="mm-cancel">Annuler</button>' +
+    '<span class="sp"></span><button class="btn pri" id="mm-ok">Appliquer</button></div>');
+  $("#mm-cancel").addEventListener("click", closeModal);
+  $("#mm-ok").addEventListener("click", async () => {
+    const v = $("#mm-cat").value;
+    if (!v || !CAT[v]){ $("#mm-out").textContent = "Choisissez une cause."; return; }
+    if (v === cat){ $("#mm-out").textContent = "C'est déjà celle-ci."; return; }
+    closeModal();
+    await retireMains(cat, v);
+  });
 }
 /* Créer une cause et la rendre utilisable tout de suite. */
 async function creeCause(lib, perim, justifie, note){
@@ -6814,7 +6993,7 @@ async function quickQualify(cellId, ref, cat, n){
   await putCell(Object.assign({}, c, { lignes: c.lignes.filter(gard).concat([row]) }));
   toast(CAT[cat].l + " — " + ref + (nb > 1 ? " (" + nb + " KO)" : ""));
 }
-document.addEventListener("click", e => {
+document.addEventListener("click", async e => {
   const fic = e.target.closest("tr[data-fiche]");
   if (fic && !e.target.closest("button")){ const p = fic.dataset.fiche.split("|"); openFiche(p[0], p[1]); return; }
   const fko = e.target.closest("tr[data-ko]");
@@ -6837,6 +7016,30 @@ document.addEventListener("click", e => {
   if (e.target.closest("#btn-wizard, #lien-maj")){ openMaj(); return; }
   if (e.target.closest("#btn-wizard2, #ac-wizard, #lien-assistant")) openWizard();
   if (e.target.closest("#btn-cause-new")){ modalCause("tous"); return; }
+  /* ---- retirer ou reclasser des saisies à la main, par cause ----
+     Rien n'est perdu : les KO retournent dans « À justifier », et les règles qui
+     les visent les reprennent au passage suivant. C'est le seul moyen de défaire
+     une qualification ancienne — supprimer une règle n'y touche pas, ce n'est
+     pas elle qui l'a posée. */
+  const mdel = e.target.closest("[data-maindel]");
+  if (mdel){
+    const k = mdel.dataset.maindel, g = mainsParCause().find(x => x.cat === k);
+    if (!g) return;
+    const c = CAT[k];
+    if (!confirm("Retirer " + n0(g.lignes) + " saisie(s) à la main en « " + (c ? c.l : k) + " » ?\n\n" +
+      n0(g.ko) + " KO repartiront dans « À justifier ». Les règles qui les visent les reprendront " +
+      "au passage suivant.\n\nSeules les saisies à la main sont touchées : ni les relevés, ni SAP, " +
+      "ni les règles.")) return;
+    await retireMains(k, null);
+    return;
+  }
+  const mmv = e.target.closest("[data-mainmv]");
+  if (mmv){
+    const k = mmv.dataset.mainmv, g = mainsParCause().find(x => x.cat === k);
+    if (!g) return;
+    modalDeplaceMain(k, g);
+    return;
+  }
   const cd = e.target.closest("[data-catdel]");
   if (cd){
     const k = cd.dataset.catdel, c = CAT[k];
