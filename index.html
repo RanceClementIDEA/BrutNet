@@ -3334,7 +3334,8 @@ function reedLignes(cell){
 }
 function passerRegles(cells, regles, simule, conflits){
   const actives = (regles || []).filter(r => r.actif);
-  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0, conflits:{}, gelees:0, parGel:{}, reprisMain:0, doubles:0 };
+  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0, conflits:{}, gelees:0, parGel:{},
+                  reprisMain:0, doubles:0, tenus:{} };
   const out = [];
   cells.forEach(cell => {
     const reed = reedLignes(cell);
@@ -3432,6 +3433,38 @@ function passerRegles(cells, regles, simule, conflits){
     const reste = {};
     Object.keys(cov.parRef).forEach(k => { const n = sansZeros(k);
       reste[n] = (reste[n] || 0) + cov.parRef[k]; });
+    /* ---- pourquoi une règle ne prend pas un KO qu'elle vise ----
+       Une règle peut être la plus haute de la liste et ne rien poser : le KO est
+       déjà tenu par quelque chose qu'elle n'a pas le droit de reprendre — un
+       relevé, une réédition SAP — ou par une ligne qu'on ne peut plus rejuger.
+       Vu de l'écran, on remonte la règle, le chiffre ne bouge pas, et on conclut
+       que la hiérarchie ne marche pas. On note donc ce qui la retient. */
+    const tenuPar = {};
+    const srcDe = l => l.regle === REGLE_REED ? "reedition"
+      : l.regle ? "regle" : (l.src === "releve" ? "releve" : "manuel");
+    const noteTenu = l => {
+      const s = srcDe(l);
+      const ps = (l.postes || []).map(String).filter(Boolean);
+      if (!ps.length){ tenuPar["#" + sansZeros(l.ref)] = s; return; }
+      ps.forEach(po => { tenuPar[String(l.ref) + "|" + po] = s;
+                         tenuPar[sansZeros(l.ref) + "|" + po] = s; });
+    };
+    avant.forEach(noteTenu);
+    ajoutReed.forEach(noteTenu);
+    /* Seule la première règle de la liste aurait posé : c'est elle qu'on retient.
+       Un poste qui porte plusieurs flux n'est pas « retenu » pour autant : sa
+       ligne a déjà été posée dans ce passage, du poids de ce qu'il porte, et les
+       flux suivants du même poste n'ont rien à réclamer. `posees` les écarte —
+       sans quoi l'écran annonçait six KO bloqués qui ne l'étaient pas. */
+    const posees = new Set();
+    const noteBloc = (i, ref, par) => {
+      for (const r of actives){
+        if (!regleVise(r, cell, i, ref)) continue;
+        const m = stats.tenus[r.id] || (stats.tenus[r.id] = {});
+        m[par] = (m[par] || 0) + 1;
+        return;
+      }
+    };
     const ajout = [];
     /* ---- une règle passe devant une saisie à la main ----
        Le relevé est une déclaration de l'exploitation, qui sait pourquoi ; une
@@ -3450,7 +3483,11 @@ function passerRegles(cells, regles, simule, conflits){
       const ref = String(refBrut), rn = sansZeros(ref);
       const poste = String((cell.koPostes || [])[i] || "");
       const main = poste ? mains[rn + "|" + poste] : null;
-      if (poste && cov.parPoste.has(ref + "|" + poste) && !main) return;
+      if (poste && cov.parPoste.has(ref + "|" + poste) && !main){
+        if (!posees.has(ref + "|" + poste))
+          noteBloc(i, ref, tenuPar[ref + "|" + poste] || tenuPar[rn + "|" + poste] || "autre");
+        return;
+      }
       /* Une justification en quantité — une ligne de relevé, une saisie rapide —
          ne nomme aucun poste, mais elle retire bien un KO de cette référence.
          Elle doit se décompter ici, que le KO porte un poste ou non. Sans cela
@@ -3458,7 +3495,9 @@ function passerRegles(cells, regles, simule, conflits){
          justifié : la référence se retrouvait justifiée plus de fois qu'elle
          n'était en KO, et le plafond de la période masquait l'écart en absorbant
          le surplus d'une autre référence. */
-      if (!main && reste[rn] > 0){ reste[rn]--; return; }
+      if (!main && reste[rn] > 0){ reste[rn]--;
+        noteBloc(i, ref, tenuPar["#" + rn] || "autre");
+        return; }
       /* Une seule cause par KO : c'est la première règle de la liste qui la pose.
          Les suivantes qui visaient le même KO sont notées — deux règles qui se
          disputent un KO, c'est l'ordre de la liste qui tranche, et il vaut mieux
@@ -3474,7 +3513,7 @@ function passerRegles(cells, regles, simule, conflits){
         /* Un poste qui porte plusieurs flux ne donne qu'une ligne, du poids de
            ce qu'il porte : sans quoi la règle en posait une par flux et le
            décompte les additionnait deux fois. */
-        if (poste) cov.parPoste.add(ref + "|" + poste);
+        if (poste){ cov.parPoste.add(ref + "|" + poste); posees.add(ref + "|" + poste); }
         const w = poste ? (occKo(cell)[sansZeros(ref) + "|" + poste] || 1) : 1;
         const ligne = { id: uid(), ref, postes: poste ? [poste] : [], cat: r.cause,
           nb: w, src: r.src || "auto", com: r.nom + repriseDite(r.id, ref, poste),
@@ -3585,8 +3624,17 @@ function impactsRegles(){
   const reels = {};
   selCells().forEach(c => { const x = realCell(c) || c; reels[x.id] = x; });
   const { stats } = passerRegles(Object.values(reels), S.regles, true);
-  return (IMPACTS = { sig, m: stats.parRegle || {} }).m;
+  return (IMPACTS = { sig, m: { pose: stats.parRegle || {}, tenus: stats.tenus || {} } }).m;
 }
+/* Ce qui retient une règle sur un KO qu'elle vise, dit comme on le dirait à
+   quelqu'un qui vient de remonter sa règle et ne voit rien bouger. */
+const TENU_LBL = {
+  releve: "déjà tenus par le relevé — une règle ne reprend jamais une déclaration de l'exploitation",
+  reedition: "déjà tenus par la réédition de poste BR",
+  manuel: "déjà tenus par une saisie posée en quantité, sans poste nommé",
+  regle: "déjà tenus par une règle devenue illisible sur ces périodes",
+  autre: "déjà justifiés autrement"
+};
 /* L'effet réellement obtenu, règles déjà en place comprises. Compter les KO
    visés ne suffit pas : un KO déjà couvert par une justification de lot ne
    rapporte rien de plus, et le taux affiché plafonne au nombre de KO de la
@@ -4575,8 +4623,9 @@ function renderRegles(){
     '<div class="rlist">' + S.regles.map((r, idx) => {
     /* Ce qu'elle pose, les autres en place — et sa portée seule quand les deux
        diffèrent : c'est là que se lit le départage. */
-    const n = r.actif ? (imp[r.id] || 0) : 0;
+    const n = r.actif ? (imp.pose[r.id] || 0) : 0;
     const seule = simuleRegle(r);
+    const tenu = (r.actif && imp.tenus[r.id]) || null;
     return '<div class="rcard' + (r.actif ? "" : " off") + '">' +
       '<label class="sw" title="' + (r.actif ? "Désactiver" : "Activer") + '"><input type="checkbox" data-ract="' + r.id + '"' +
         (r.actif ? " checked" : "") + '><i></i></label>' +
@@ -4587,6 +4636,10 @@ function renderRegles(){
         "<span>" + (CAT[r.cause] && CAT[r.cause].j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span>" +
         "<span>passe devant une saisie à la main, jamais devant le relevé</span>" +
         (perdu[r.id] ? '<span class="warn-t">' + n0(perdu[r.id]) + " KO pris par " + esc(gagne[r.id].join(", ")) + "</span>" : "") +
+        /* Remonter la règle ne les lui rendra pas : ce n'est pas une autre règle
+           qui les tient, et c'est la seule chose que l'écran ne disait pas. */
+        (tenu ? Object.keys(tenu).sort((a, b) => tenu[b] - tenu[a]).map(k =>
+          '<span class="warn-t">' + n0(tenu[k]) + " KO visés, " + esc(TENU_LBL[k] || TENU_LBL.autre) + "</span>").join("") : "") +
         (aveugles[r.id] ? '<span class="warn-t">illisible sur ' + n0(aveugles[r.id]) + " période" +
           (aveugles[r.id] > 1 ? "s" : "") + " — colonne absente de l'export</span>" : "") +
         "</div></div>" +
