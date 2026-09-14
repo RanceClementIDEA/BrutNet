@@ -4757,6 +4757,19 @@ function analyseExport(src){
     return;
   }
   exportDraft = { list, rej, litiges: rej.litige };
+  /* ---- une période déjà chargée qui perdrait du volume ----
+     Un export remplace la période qu'il couvre : c'est voulu, c'est ce qui
+     permet de corriger. Mais une extraction plus ancienne, ou arrêtée en milieu
+     de semaine, fait alors BAISSER un chiffre déjà communiqué — et rien ne le
+     disait. Le cas est réel : un export tiré trois jours plus tôt tronquait la
+     dernière semaine de 211 flux tout en complétant la première. On l'annonce
+     avant d'appliquer, avec les chiffres, et on laisse décider. */
+  const baisses = list.map(c => {
+    const ex = S.cells[cellId(c.periode, c.site, c.service)];
+    if (!ex || !ex.flux) return null;
+    const df = c.flux - ex.flux;
+    return df < 0 ? { c, ex, df } : null;
+  }).filter(Boolean);
   const warn = [];
   if (rej.aire) warn.push(n0(rej.aire) + " hors périmètre (aire inconnue)");
   if (rej.kpi) warn.push(n0(rej.kpi) + " sans KPI reconnu");
@@ -4776,6 +4789,17 @@ function analyseExport(src){
           : ' <span class="muted">Aucun flux en litige détecté — vérifiez si le filtre est déjà appliqué en amont.</span>')) +
       (warn.length ? '<div class="muted" style="margin-top:5px">Écartés : ' + esc(warn.join(" · ")) + ".</div>" : "") +
     "</div>" +
+    (baisses.length
+      ? '<div class="note" style="margin:0 0 12px;border-left-color:var(--warn)"><b>' +
+        n0(baisses.length) + " période" + sPl(baisses.length) + " perdrai" + (baisses.length > 1 ? "ent" : "t") +
+        " du volume</b> — cet export en porte moins que ce qui est déjà enregistré. " +
+        "C'est le cas d'une extraction plus ancienne, ou tirée en milieu de semaine : la dernière période y est incomplète. " +
+        "Appliquer remplacera quand même le chiffre.<div class=\"muted\" style=\"margin-top:5px\">" +
+        baisses.slice(0, 6).map(x => esc(perLabel(x.c.periode) + " " + SITES[x.c.site].l + " · " + SERVS[x.c.service].l) +
+          " : <b>" + n0(x.ex.flux) + " → " + n0(x.c.flux) + "</b> flux (" + n0(x.df) + ")").join(" · ") +
+        (baisses.length > 6 ? " · +" + n0(baisses.length - 6) + " autre" + sPl(baisses.length - 6) : "") +
+        "</div></div>"
+      : "") +
     '<div class="tw" style="border:1px solid var(--line);border-radius:8px"><table><thead><tr><th>Période</th><th>Site</th><th>Service</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Réf. KO</th><th>Effet</th></tr></thead><tbody>' +
     list.map(c => {
       const ex = S.cells[cellId(c.periode, c.site, c.service)];
@@ -4783,7 +4807,11 @@ function analyseExport(src){
         "<td>" + SITES[c.site].l + "</td><td>" + SERVS[c.service].l + "</td>" +
         '<td class="n">' + n0(c.flux) + '</td><td class="n">' + n0(c.ko) + '</td><td class="n">' + pf((c.flux - c.ko) / c.flux) + "</td>" +
         '<td class="n">' + n0(c.refs.length) + "</td>" +
-        "<td>" + (ex ? '<span class="pill demo">remplace ' + n0(ex.flux) + " flux · " + n0(ex.lignes.length) + " justif. conservées</span>" : '<span class="pill manuel">nouvelle période</span>') + "</td></tr>";
+        "<td>" + (ex
+          ? '<span class="pill ' + (ex.flux && c.flux < ex.flux ? "rejet" : "demo") + '">' +
+            (ex.flux && c.flux < ex.flux ? "▼ " : "") + "remplace " + n0(ex.flux) + " flux · " +
+            n0(ex.lignes.length) + " justif. conservées</span>"
+          : '<span class="pill manuel">nouvelle période</span>') + "</td></tr>";
     }).join("") + "</tbody></table></div>" +
     (EXPORT_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-export">Appliquer ' + list.length + " période(s)</button>" +
       '<span class="muted" style="font-size:12px">Les justifications déjà enregistrées sur ces périodes sont conservées.</span></div>'
