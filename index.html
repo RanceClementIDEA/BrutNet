@@ -326,6 +326,38 @@ body.simple .adv{display:none!important}
 .drop{display:flex;gap:13px;align-items:center;flex-wrap:wrap;padding:15px 17px;margin-bottom:12px;
   border:1.5px dashed var(--accent-line);border-radius:10px;background:var(--accent-soft)}
 .dropi{font-size:12.5px;color:var(--ink-2);min-width:0}
+/* Le dépôt unique : c'est le geste de toutes les semaines, il a droit à la place.
+   L'état « on survole avec un fichier » se voit sans lire. */
+.drop.xl{padding:26px 24px;gap:18px;border-width:2px;margin-bottom:0}
+.drop.xl .dropi{font-size:13.5px;line-height:1.6;flex:1 1 320px}
+.drop.xl .dropi b{color:var(--ink)}
+.drop.xl.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface));
+  border-style:solid}
+@media (max-width:560px){.drop.xl{padding:18px 16px;gap:12px}}
+/* La routine de la semaine : trois gestes, numérotés, sans décoration. */
+.routine{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.routine li{display:flex;gap:11px;align-items:flex-start;font-size:13px;line-height:1.6;color:var(--ink-2)}
+.routine .rn{flex:none;width:21px;height:21px;border-radius:50%;background:var(--surface-3);color:var(--ink-2);
+  display:grid;place-items:center;font-family:var(--f-disp);font-weight:700;font-size:11.5px;margin-top:1px}
+.routine b{color:var(--ink)}
+.routine mark{background:var(--warn);color:#3a2a00;border-radius:4px;padding:0 5px;font-weight:600}
+/* Une ligne du compte rendu : l'étiquette, le nom du fichier, ce qu'il a fait.
+   Sur écran étroit le résultat passe à la ligne entière plutôt que de se tasser
+   en colonne de trois mots. */
+#depot-out .pill{flex:none}
+.dline{display:flex;gap:8px;align-items:baseline;padding:3px 0;flex-wrap:wrap}
+.dline .dnom{max-width:220px;font-size:12px}
+.dline .dres{min-width:0}
+@media (max-width:640px){
+  .dline{gap:4px 8px}
+  .dline .dnom{max-width:none;flex:1 1 auto}
+  .dline .dres{flex:1 1 100%}
+}
+/* Un bouton qui a l'air d'un lien : l'assistant est une sortie de secours, pas
+   une action de tous les jours — il ne doit pas peser comme un bouton. */
+.lnk{appearance:none;background:none;border:0;padding:0;margin-left:6px;color:var(--accent);
+  font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.lnk:hover{filter:brightness(1.15)}
 .dropi code{background:var(--surface);border:1px solid var(--accent-line);border-radius:4px;padding:1px 5px;
   font-family:var(--f-mono);font-size:11.5px}
 .mini.alt > summary{color:var(--muted);font-weight:500}
@@ -900,22 +932,34 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   <section class="view" id="v-import">
     <div class="stack">
 
-      <div class="hero">
-        <div class="hero-l">
-          <div class="hero-t">Mettre à jour la semaine</div>
-          <p>L'assistant vous demande vos fichiers un par un et fait le reste. Rien n'est enregistré avant que vous validiez.</p>
-          <button class="btn pri big" id="btn-wizard2">Lancer l'assistant</button>
+      <div class="panel" id="pan-depot">
+        <div class="ph"><h2>Mettre à jour</h2><span class="sub">Déposez vos fichiers — l'outil reconnaît chacun et fait le reste</span></div>
+        <div class="pb">
+          <div class="drop xl" id="depot">
+            <label class="btn pri big" style="cursor:pointer">Choisir les fichiers…<input type="file" id="file-depot" multiple accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label>
+            <span class="dropi"><b>ou glissez-les ici.</b> Export PowerBI, extraction SAP, relevé journalier&nbsp;—
+              ensemble ou séparément, dans n'importe quel ordre. Rien à choisir, rien à ranger.</span>
+          </div>
+          <div id="depot-out"></div>
+          <div id="depot-muet" hidden></div>
+
+          <ol class="routine">
+            <li><span class="rn">1</span><div><b>PowerBI</b> — rapport <b>Volume Réception / Distribution LOG + MG</b>,
+              la période voulue, onglet <b>Détails lignes PowerBI</b> → <b>Dimensions</b> → <mark>tout cocher</mark>, puis
+              <b>Exporter les données</b>.</div></li>
+            <li><span class="rn">2</span><div><b>SAP</b> — l'extraction des réceptions sur la même période.
+              <span class="muted">Elle seule sait quels postes BR ont été recréés après litige.</span></div></li>
+            <li><span class="rn">3</span><div><b>Le relevé</b>, si vous en avez un — le tableau transcrit depuis les mails.
+              <span class="muted">L'outil trouve seul de quel site et de quel service il parle.</span></div></li>
+          </ol>
+          <p class="hint" style="margin:12px 0 0">Un fichier déjà passé peut être redéposé sans risque&nbsp;: il remplace,
+          il n'empile pas. Vos justifications à la main sont gardées à chaque fois.
+          <button class="lnk" id="lien-assistant">Première fois&nbsp;? Laissez-vous guider pas à pas</button></p>
         </div>
-        <ol class="hero-steps">
-          <li><b>1</b><span>Export PowerBI<i>donne le brut</i></span></li>
-          <li><b>2</b><span>Extraction SAP<i>rééditions de BR</i></span></li>
-          <li><b>3</b><span>Relevé journalier<i>Distri MG — causes déclarées</i></span></li>
-          <li><b>4</b><span>Bilan<i>ce qui a changé</i></span></li>
-        </ol>
       </div>
 
-      <div class="panel">
-        <div class="ph"><h2>D'où vient chaque chiffre</h2><span class="sub">Trois sources, trois taux</span></div>
+      <details class="panel">
+        <summary class="ph"><h2>D'où vient chaque chiffre</h2><span class="sub">Trois sources, trois taux</span></summary>
         <div class="pb">
           <div class="flow">
             <div class="fcol">
@@ -935,13 +979,14 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
             </div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <p class="gp srcnote">Chaque source a son bloc&nbsp;: la marche à suivre à gauche, le dépôt du
-      fichier à droite. Tout se fait en fichier — le collage à la main reste possible, replié sous
-      chaque dépôt.</p>
+      <p class="gp srcnote"><b>Un fichier à la fois, ou quelque chose cloche&nbsp;?</b> Chaque source garde
+      son bloc ci-dessous&nbsp;: la marche à suivre en détail à gauche, le dépôt et son compte rendu
+      complet à droite. C'est là qu'on va voir pourquoi un fichier a été refusé, ou ce qu'un import
+      a exactement changé. Au quotidien, le dépôt du haut suffit.</p>
 
-      <details class="panel src" id="pan-export" open>
+      <details class="panel src" id="pan-export">
         <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.2" y="3" width="15.6" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 11.6V9M8.6 11.6V6.6M11.6 11.6v-3.6M14.6 11.6V5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M7 18h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></i><h2>1 · Export PowerBI</h2><span class="sub">Donne le brut</span></summary>
         <div class="pb">
           <div class="srcgrid">
@@ -3393,7 +3438,17 @@ const MODELES = [
     pour:"La colonne Statut douane est passée à « Terminé » : le flux a attendu la douane, pas le magasin.",
     besoin:["Statut douane"],
     r:{ nom:"Blocage douane", service:"tous", type:"colonne", cause:"douane", src:"auto",
-        conds:[{ col:"Statut douane", op:"est", val:"Terminé" }] } }
+        conds:[{ col:"Statut douane", op:"est", val:"Terminé" }] } },
+  /* Trouvé en repassant sur l'export de septembre : 176 KO de distribution partent
+     au rebut, dont 61 qu'aucune autre règle ne voit. Personne n'attend derrière un
+     mouvement vers le rebut — mais c'est un arbitrage d'exploitation, pas une
+     évidence : le modèle est proposé, il n'est pas posé. */
+  { k:"reb", titre:"Mouvement vers le rebut",
+    pour:"La destination est REBUT : aucun client n'attend derrière. À trancher avec l'exploitation — " +
+      "sur l'export de septembre, 61 KO que rien d'autre ne couvre, dont Logistiport Distribution tire +1,1 pt.",
+    besoin:["Emplacement cible"],
+    r:{ nom:"Mouvement vers le rebut", service:"distri", type:"colonne", cause:"dechets", src:"auto",
+        conds:[{ col:"Emplacement cible", op:"est", val:"REBUT" }] } }
 ];
 /* Un modèle n'est proposé que si l'export chargé porte ses colonnes. */
 function modeleDispo(m){
@@ -5126,6 +5181,173 @@ $("#file-releve").addEventListener("change", e => {
 });
 $("#btn-clear-releve").addEventListener("click", () => { $("#ta-releve").value = ""; $(RELEVE_OUT).innerHTML = ""; releveDraft = null; });
 
+/* ==================== le dépôt unique ====================
+   L'outil sert toutes les semaines. Choisir le bon panneau, se souvenir de
+   l'ordre, cliquer trois fois « Appliquer » : c'est du travail que la machine
+   peut faire. On dépose tout ce qu'on a, elle reconnaît chaque fichier à ses
+   en-têtes — la même lecture qui refusait déjà poliment un fichier mis au
+   mauvais endroit — les passe dans l'ordre qu'ils exigent, et rend un seul
+   compte rendu.
+
+   L'ordre n'est pas un détail de confort : l'export crée les périodes et les KO,
+   SAP et le relevé viennent ensuite se poser dessus. Déposés dans le désordre,
+   ils sont remis dans le bon. */
+function reconnait(rows){
+  if (!Array.isArray(rows) || rows.length < 2) return null;
+  const heads = rows[0].map(norm);
+  const a = k => findCol(heads, k) >= 0;
+  /* export PowerBI : identifiant de flux + code aire + résultat */
+  if (a([h => h.includes("identifiant flux"), h => h.includes("identifiant"), h => h.includes("flux debut")]) &&
+      a([h => h === "code aire", h => h.includes("code aire"), h => h.includes("aire"), h => h.includes("type magasin")]) &&
+      a([h => h === "resultat", h => h.includes("resultat")])) return "export";
+  /* extraction SAP : le BR, son poste, le poste de référence */
+  if (a([h => h === "n br", h => h.includes("n br") && !h.includes("poste"), h => h.includes("numero br")]) &&
+      a([h => h.includes("n poste br"), h => h.includes("poste br") && !h.includes("reference")]) &&
+      a([h => h.includes("date") && h.includes("creation") && h.includes("poste") && !h.includes("heure"),
+         h => h.includes("creation du poste") && !h.includes("heure")])) return "sap";
+  /* relevé : le même juge que l'import du relevé, pour ne pas dire deux choses */
+  if (releveCols(rows)) return "releve";
+  return null;
+}
+const DEPOT_LBL = { export:"Export PowerBI", sap:"Extraction SAP", releve:"Relevé journalier" };
+const DEPOT_ORDRE = { export:0, sap:1, releve:2 };
+/* Le relevé ne dit pas de quel site ni de quel service il parle. Plutôt que de
+   le demander, on le lui fait dire : celui des quatre couples où ses DT
+   retrouvent le plus de KO est le bon, et on annonce lequel a été retenu. */
+function couplePourReleve(rows){
+  let best = null;
+  ["mag", "log"].forEach(si => ["distri", "recep"].forEach(sv => {
+    const idx = indexKo(si, sv);
+    const tete = releveCols(rows);
+    if (!tete) return;
+    const vus = {};
+    let n = 0;
+    for (let i = tete.ligne + 1; i < rows.length; i++){
+      const r = refReleve(rows[i][tete.ci.ref]);
+      if (!/^\d/.test(r) || vus[r]) continue;
+      vus[r] = 1;
+      if ((idx[r] || []).length) n++;
+    }
+    if (!best || n > best.n) best = { si, sv, n };
+  }));
+  return best;
+}
+let depotEnCours = false;
+async function deposeTout(fichiers){
+  if (depotEnCours) return;
+  const out = $("#depot-out");
+  const liste = Array.from(fichiers || []);
+  if (!liste.length) return;
+  depotEnCours = true;
+  const bloc = t => { out.innerHTML = '<div class="note" style="margin-top:14px">' + t + "</div>"; };
+  bloc("Lecture de " + n0(liste.length) + " fichier" + sPl(liste.length) + "…");
+  /* 1. lire et reconnaître */
+  const lus = [];
+  for (const f of liste){
+    let rows = null, err = "";
+    try { rows = await lireFichierRows(f); }
+    catch(e){ err = (e && e.message) || "illisible"; }
+    lus.push({ f, rows, err, type: rows ? reconnait(rows) : null });
+  }
+  const connus = lus.filter(x => x.type).sort((a, b) => DEPOT_ORDRE[a.type] - DEPOT_ORDRE[b.type]);
+  const inconnus = lus.filter(x => !x.type);
+  if (!connus.length){
+    out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Aucun fichier reconnu.</b> ' +
+      "Le dépôt attend l'export PowerBI, l'extraction SAP ou le relevé journalier. " +
+      inconnus.map(x => "<code>" + esc(x.f.name) + "</code>" + (x.err ? " — " + esc(x.err) : "")).join(", ") +
+      ".<div class=\"muted\" style=\"margin-top:5px\">Les trois blocs détaillés, plus bas, disent ce que chaque fichier doit porter.</div></div>";
+    depotEnCours = false; return;
+  }
+  /* 2. passer chacun dans l'ordre, sans rien afficher au passage */
+  const gardeE = EXPORT_OUT, gardeS = SAP_OUT, gardeR = RELEVE_OUT, gardeSrc = RELEVE_SRC;
+  EXPORT_OUT = SAP_OUT = RELEVE_OUT = "#depot-muet";
+  const faits = [];
+  try {
+    for (let i = 0; i < connus.length; i++){
+      const x = connus[i];
+      bloc("<b>" + esc(x.f.name) + "</b> — " + DEPOT_LBL[x.type] + " · " + n0(i + 1) + " sur " + n0(connus.length) + "…");
+      await new Promise(r => setTimeout(r, 30));      /* laisser l'écran se rafraîchir */
+      if (x.type === "export"){
+        exportDraft = null; analyseExport(x.rows);
+        if (!exportDraft){ faits.push({ x, ko:"aucune ligne exploitable" }); continue; }
+        const n = exportDraft.list.length;
+        const baisses = exportDraft.list.filter(c => { const ex = S.cells[cellId(c.periode, c.site, c.service)];
+          return ex && ex.flux && c.flux < ex.flux; }).length;
+        await applyExport();
+        faits.push({ x, n, note: n0(n) + " période" + sPl(n) + " enregistrée" + sPl(n), baisses });
+      } else if (x.type === "sap"){
+        sapDraft = null; analyseSap(x.rows);
+        if (!sapDraft){ faits.push({ x, ko:"aucun poste BR exploitable" }); continue; }
+        const av = Object.values(S.cells).reduce((s, c) => s + Object.keys(c.reed || {}).length, 0);
+        await applySap();
+        const ap = Object.values(S.cells).reduce((s, c) => s + Object.keys(c.reed || {}).length, 0);
+        faits.push({ x, n: ap - av, note: (ap - av > 0 ? n0(ap - av) + " poste" + sPl(ap - av) + " recréé" + sPl(ap - av) + " en plus"
+          : "aucune preuve nouvelle — déjà à jour") });
+      } else {
+        const c = couplePourReleve(x.rows);
+        if (!c || !c.n){ faits.push({ x, ko:"aucune DT du relevé ne correspond à un KO chargé" }); continue; }
+        RELEVE_SRC = { ta:"#ta-releve", date:"#r-date", site:"#r-site", serv:"#r-serv" };
+        const si = $("#r-site"), sv = $("#r-serv");
+        const memo = [si.value, sv.value];
+        si.value = c.si; sv.value = c.sv;
+        releveDraft = null; analyseReleve(x.rows);
+        const g = releveDraft ? Object.values(releveDraft.plan).flat().reduce((s, l) => s + l.nb, 0) : 0;
+        if (releveDraft && g) await applyReleve();
+        si.value = memo[0]; sv.value = memo[1];
+        faits.push({ x, n:g, note: n0(g) + " KO documenté" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l });
+      }
+    }
+  } finally {
+    EXPORT_OUT = gardeE; SAP_OUT = gardeS; RELEVE_OUT = gardeR; RELEVE_SRC = gardeSrc;
+    depotEnCours = false;
+  }
+  /* 3. les règles repassent une fois, à la fin */
+  const st = await rejouerRegles(true);
+  const baisses = faits.reduce((s, f) => s + (f.baisses || 0), 0);
+  out.innerHTML =
+    '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>Tableau de bord à jour.</b>' +
+      '<div style="margin-top:7px">' + faits.map(f =>
+        '<div class="dline">' +
+        '<span class="pill ' + (f.ko ? "rejet" : "auto") + '">' + esc(DEPOT_LBL[f.x.type]) + "</span>" +
+        '<span class="dnom muted trunc">' + esc(f.x.f.name) + "</span>" +
+        '<span class="dres">' + (f.ko ? '<span class="warn-t">' + esc(f.ko) + "</span>" : esc(f.note)) + "</span></div>").join("") +
+      "</div>" +
+      (st.reed || st.total || st.reprisMain || st.doubles
+        ? '<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--line)">' +
+          [st.reed ? "<b>" + n0(st.reed) + "</b> KO retirés par la règle des postes recréés" : "",
+           st.total ? "<b>" + n0(st.total) + "</b> KO documentés par vos règles" : "",
+           st.reprisMain ? n0(st.reprisMain) + " saisie" + sPl(st.reprisMain) + " reprise" + sPl(st.reprisMain) +
+             " — la cause d'origine est gardée en commentaire" : "",
+           st.doubles ? n0(st.doubles) + " doublon" + sPl(st.doubles) + " retiré" + sPl(st.doubles) : ""
+          ].filter(Boolean).join(" · ") + "</div>"
+        : "") +
+    "</div>" +
+    (baisses ? '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><b>' + n0(baisses) +
+      " période" + sPl(baisses) + " a" + (baisses > 1 ? "vaient" : "vait") + " plus de volume avant cet import.</b> " +
+      "C'est le signe d'une extraction plus ancienne, ou tirée en milieu de semaine. Le détail est dans le bloc " +
+      "<b>Export PowerBI</b> ci-dessous, en y redéposant le fichier.</div>" : "") +
+    (inconnus.length ? '<div class="note" style="margin-top:10px;border-left-color:var(--warn)"><b>' +
+      n0(inconnus.length) + " fichier" + sPl(inconnus.length) + " non reconnu" + sPl(inconnus.length) + "</b> — " +
+      inconnus.map(x => "<code>" + esc(x.f.name) + "</code>").join(", ") + ". Rien n'en a été pris.</div>" : "");
+  toast(faits.filter(f => !f.ko).length + " fichier(s) intégré(s)");
+  render();
+}
+/* La liste de fichiers du champ est vivante : la vider avant de l'avoir recopiée
+   la vide aussi pour celui qui allait la lire. On prend une copie d'abord. */
+$("#file-depot").addEventListener("change", e => {
+  const f = Array.from(e.target.files || []);
+  e.target.value = "";
+  deposeTout(f);
+});
+(function depotGlisse(){
+  const z = $("#depot");
+  if (!z) return;
+  const stop = e => { e.preventDefault(); e.stopPropagation(); };
+  ["dragenter", "dragover"].forEach(t => z.addEventListener(t, e => { stop(e); z.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(t => z.addEventListener(t, e => { stop(e); z.classList.remove("over"); }));
+  z.addEventListener("drop", e => { const f = e.dataTransfer && e.dataTransfer.files; if (f && f.length) deposeTout(f); });
+})();
+
 /* ------------------ extraction SAP : rééditions de postes BR ------------------ */
 let SAP_OUT = "#sap-out", SAP_APPLY = true, sapDraft = null;
 const frDate = d => String(d.getUTCDate()).padStart(2, "0") + "/" + String(d.getUTCMonth() + 1).padStart(2, "0") + "/" + d.getUTCFullYear();
@@ -5936,7 +6158,17 @@ document.addEventListener("click", e => {
   const tg = e.target.closest("[data-tabgo]");
   if (tg){ gotoTab(tg.dataset.tabgo); window.scrollTo({ top:0, behavior:"smooth" }); return; }
   if (e.target.closest("#btn-defs")){ openDefs(); return; }
-  if (e.target.closest("#btn-wizard, #btn-wizard2, #ac-wizard")) openWizard();
+  /* « Mettre à jour » mène au dépôt, pas à l'assistant : c'est le geste de toutes
+     les semaines, il doit tomber en une fois. L'assistant reste à un clic, pour
+     la première fois ou quand on veut être tenu par la main. */
+  if (e.target.closest("#btn-wizard")){
+    gotoTab("import");
+    const z = $("#depot");
+    if (z){ z.scrollIntoView({ block:"center", behavior:"smooth" });
+      z.classList.add("over"); setTimeout(() => z.classList.remove("over"), 900); }
+    return;
+  }
+  if (e.target.closest("#btn-wizard2, #ac-wizard, #lien-assistant")) openWizard();
 });
 
 /* ---------------------------- exports ---------------------------- */
