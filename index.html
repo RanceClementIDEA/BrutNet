@@ -518,6 +518,81 @@ main{max-width:1380px;margin:0 auto;padding:22px 20px 72px}
 .fact .v{font-family:var(--f-mono);font-size:15px;font-weight:500;font-variant-numeric:tabular-nums}
 
 
+
+/* ------------------------- mode plein écran -------------------------
+   Une salle de réunion, un écran au mur : les chiffres et les deux
+   graphiques, les filtres pour naviguer, et rien d'autre. Le mode est
+   d'abord un habillage CSS — il couvre la fenêtre même quand l'API
+   plein écran est refusée (l'outil tourne souvent dans une iframe) ;
+   la vraie API n'est qu'un bonus par-dessus. */
+body.fs{overflow:hidden}
+body.fs .topbar .tabs,
+body.fs .topbar .savebox,
+body.fs #btn-print,
+body.fs #btn-reset,
+body.fs #print-head,
+body.fs #wbanner,
+body.fs #ctrl-panel{display:none}
+/* colonne flex sur toute la hauteur : pas de mesure de barres à faire,
+   c'est la mise en page qui donne au contenu ce qui reste */
+body.fs{display:flex;flex-direction:column;height:100vh;height:100dvh}
+body.fs > .topbar{flex:none;position:static;padding:0 18px}
+body.fs .brand{padding:9px 0;min-height:46px}
+body.fs > .rail{flex:none;position:static;padding:8px 18px}
+body.fs > main{flex:1;min-height:0;overflow:hidden;padding:14px 18px 16px;margin:0;max-width:none;width:100%}
+body.fs .view{display:none}
+body.fs .view.on{display:block;height:100%}
+body.fs #v-dash > .stack{display:flex;flex-direction:column;gap:12px;height:100%;min-height:0}
+body.fs .wall{gap:10px}
+/* les tuiles se serrent : elles donnent le chiffre, pas le détail */
+body.fs .wrow.g{grid-template-columns:1fr 1fr 1.25fr}
+body.fs .wt{padding:11px 14px}
+body.fs .wt h3{font-size:12.5px}
+body.fs .gg{max-height:104px}
+body.fs .wt .bcta,
+body.fs .wt .gsub .muted{display:none}
+body.fs .hbars{gap:5px}
+/* le bouton d'entrée n'a plus lieu d'être une fois dedans : « Quitter » le remplace */
+body.fs #btn-fs{display:none}
+/* les vignettes par site donnent le chiffre : elles se serrent pour laisser
+   la hauteur aux graphiques, qui sont ce qu'on vient regarder */
+body.fs .wrow.b{gap:10px}
+body.fs .kt{padding:9px 13px}
+body.fs .kt .ktv{font-size:clamp(23px,2.2vw,29px)}
+body.fs .kt .ktr{margin-top:3px;padding-top:4px}
+/* les deux graphiques occupent tout ce qui reste, côte à côte */
+body.fs .fsduo{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1;min-height:0}
+body.fs .fsduo > .panel{display:flex;flex-direction:column;min-height:0;margin:0}
+body.fs .fsduo > .panel .pb{flex:1;min-height:0;display:flex}
+body.fs .fsduo > .panel .chartwrap{flex:1;min-height:158px;display:flex;flex-direction:column}
+body.fs .fsduo > .panel .chartwrap .cscroll{flex:1;min-height:0}
+body.fs .fsduo svg{height:100%;width:100%}
+body.fs .legend{padding:6px 16px 10px;font-size:11.5px}
+body.fs .ph h2{font-size:16px}
+#btn-fs-out{position:fixed;right:18px;top:9px;z-index:61;display:none}
+body.fs #btn-fs-out{display:inline-flex;align-items:center}
+/* hors plein écran le conteneur n'existe pas pour la mise en page */
+.fsduo{display:contents}
+/* Les graphiques ne descendent jamais sous une taille lisible ; si l'écran est
+   vraiment court, c'est le cadre qui défile plutôt que le graphique qui s'écrase. */
+body.fs > main{overflow-y:auto}
+/* Sur un écran bas, la place va à ce qu'on est venu regarder : les vignettes par
+   site partent en premier — leur chiffre est déjà dans les jauges — puis les
+   jauges se resserrent. */
+@media (max-height:880px){ body.fs .wrow.b{display:none} }
+@media (max-height:720px){
+  body.fs .gg{max-height:78px}
+  body.fs .wt{padding:8px 12px}
+  body.fs .gsub{font-size:11px;line-height:1.35}
+  body.fs .wt h3{font-size:11.5px}
+}
+@media (max-height:620px){ body.fs .wrow.g{display:none} }
+@media (max-width:900px){
+  body.fs .fsduo{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+  body.fs .wrow.g{grid-template-columns:1fr}
+  body.fs .wrow.g > .wt:nth-child(3){display:none}
+}
+
 /* ---------- charts ---------- */
 .chartwrap{position:relative;padding:6px 4px 0}
 .chartwrap svg{display:block;width:100%;height:auto}
@@ -728,6 +803,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
     <button class="tab" role="tab" data-tab="justif" aria-selected="false">À justifier<span class="cnt" id="cnt-aj">0</span></button>
     <button class="tab" role="tab" data-tab="qualif" aria-selected="false">Retards qualifiés<span class="cnt" id="cnt-justif">0</span></button>
   </nav>
+  <button class="btn sm" id="btn-fs-out" title="Quitter le plein écran (Échap)">Quitter le plein écran</button>
   <div class="savebox">
     <button class="btn pri" id="btn-wizard">Mettre à jour</button>
     <button class="icb" id="btn-reglages" title="Réglages, sauvegardes et base partagée" aria-label="Réglages">
@@ -772,6 +848,10 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   <div class="rail-right">
     <button class="btn sm" id="btn-reset" hidden>Réinitialiser</button>
     <button class="btn sm" id="btn-print" title="Imprimer ou enregistrer en PDF">Imprimer</button>
+    <button class="btn sm" id="btn-fs" title="Afficher le tableau de bord en plein écran (Échap pour sortir)">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="margin-right:5px;vertical-align:-2px">
+        <path d="M2 6V2.6h3.4M10.6 2.6H14V6M14 10v3.4h-3.4M5.4 13.4H2V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>Plein écran</button>
   </div>
 </div>
 
@@ -783,6 +863,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
     <div class="stack">
       <div class="wall" id="board"></div>
 
+      <div class="fsduo">
       <div class="panel">
         <div class="ph">
           <h2>Évolution</h2>
@@ -806,6 +887,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
         </div>
         <div class="pb tight"><div class="chartwrap" id="vol-wrap"></div></div>
         <div class="legend" id="vol-legend"></div>
+      </div>
       </div>
 
       <div class="panel" id="ctrl-panel">
@@ -3070,6 +3152,18 @@ function svgText(x, y, t, o){
     '" text-anchor="' + (o.anchor || "start") + '"' + (o.dom ? ' dominant-baseline="' + o.dom + '"' : "") + '>' + esc(t) + "</text>";
 }
 
+/* La boîte de dessin. Hors plein écran la hauteur est fixe et la largeur suit
+   le cadre ; en plein écran c'est l'inverse qui compte — le graphique prend ce
+   que la colonne lui laisse, et le viewBox épouse la boîte pour ne rien étirer. */
+function boxChart(wrap, defH){
+  const cs = getComputedStyle(wrap);
+  const px = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const py = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+  const W = Math.max(wrap.clientWidth - px, 320);
+  const plein = document.body.classList.contains("fs");
+  const H = plein ? Math.max(wrap.clientHeight - py, 180) : defH;
+  return { W, H };
+}
 /* ---------------------------- évolution ---------------------------- */
 let evoData = [];
 function drawEvo(){
@@ -3087,7 +3181,7 @@ function drawEvo(){
     return;
   }
 
-  const W = Math.max(wrap.clientWidth, 420), H = 300;
+  const { W, H } = boxChart(wrap, 300);
   const m = { t: 18, r: 52, b: 34, l: 48 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const vals = evoData.flatMap(d => [d.brut, d.net]).filter(v => v != null);
@@ -3219,12 +3313,10 @@ function drawVol(){
   /* clientWidth englobe le rembourrage du cadre : mesurer sans le retirer
      donnait un SVG quelques pixels trop large, et donc une barre de défilement
      à toutes les largeurs, même avec trois barres. */
-  const cw = getComputedStyle(wrap);
-  const padX = (parseFloat(cw.paddingLeft) || 0) + (parseFloat(cw.paddingRight) || 0);
-  const dispo = Math.max(wrap.clientWidth - padX, 320);
+  const bx = boxChart(wrap, 260);
   const slotMin = n > 40 ? 11 : 16;
-  const W = Math.max(dispo, m.l + m.r + n * slotMin);
-  const H = 260;
+  const W = Math.max(bx.W, m.l + m.r + n * slotMin);
+  const H = bx.H;
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   /* Trois barres étalées sur toute la largeur donneraient trois bâtonnets
      perdus. Au-delà d'un pas confortable le groupe se centre au lieu de
@@ -4145,6 +4237,56 @@ function openDefs(){ openModal(
   '</div><div class="note" style="margin-top:14px">Publiez toujours les trois ensemble, plus le nombre de KO restant à qualifier. Un net seul se retourne contre celui qui le présente.</div>' +
   '<div class="actions"><button class="btn pri" id="dl-close">Fermer</button></div></div>'); }
 let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (S.ui.tab === "dash"){ drawEvo(); drawVol(); } }, 180); });
+
+/* ---------------------------- plein écran ----------------------------
+   Pour l'écran de la salle : les chiffres, les deux graphiques, les filtres.
+   L'habillage est du CSS, il couvre la fenêtre quoi qu'il arrive — l'API
+   plein écran du navigateur n'est demandée qu'en plus, et son refus (iframe
+   sans autorisation, réglage du poste) ne casse rien. */
+function plein(){ return document.body.classList.contains("fs"); }
+function majFs(){
+  const b = $("#btn-fs");
+  if (b) b.setAttribute("aria-pressed", String(plein()));
+  /* le tableau de bord est le seul écran qui a un sens en plein écran */
+  if (plein() && S.ui.tab !== "dash") gotoTab("dash");
+  else if (S.ui.tab === "dash"){ drawEvo(); drawVol(); }
+}
+function entrerFs(){
+  if (plein()) return;
+  if (S.ui.tab !== "dash") gotoTab("dash");
+  document.body.classList.add("fs");
+  const el = document.documentElement;
+  const rq = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (rq) { try { const p = rq.call(el); if (p && p.catch) p.catch(() => {}); } catch(e){} }
+  requestAnimationFrame(majFs);
+  toast("Plein écran — Échap pour sortir");
+}
+function sortirFs(){
+  if (!plein()) return;
+  document.body.classList.remove("fs");
+  const ex = document.exitFullscreen || document.webkitExitFullscreen;
+  if (ex && (document.fullscreenElement || document.webkitFullscreenElement)){
+    try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch(e){}
+  }
+  requestAnimationFrame(majFs);
+}
+const bfs = $("#btn-fs"); if (bfs) bfs.addEventListener("click", () => plein() ? sortirFs() : entrerFs());
+const bout = $("#btn-fs-out"); if (bout) bout.addEventListener("click", sortirFs);
+/* Quitter par la touche du navigateur laisse la classe derrière : on la retire. */
+["fullscreenchange", "webkitfullscreenchange"].forEach(ev =>
+  document.addEventListener(ev, () => {
+    if (!(document.fullscreenElement || document.webkitFullscreenElement) && plein()) sortirFs();
+    else requestAnimationFrame(majFs);
+  }));
+/* Échap sert déjà à fermer une fiche : le plein écran ne sort que si rien n'est
+   ouvert. En capture, donc AVANT le gestionnaire qui ferme la fiche — sans quoi
+   il l'a déjà refermée quand on regarde, et les deux partent d'un seul coup. */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape" || !plein()) return;
+  const ovl = $("#ovl");
+  if (ovl && getComputedStyle(ovl).display !== "none") return;
+  sortirFs();
+}, true);
 
 /* ---------------------------- analyse de texte ---------------------------- */
 function parseTable(text){
