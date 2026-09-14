@@ -1059,30 +1059,52 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
               <ol class="srail">
                 <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.4" stroke="currentColor" stroke-width="1.5"/><path d="m2.3 4.4 5.7 4.1 5.7-4.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></i>Ouvrir le ou les mails — une conversation de plusieurs jours convient</li>
                 <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M4.6 6V2.6h6.8V6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><rect x="2.2" y="6" width="11.6" height="5" rx="1.3" stroke="currentColor" stroke-width="1.5"/><path d="M4.6 9.6h6.8v3.8H4.6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></i><b>Imprimer → Enregistrer en PDF</b></li>
-                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.2 9.3 6 13 7.3 9.3 8.6 8 12.4 6.7 8.6 3 7.3 6.7 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.4 11.2v2.4M11.2 12.4h2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></i>Demander à <b>ChatGPT</b> ou <b>Gemini</b> de lire le PDF et d'en faire un tableau<details class="mini pr"><summary>Le prompt à copier</summary><div><span class="codeblk rl" data-copy>Lis le PDF joint : c'est l'impression d'une conversation Outlook où chaque mail « Retard du JJ/MM » contient un relevé sous forme de capture d'écran.
+                <li><i class="si"><svg viewBox="0 0 16 16" width="13" height="13" fill="none"><path d="M8 2.2 9.3 6 13 7.3 9.3 8.6 8 12.4 6.7 8.6 3 7.3 6.7 6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.4 11.2v2.4M11.2 12.4h2.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></i>Demander à <b>ChatGPT</b> ou <b>Gemini</b> de lire le PDF et d'en faire un tableau<details class="mini pr"><summary>Le prompt à copier</summary><div><span class="codeblk rl" data-copy>Tu reçois une archive de mails (fichier PDF, .eml, .mht ou dossier exporté) : chaque message a pour objet « Retard du JJ/MM » et contient le relevé du jour sous forme de capture d'écran. Ta mission est de transcrire ces captures en un seul tableau.
 
-Transcris ce que montrent ces captures en un seul tableau, avec ces cinq colonnes et ces intitulés exacts :
+1. Descends TOUT le fil, du premier message au dernier. Ne t'arrête pas au message le plus récent : les mails cités plus bas dans une réponse comptent autant que celui du haut. Compte d'abord combien de mails « Retard du » tu trouves, annonce ce nombre, puis traite-les un par un dans l'ordre chronologique.
 
-Date Rapport | N° DT | Nb Lignes | Catégorie | Commentaire
+2. Avant de transcrire, repère chaque image du fil. Deux mails différents peuvent afficher la même capture : si deux images sont identiques pixel pour pixel (même empreinte, même taille, même contenu), elles ne donnent qu'un seul jour de relevé. Et inversement, un même jour peut être renvoyé deux fois avec une capture corrigée : garde alors la plus récente.
 
-Ces cinq colonnes sont toutes dans la moitié GAUCHE de chaque capture. Ignore complètement la partie droite — zone, code, affaire, demandeur : elle est coupée par l'impression et je n'en ai pas besoin. Ne la transcris pas, ne la devine pas.
+3. Transcris chaque ligne du tableau de la capture, avec ces quatorze colonnes et ces intitulés exacts :
 
-Où lire quoi :
+Date Rapport | Repère | N° DT | Nb Lignes | DP | DC | Zone | Code | Affaire | Demandeur | Désignation | Catégorie | Commentaire | Manquant
+
+4. Où lire quoi :
 — Date Rapport : la date de la ligne « Envoyé » du mail, au format JJ/MM/AAAA. C'est elle qui fait foi, pas l'objet, qui contient parfois une coquille.
-— N° DT : le nombre à 7 chiffres en début de ligne.
+— Repère : le petit numéro d'ordre en tête de ligne, s'il y en a un.
+— N° DT : le nombre à 7 chiffres.
 — Nb Lignes : le nombre juste après le n° de DT.
+— DP, DC : les deux dates de la ligne, au format JJ/MM/AAAA.
+— Zone, Code, Affaire, Demandeur, Désignation : recopiés tels quels.
 — Catégorie : le texte affiché dans le menu déroulant, recopié tel quel — Reliquat, Urgences, Grues, Litiges, Retard, Autre. S'il est vide, écris « Non renseignée ».
-— Commentaire : le texte du champ de droite. S'il affiche « Commentaire » en gris, c'est un champ vide : laisse la cellule vide.
+— Commentaire : le texte du champ. S'il affiche « Commentaire » en gris, c'est un champ vide : laisse la cellule vide.
+— Manquant : ce que la ligne signale comme manquant, s'il y a lieu.
 
-Un mail sans tableau — « Pas de retard ce jour », ou un message disant qu'il n'y a aucun retard — ne donne aucune ligne : note-le seulement dans le contrôle, avec 0.
+5. Une colonne coupée par l'impression ou illisible reste vide. Ne devine jamais une valeur, ne complète jamais par déduction : une cellule vide est une information, une cellule inventée est une erreur.
 
-Un même « Retard du JJ/MM » peut réapparaître plus bas dans la conversation : transcris-le une seule fois.
+6. Un mail sans tableau — « Pas de retard ce jour », ou un message disant qu'il n'y a aucun retard — ne donne aucune ligne : note-le seulement dans les contrôles, avec 0.
 
-Sous le tableau, ajoute un contrôle par jour : date, somme des Nb Lignes, nombre annoncé par « RETARDS (n) » en tête du mail, écart. Les deux doivent coïncider — la synthèse par catégorie (« Reliquat 9 DT / 9 lignes ») donne le même total.
+7. Un même « Retard du JJ/MM » peut réapparaître plus bas dans la conversation : transcris-le une seule fois (voir point 2).
 
-Si une ligne est difficile à lire, mets-la quand même dans le tableau avec ce que tu as pu lire, et reprends-la à part sous le titre « À vérifier ». Je préfère un tableau complet avec trois lignes signalées qu'un refus de transcrire. Ne renonce pas parce que la résolution est imparfaite ou que des colonnes sont coupées : celles qui me servent ne le sont pas.
+8. Les lignes restent dans l'ordre où elles apparaissent, jour par jour, du plus ancien au plus récent.
 
-Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx) ou CSV, une seule feuille, en-têtes en première ligne. Si tu ne peux pas produire de fichier, le tableau dans la réponse me suffit : je le copierai.</span></div></details></li>
+9. Trois contrôles obligatoires, sous le tableau :
+
+Contrôle 1 — par jour : date, nombre de lignes transcrites, somme des Nb Lignes, nombre annoncé par « RETARDS (n) » en tête du mail, écart. Les trois doivent coïncider.
+
+Contrôle 2 — par jour : la synthèse par catégorie affichée dans la capture (« Reliquat 9 DT / 9 lignes », etc.) face à ce que donne ton tableau, catégorie par catégorie. Tout écart est signalé.
+
+Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de jours distincts transcrits, nombre de doublons écartés, liste des dates manquantes dans l'intervalle couvert. Ces quatre nombres doivent s'expliquer entre eux.
+
+10. Si un contrôle ne tombe pas juste, ne corrige pas le tableau pour le faire tomber juste : laisse l'écart et explique-le en une ligne.
+
+11. Si une ligne est difficile à lire, mets-la quand même dans le tableau avec ce que tu as pu lire, et reprends-la à part sous le titre « À vérifier ». Je préfère un tableau complet avec trois lignes signalées qu'un refus de transcrire. Ne renonce pas parce que la résolution est imparfaite ou que des colonnes sont coupées.
+
+12. N'ajoute aucune ligne de total, aucune ligne vide de séparation, aucun sous-titre à l'intérieur du tableau : une ligne du tableau est une ligne du relevé, rien d'autre.
+
+13. L'ordre des colonnes n'a pas d'importance pour l'outil qui lira le fichier — les intitulés, si.
+
+14. Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx) ou CSV, une seule feuille nommée « Retards », en-têtes en première ligne. Si tu ne peux pas produire de fichier, le tableau dans la réponse me suffit : je le copierai.</span></div></details></li>
               </ol>
               <div class="pit"><b>Pourquoi ce détour.</b> Le relevé arrive en capture d'écran&nbsp;: il n'y a aucun tableau à lire dans le mail. L'assistant fait la transcription, l'outil fait le rapprochement. <b>L'ordre des colonnes n'a pas d'importance</b> — elles sont reconnues par leur nom.</div>
             </div>
@@ -1260,6 +1282,9 @@ Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx
               <div class="f"><label for="opt-cible">Cible de taux net</label>
                 <input type="number" id="opt-cible" min="50" max="100" step="0.5" style="width:110px">
                 <span class="hint">fixe le plancher des demi-cercles du tableau de bord</span></div>
+              <div class="f"><label for="opt-plancher">Le tableau de bord commence le</label>
+                <input type="date" id="opt-plancher" style="width:160px">
+                <span class="hint" id="opt-plancher-h">les semaines d'avant restent enregistrées et justifiées, sans être affichées</span></div>
             </div>
             <div id="store-state"></div>
             <div class="actions">
@@ -1288,12 +1313,14 @@ Donne le tableau dans ta réponse, puis le même tableau en fichier Excel (.xlsx
           </div>
         </div>
         <div class="panel">
-          <div class="ph"><h2>Chiffres de référence</h2><span class="sub">Consolidation au 08/09/2026</span></div>
+          <div class="ph"><h2>Chiffres de référence</h2><span class="sub">Import vérifié du 14/09/2026 · S27 → S37</span></div>
           <div class="pb tight tw" id="ref-tbl"></div>
           <div class="pb" style="padding-top:0"><p class="hint" style="margin:0">Le flux et le brut ne dépendent
             que des données&nbsp;: un écart là veut dire que l'import n'est pas le bon. Le net, lui, monte dès
-            qu'un retard de plus est justifié&nbsp;: <b>net +x pt</b> veut dire que vous avez justifié depuis
-            le 08/09, <b>net −x pt</b> que des justifications manquent.</p></div>
+            qu'un retard de plus est justifié&nbsp;: <b>net +x pt</b> veut dire que vos règles et vos saisies
+            justifient plus que la base de départ, <b>net −x pt</b> que des justifications manquent.
+            Le repère porte sur <b>tout ce qui est chargé</b>, y compris les semaines placées avant le
+            début du tableau de bord.</p></div>
           <div class="pb" style="padding-top:12px">
             <div class="actions"><button class="btn" id="btn-reseed">Recharger l'historique S27 → S36</button>
               <span class="hint muted">Réécrit les 40 périodes d'origine.</span></div>
@@ -1414,13 +1441,20 @@ const CAT_ALIAS = (() => {
   return { map:m, norm };
 })();
 
+/* Repère figé sur l'import du 14/09/2026 : PowerBI S27 → S37, les deux
+   extractions SAP (01/07 → 02/09 et 01/09 → 10/09) et le relevé quotidien du
+   25/06 au 21/07. Le flux et le brut ne dépendent que des fichiers : s'ils ne
+   retombent pas, c'est l'import qui n'est pas le bon. Le net est celui d'une
+   base sans règle enregistrée — le vôtre monte à mesure que vos règles et vos
+   saisies justifient, et c'est tant mieux. Les semaines d'avant le plancher
+   comptent ici : le repère porte sur les données chargées, pas sur l'affichage. */
 const REFERENCE = [
-  {s:"distri", z:"mag",  flux:11831, ko:823,  brut:.930, net:.946},
-  {s:"distri", z:"log",  flux:6878,  ko:375,  brut:.945, net:.959},
-  {s:"distri", z:"tous", flux:18709, ko:1198, brut:.936, net:.950},
-  {s:"recep",  z:"mag",  flux:5236,  ko:280,  brut:.947, net:.974},
-  {s:"recep",  z:"log",  flux:5377,  ko:275,  brut:.949, net:.951},
-  {s:"recep",  z:"tous", flux:10613, ko:555,  brut:.948, net:.962}
+  {s:"distri", z:"mag",  flux:13436, ko:921,  brut:.9315, net:.9361},
+  {s:"distri", z:"log",  flux:7482,  ko:397,  brut:.9469, net:.9469},
+  {s:"distri", z:"tous", flux:20918, ko:1318, brut:.9370, net:.9400},
+  {s:"recep",  z:"mag",  flux:6026,  ko:362,  brut:.9399, net:.9706},
+  {s:"recep",  z:"log",  flux:6091,  ko:284,  brut:.9534, net:.9570},
+  {s:"recep",  z:"tous", flux:12117, ko:646,  brut:.9467, net:.9638}
 ];
 
 /* ---------------------------- utilitaires ---------------------------- */
@@ -1509,6 +1543,9 @@ function joursOuvres(a, b){
 }
 
 /* ---------------------------- état ---------------------------- */
+/* Le tableau de bord commence le lundi 13 juillet 2026 — début de la S29. Les
+   semaines d'avant sont chargées et justifiées, mais pas affichées. */
+const PLANCHER_DEF = "2026-07-13";
 const S = {
   cells: {},
   ui: { tab:"dash", site:"tous", serv:"tous", maille:"semaine", preset:"all", from:null, to:null, d1:null, d2:null,
@@ -1516,9 +1553,11 @@ const S = {
         ajq:"", ajTri:"ko", ajSens:-1, regTri:"date", regSens:-1 },
   regles: [],
   cible: 99,                       /* taux net visé, réglable — colore les tuiles */
+  plancher: PLANCHER_DEF,          /* première date montrée au tableau de bord */
   backend: "local", db: null, fb: null, ready: false, pending: 0, writeErr: null
 };
 const LSCIBLE = "taux-net-cible";
+const LSPLANCHER = "taux-net-plancher";
 const LSKEY = "brut-net-taux-service-v1";
 const CFGKEY = "brut-net-firebase-config";
 const BACKEND_LBL = { local:"Navigateur seul", db:"Base Claude", firebase:"Base partagée Firebase",
@@ -2070,8 +2109,27 @@ function effCells(){
   });
   return out;
 }
+/* ------------------------- plancher d'affichage -------------------------
+   Les semaines antérieures au plancher restent enregistrées, continuent d'être
+   justifiées par les règles et alimentent les rapprochements SAP et relevé :
+   elles ne sont simplement pas montrées dans le tableau de bord. Juin et le
+   début juillet expliquent la file d'attente sans entrer dans le résultat.
+   Une période est gardée dès que sa fin atteint le plancher : une semaine à
+   cheval n'est jamais coupée en silence. */
+function plancher(){ return S.plancher || ""; }
+function apresPlancher(c){
+  const p = plancher();
+  if (!p) return true;
+  return spanOf(c)[1] >= p;
+}
+function horsPlancher(){
+  const p = plancher();
+  if (!p) return [];
+  return Object.values(S.cells).filter(c => !apresPlancher(c));
+}
 function scopeCells(){
   return effCells().filter(c =>
+    apresPlancher(c) &&
     (S.ui.site === "tous" || c.site === S.ui.site) &&
     (S.ui.serv === "tous" || c.service === S.ui.serv));
 }
@@ -2144,7 +2202,7 @@ function sansDetail(){
 }
 /* Premier et dernier jour couverts par les périodes enregistrées. */
 function bornesJours(){
-  const cs = Object.values(S.cells);
+  const cs = Object.values(S.cells).filter(apresPlancher);
   if (!cs.length) return null;
   let a = null, b = null;
   cs.forEach(c => {
@@ -2152,6 +2210,8 @@ function bornesJours(){
     if (!a || x < a) a = x;
     if (!b || y > b) b = y;
   });
+  const p = plancher();
+  if (p && a && a < p) a = p;
   return a && b ? [a, b] : null;
 }
 /* La plage se choisit en dates, pas en numéros de période : un calendrier se lit
@@ -2256,6 +2316,74 @@ function poidsLigne(cell, l){
   ps.forEach(p => { const q = m[k + "|" + p]; if (q){ n += q; vu = true; } });
   return vu ? n : Math.max(0, +l.nb || 0);
 }
+/* ---------------- une référence, un budget de KO ----------------
+   Une référence ne peut pas être justifiée plus de fois qu'elle n'est en KO.
+   Quand deux sources visent le même KO, l'ordre est celui annoncé dans l'onglet
+   des règles : le relevé quotidien passe devant l'automatique, qui passe devant
+   la saisie à la main. La ligne écartée ne disparaît pas en silence — sa cause
+   est reprise dans le commentaire de celle qui reste, et l'import en rend
+   compte. Sans ce garde-fou, un import de relevé posé après une règle justifiait
+   deux fois le même KO : le total de la période enflait sans qu'aucun écran ne
+   le dise. */
+const RANG_SRC = { releve:0, auto:1, manuel:2 };
+const rangSrc = l => (l && RANG_SRC[l.src] != null) ? RANG_SRC[l.src] : 3;
+function budgetRef(cell, ref){
+  const r = sansZeros(ref);
+  return (cell.koRefs || []).reduce((n, x) => n + (sansZeros(x) === r ? 1 : 0), 0);
+}
+/* Ramène les lignes d'une période dans le budget de chaque référence citée.
+   `refs` limite le travail aux références qu'on vient de toucher ; sans elle,
+   toutes les références de la période sont revues. */
+function ajusteRef(cell, lignes, refs){
+  const vise = refs ? new Set(Array.from(refs).map(sansZeros)) : null;
+  const horsJeu = [], parRef = {};
+  lignes.forEach(l => {
+    const r = sansZeros(l.ref);
+    if (vise && !vise.has(r)) { horsJeu.push(l); return; }
+    (parRef[r] = parRef[r] || []).push(l);
+  });
+  let ecartes = 0, rognes = 0;
+  const gardees = [];
+  Object.keys(parRef).forEach(r => {
+    const ls = parRef[r].slice().sort((a, b) => rangSrc(a) - rangSrc(b) ||
+      ((a.postes || []).length ? 0 : 1) - ((b.postes || []).length ? 0 : 1));
+    let reste = budgetRef(cell, r);
+    const prises = [], laissees = [];
+    ls.forEach(l => {
+      if (reste <= 0){ laissees.push(l); ecartes++; return; }
+      const poids = poidsLigne(cell, l);
+      if (poids <= reste){ prises.push(l); reste -= poids; return; }
+      /* La ligne déborde. Nommer des postes ne se coupe pas en deux ; une
+         quantité, si. */
+      if ((l.postes || []).length){ laissees.push(l); ecartes++; return; }
+      prises.push(Object.assign({}, l, { nb: reste })); rognes++; reste = 0;
+    });
+    /* La cause écartée rejoint le commentaire de la ligne gardée — avec les mots
+       de celui qui l'a saisie, pas seulement l'étiquette de sa catégorie : c'est
+       la phrase tapée à la main qui a de la valeur, et c'est elle qu'on
+       chercherait plus tard. Une ligne rigoureusement identique à celle qui
+       reste ne laisse rien : il n'y a rien à dire d'un doublon exact. */
+    if (laissees.length && prises.length){
+      const g = prises[0];
+      const dits = [];
+      laissees.forEach(l => {
+        /* Deux lignes de même cause et de même origine sont interchangeables : il
+           n'y a rien à dire d'un doublon exact, et le redire ferait grossir le
+           commentaire à chaque passage des règles. */
+        if (l.cat === g.cat && l.src === g.src) return;
+        const com = String(l.com || "").trim();
+        const t = (CAT[l.cat] ? CAT[l.cat].l : l.cat) + (l.src === "manuel" ? " (à la main)" : "") +
+          (com && com.indexOf("remplace") < 0 ? " — " + com : "");
+        if (dits.indexOf(t) < 0) dits.push(t);
+      });
+      if (dits.length) prises[0] = Object.assign({}, g, {
+        com: coupe([String(g.com || "").replace(/(?:^| · )remplace : .*$/, ""),
+          "remplace : " + dits.join(" · ")].filter(Boolean).join(" · "), 400) });
+    }
+    gardees.push.apply(gardees, prises);
+  });
+  return { lignes: horsJeu.concat(gardees), ecartes, rognes };
+}
 /* Les postes déjà couverts par une justification, pour une référence donnée.
    Une ligne peut porter des postes nommés (l.postes) ou seulement une quantité (l.nb). */
 function coverage(cell, ref){
@@ -2324,6 +2452,27 @@ function controls(){
   }
   a.over.forEach(c => raw.push({ k:"crit", t:"Justifications supérieures aux KO", tag: cellLbl(c) + " (" + n0(cellStats(c).raw) + " pour " + n0(c.ko) + " KO)",
     why:"Le surplus est ignoré dans le calcul, mais la saisie est à corriger." }));
+  /* Une règle dont la colonne a disparu de l'export ne juge plus rien. Ses
+     justifications sont gardées — c'est une panne de lecture, pas une cause qui
+     tombe — mais il faut le dire, sinon la règle passe pour active alors qu'elle
+     est aveugle. */
+  if (typeof regleEvaluable === "function" && (S.regles || []).length){
+    const reels = cs.map(c => realCell(c) || c).filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
+      .filter(c => (c.koRefs || []).length);
+    const dispo = ctxColonnes();
+    S.regles.filter(r => r.actif).forEach(r => {
+      const aveugle = reels.filter(c => !regleEvaluable(r, c));
+      if (!aveugle.length) return;
+      const manque = colsRequises(r).filter(col => dispo.indexOf(col) < 0);
+      raw.push({ k:"crit", t:"Une règle ne peut plus être lue",
+        tag: r.nom + " — " + n0(aveugle.length) + " période" + (aveugle.length > 1 ? "s" : ""),
+        why: (manque.length
+              ? "La colonne « " + manque.join(" », « ") + " » n'est plus"
+              : "Les colonnes qu'elle lit ne sont plus") +
+             " dans l'export conservé avec ces KO. Les justifications déjà posées sont gardées telles quelles, " +
+             "mais la règle ne juge plus rien : réimportez un export en cochant toutes les colonnes." });
+    });
+  }
   /* Deux règles sur un même KO : le résultat est juste, mais c'est l'ordre de la
      liste qui a tranché. Autant le dire plutôt que de le laisser deviner. */
   (typeof conflitsRegles === "function" ? conflitsRegles() : []).forEach(c =>
@@ -2363,13 +2512,41 @@ function controls(){
           why:"L'export chargé ne porte plus ce retard : la ligne retire " + n0(perdues.reduce((s, l) => s + (+l.nb || 0), 0)) +
             " KO qui n'existent plus. Vérifiez la référence, ou supprimez la justification." });
       }
+      /* Une référence justifiée plus de fois qu'elle n'est en KO. Le total de la
+         période est plafonné à l'affichage, donc l'écart ne se voit nulle part —
+         mais deux sources se disputent alors le même KO, et la cause montrée
+         n'est plus celle qui compte. */
+      if ((c.koRefs || []).length){
+        const parRef = {};
+        (c.lignes || []).forEach(l => { if (l.st !== "ok") return;
+          const k = sansZeros(l.ref); (parRef[k] = parRef[k] || []).push(l); });
+        const trop = [];
+        Object.keys(parRef).forEach(k => {
+          const somme = parRef[k].reduce((s, l) => s + poidsLigne(c, l), 0);
+          const bud = nKo[k] || 0;
+          if (bud && somme > bud) trop.push({ ref:k, somme, bud,
+            src: Array.from(new Set(parRef[k].map(l => l.src || "—"))).join("+") });
+        });
+        if (trop.length) raw.push({ k:"crit", t:"Une référence justifiée plus de fois qu'elle n'est en KO",
+          tag: cellLbl(c) + " · " + trop.slice(0, 3).map(x => x.ref + " " + x.somme + "/" + x.bud + " (" + x.src + ")").join(", ") +
+            (trop.length > 3 ? " +" + (trop.length - 3) : ""),
+          why:"Deux sources justifient le même retard — le plus souvent un relevé posé par-dessus une règle. " +
+            "Réimportez le relevé : il reprendra la place et la cause écartée passera en commentaire." });
+      }
       (c.lignes || []).forEach(l => {
+        /* Seule une justification qui INVOQUE la réédition peut être contredite
+           par le délai recompté depuis la recréation. Un blocage douane, un
+           reliquat ou une grue tiennent debout tout seuls : que le poste ait été
+           recréé par ailleurs ne les invalide pas. Sans cette garde, le contrôle
+           criait au loup dès qu'une règle posait sa cause sur un poste que SAP
+           connaît — six lignes d'un même BR pour un seul vrai sujet. */
+        if (l.cat !== "reedition" || l.st !== "ok") return;
         const rd = reedRef(c, l.ref, l.postes);
-        if (!rd.length || l.st !== "ok") return;
+        if (!rd.length) return;
         if (rd.some(x => x.reel == null || x.reel > x.obj))
           raw.push({ k:"crit", t:"Une justification que SAP contredit", tag: cellLbl(c) + " · " + l.ref,
-            why:"Le poste est bien recréé, mais son délai depuis la recréation dépasse l'objectif : la cause « " +
-              (CAT[l.cat] ? CAT[l.cat].l : l.cat) + " » ne tient pas. Rechargez l'extraction SAP pour la refaire poser." });
+            why:"Le poste est bien recréé, mais son délai depuis la recréation dépasse l'objectif : la réédition " +
+              "ne suffit pas à expliquer ce retard. Rechargez l'extraction SAP pour la refaire poser." });
       });
       for (const k in (c.reed || {})){
         const i = k.lastIndexOf("-"); if (i < 0) continue;
@@ -2882,6 +3059,26 @@ function regleVise(r, cell, i, ref){
   }
   return (r.conds || []).length > 0 && r.conds.every(c => condVraie(c, cell, i));
 }
+/* ---- une règle qu'on ne peut plus lire ----
+   Une règle s'appuie sur des colonnes de l'export, gardées avec chaque KO. Si
+   l'export suivant ne les porte plus — le « tout cocher » oublié, une version
+   du rapport qui change — la condition ne devient pas fausse : elle devient
+   illisible. Les deux se ressemblaient dans le code, et la règle effaçait alors
+   ses justifications en silence. Ce n'est pas une cause qui cesse d'être vraie,
+   c'est une panne de lecture : on garde les lignes et on le dit. */
+function colsRequises(r){
+  if (!r || r.type === "liste") return [];
+  const out = (r.conds || []).map(c => c.col).filter(Boolean);
+  if (r.type === "dates"){ if (r.dateA) out.push(r.dateA); if (r.dateB) out.push(r.dateB); }
+  return out;
+}
+function regleEvaluable(r, cell){
+  const need = colsRequises(r);
+  if (!need.length) return true;
+  const x = cell && cell.koCtx;
+  if (!x || !Array.isArray(x.c) || !x.c.length) return false;
+  return need.every(col => x.c.indexOf(col) >= 0);
+}
 /* Les KO déjà couverts par une justification qui n'est pas d'une règle. */
 function dejaCouverts(cell){
   const parPoste = new Set(), parRef = {};
@@ -2924,19 +3121,57 @@ function reedLignes(cell){
 }
 function passerRegles(cells, regles, simule, conflits){
   const actives = (regles || []).filter(r => r.actif);
-  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0, conflits:{} };
+  const stats = { total:0, parRegle:{}, cellules:0, reed:0, repris:0, conflits:{}, gelees:0, parGel:{}, reprisMain:0, doubles:0 };
   const out = [];
   cells.forEach(cell => {
     const reed = reedLignes(cell);
     const vises = {};
     reed.forEach(x => { vises[x.ref + "|" + x.poste] = 1; });
+    /* ---- la mention de reprise doit survivre au passage suivant ----
+       Les lignes de règle sont défaites et refaites à chaque passage. La saisie
+       qu'elles ont remplacée, elle, n'existe plus : au deuxième passage il n'y a
+       plus rien à reprendre, et la mention « remplace la saisie … » disparaissait
+       en silence. On la relève sur la ligne d'avant et on la repose telle quelle :
+       c'est la seule trace de ce que quelqu'un avait écrit à la main. */
+    const memo = {};
+    (cell.lignes || []).forEach(l => {
+      if (!l.regle) return;
+      const m = String(l.com || "").match(/ · remplace la saisie .*$/);
+      if (m) memo[l.regle + "|" + sansZeros(l.ref) + "|" + String((l.postes || [])[0] || "")] = m[0];
+    });
+    const repriseDite = (regle, ref, poste) => memo[regle + "|" + sansZeros(ref) + "|" + String(poste || "")] || "";
     /* une saisie portant exactement ce poste cède la place, et sa cause est gardée
        dans le commentaire : rien n'est perdu, la meilleure preuve l'emporte */
     const repris = [];
+    /* les règles que cette période ne permet plus de juger */
+    const gel = {};
+    actives.forEach(r => { if (!regleEvaluable(r, cell)) gel[r.id] = 1; });
+    const figees = [];
     const avant = (cell.lignes || []).filter(l => {
-      if (l.regle) return false;
+      if (l.regle){
+        if (l.regle === REGLE_REED) return false;      /* refaite depuis `reed` */
+        if (gel[l.regle]){
+          stats.gelees++; stats.parGel[l.regle] = (stats.parGel[l.regle] || 0) + 1;
+          figees.push(l); return true;                 /* illisible : on garde */
+        }
+        return false;
+      }
       const ps = (l.postes || []).map(String);
-      if (!ps.length) return true;
+      /* Une saisie posée en quantité ne nomme aucun poste. Si la réédition couvre
+         déjà tous les KO de sa référence, elle fait double emploi : elle cède la
+         place comme le ferait une saisie au poste, et sa cause part dans le
+         commentaire de la ligne qui reste. Sans ce cas, la saisie survivait au
+         filtre puis se faisait retirer plus loin par le plafond — sans un mot. */
+      if (!ps.length){
+        const rn = sansZeros(l.ref);
+        const n = (cell.koRefs || []).reduce((s, r) => s + (sansZeros(r) === rn ? 1 : 0), 0);
+        if (!n) return true;
+        const couv = reed.filter(x => x.ref === rn)
+          .reduce((s, x) => s + (occKo(cell)[x.ref + "|" + x.poste] || 1), 0);
+        if (couv < n) return true;
+        if (l.cat !== "reedition") repris.push({ ref:rn, postes:[], cat:l.cat, com:l.com, src:l.src });
+        return false;
+      }
       /* Un poste que la réédition va reprendre laisse la place, quelle que soit la
          ligne qui l'occupait : une ancienne réédition posée à la main par l'import
          SAP, ou une saisie. Sans quoi le même KO serait justifié deux fois. */
@@ -2947,7 +3182,7 @@ function passerRegles(cells, regles, simule, conflits){
     });
     stats.repris += repris.length;
     const ajoutReed = reed.map(x => {
-      const pr = repris.find(r => r.ref === x.ref && r.postes.indexOf(x.poste) >= 0);
+      const pr = repris.find(r => r.ref === x.ref && (!r.postes.length || r.postes.indexOf(x.poste) >= 0));
       return { id: uid(), ref:x.ref, postes:[x.poste], cat:"reedition",
         nb: (occKo(cell)[x.ref + "|" + x.poste] || 1), src:"auto",
         d: cell.koDates ? (cell.koDates[(cell.koRefs || []).findIndex((r, i) =>
@@ -2958,24 +3193,59 @@ function passerRegles(cells, regles, simule, conflits){
               : x.v.dd ? ", rapproché par le poste de commande" : "") + ") — délai réel " +
              dec(x.v.reel, Number.isInteger(x.v.reel) ? 0 : 2) + (x.v.u === "h" ? " h" : " j ouvré" + (x.v.reel > 1 ? "s" : "")) +
              " pour un objectif de " + x.v.obj + (x.v.u === "h" ? " h" : " j ouvrés") +
-             (pr ? " · remplace la saisie « " + (CAT[pr.cat] ? CAT[pr.cat].l : pr.cat) + " »" : ""),
+             (pr ? " · remplace la saisie « " + (CAT[pr.cat] ? CAT[pr.cat].l : pr.cat) + " »" +
+               (String(pr.com || "").trim() ? " — " + String(pr.com).trim() : "")
+               : repriseDite(REGLE_REED, x.ref, x.poste)),
         st: "ok", regle: REGLE_REED };
     });
     stats.reed += ajoutReed.reduce((s, l) => s + l.nb, 0);
     const cov = dejaCouverts({ lignes: avant, koRefs: cell.koRefs, koPostes: cell.koPostes });
     ajoutReed.forEach(l => { cov.parPoste.add(String(l.ref) + "|" + l.postes[0]); });
+    /* Une ligne gardée faute de pouvoir la rejuger couvre quand même son poste :
+       sans cela une autre règle viendrait justifier le même KO une seconde fois. */
+    figees.forEach(l => { (l.postes || []).forEach(po => {
+      cov.parPoste.add(String(l.ref) + "|" + String(po));
+      cov.parPoste.add(sansZeros(l.ref) + "|" + String(po)); });
+      if (!(l.postes || []).length) cov.parRef[String(l.ref)] = (cov.parRef[String(l.ref)] || 0) + Math.max(0, +l.nb || 0); });
     /* les références de l'export peuvent encore porter leurs zéros de tête */
     (cell.koRefs || []).forEach((r, i) => {
       const p = String((cell.koPostes || [])[i] || "");
       if (p && cov.parPoste.has(sansZeros(r) + "|" + p)) cov.parPoste.add(String(r) + "|" + p);
     });
-    const reste = Object.assign({}, cov.parRef);
+    /* Ce qu'une justification en quantité couvre déjà, par référence. Les
+       références de l'export gardent parfois leurs zéros de tête là où les
+       justifications sont normalisées : on compte sur la forme sans zéros, sinon
+       les deux ne se retrouvent pas et la couverture passe pour nulle. */
+    const reste = {};
+    Object.keys(cov.parRef).forEach(k => { const n = sansZeros(k);
+      reste[n] = (reste[n] || 0) + cov.parRef[k]; });
     const ajout = [];
+    /* ---- une règle passe devant une saisie à la main ----
+       Le relevé est une déclaration de l'exploitation, qui sait pourquoi ; une
+       saisie faite ici est une qualification rapide, qu'une règle lisant les
+       colonnes de l'export a le droit de reprendre. La cause d'origine part dans
+       le commentaire : rien n'est perdu. Une saisie n'est reprise que si TOUS ses
+       postes le sont — sinon la ligne resterait à cheval, et le même KO serait
+       justifié deux fois. */
+    const mains = {};
+    avant.forEach(l => {
+      if (l.regle || l.src !== "manuel" || l.st !== "ok") return;
+      (l.postes || []).map(String).filter(Boolean).forEach(p => { mains[sansZeros(l.ref) + "|" + p] = l; });
+    });
+    const prises = new Map();          /* ligne manuelle -> postes que les règles reprennent */
     (cell.koRefs || []).forEach((refBrut, i) => {
-      const ref = String(refBrut), poste = String((cell.koPostes || [])[i] || "");
-      if (poste && cov.parPoste.has(ref + "|" + poste)) return;
-      if (!poste && reste[ref] > 0){ reste[ref]--; return; }
-      if (!poste && cov.parRef[ref] > 0 && reste[ref] === 0) return;
+      const ref = String(refBrut), rn = sansZeros(ref);
+      const poste = String((cell.koPostes || [])[i] || "");
+      const main = poste ? mains[rn + "|" + poste] : null;
+      if (poste && cov.parPoste.has(ref + "|" + poste) && !main) return;
+      /* Une justification en quantité — une ligne de relevé, une saisie rapide —
+         ne nomme aucun poste, mais elle retire bien un KO de cette référence.
+         Elle doit se décompter ici, que le KO porte un poste ou non. Sans cela
+         une règle travaillant poste par poste reposait une cause sur un KO déjà
+         justifié : la référence se retrouvait justifiée plus de fois qu'elle
+         n'était en KO, et le plafond de la période masquait l'écart en absorbant
+         le surplus d'une autre référence. */
+      if (!main && reste[rn] > 0){ reste[rn]--; return; }
       /* Une seule cause par KO : c'est la première règle de la liste qui la pose.
          Les suivantes qui visaient le même KO sont notées — deux règles qui se
          disputent un KO, c'est l'ordre de la liste qui tranche, et il vaut mieux
@@ -2993,16 +3263,60 @@ function passerRegles(cells, regles, simule, conflits){
            décompte les additionnait deux fois. */
         if (poste) cov.parPoste.add(ref + "|" + poste);
         const w = poste ? (occKo(cell)[sansZeros(ref) + "|" + poste] || 1) : 1;
-        ajout.push({ id: uid(), ref, postes: poste ? [poste] : [], cat: r.cause,
-          nb: w, src: r.src || "auto", com: r.nom, d: (cell.koDates || [])[i] || "",
-          st: CAT[r.cause] && CAT[r.cause].j ? "ok" : "rejet", regle: r.id });
+        const ligne = { id: uid(), ref, postes: poste ? [poste] : [], cat: r.cause,
+          nb: w, src: r.src || "auto", com: r.nom + repriseDite(r.id, ref, poste),
+          d: (cell.koDates || [])[i] || "",
+          st: CAT[r.cause] && CAT[r.cause].j ? "ok" : "rejet", regle: r.id };
+        if (main){
+          ligne._main = main;
+          if (!prises.has(main)) prises.set(main, new Set());
+          prises.get(main).add(poste);
+        }
+        ajout.push(ligne);
         stats.total += w; stats.parRegle[r.id] = (stats.parRegle[r.id] || 0) + w;
       }
     });
+    /* Chaque saisie visée n'est reprise que si les règles couvrent tous ses postes.
+       Sinon on annule la reprise : la saisie reste entière, et les lignes de règle
+       qui l'auraient doublée sont retirées. */
+    const lachees = new Set();
+    prises.forEach((postes, l) => {
+      const tous = (l.postes || []).map(String).filter(Boolean);
+      if (tous.length && tous.every(p => postes.has(p))) lachees.add(l);
+    });
+    const ajoutNet = ajout.filter(l => {
+      if (!l._main) return true;
+      if (!lachees.has(l._main)){                            /* reprise abandonnée */
+        stats.total -= (+l.nb || 0);
+        stats.parRegle[l.regle] = (stats.parRegle[l.regle] || 0) - (+l.nb || 0);
+        return false;
+      }
+      const c = l._main;
+      /* la mention relevée sur la ligne d'avant est remplacée par celle-ci, qui
+         décrit la saisie que ce passage-ci reprend — on n'empile pas les deux */
+      l.com = String(l.com || "").replace(/ · remplace la saisie .*$/, "") +
+        " · remplace la saisie « " + (CAT[c.cat] ? CAT[c.cat].l : c.cat) + " »" +
+        (c.com ? " (" + String(c.com).slice(0, 80) + ")" : "");
+      delete l._main;
+      return true;
+    });
+    ajout.forEach(l => { delete l._main; });
+    const avantNet = avant.filter(l => !lachees.has(l));
+    stats.reprisMain += lachees.size;
     const avaitDesRegles = (cell.lignes || []).some(l => l.regle);
-    if (ajout.length || ajoutReed.length || avaitDesRegles){
+    /* Dernier garde-fou, après tous les chemins. Une référence peut être visée
+       par une règle, par la réédition, par le relevé et par une saisie : il
+       suffit que deux d'entre eux se croisent pour qu'elle sorte justifiée plus
+       de fois qu'elle n'est en KO. Le plafond de la période masquait l'écart en
+       laissant le surplus d'une référence couvrir le manque d'une autre. Ici il
+       est repris, dans l'ordre annoncé — relevé, puis automatique, puis saisie —
+       et la cause écartée passe en commentaire. */
+    const base = avantNet.concat(ajoutReed, ajoutNet);
+    const aj = simule ? { lignes:base, ecartes:0, rognes:0 } : ajusteRef(cell, base, null);
+    stats.doubles += aj.ecartes + aj.rognes;
+    if (ajoutNet.length || ajoutReed.length || avaitDesRegles || lachees.size || aj.ecartes || aj.rognes){
       stats.cellules++;
-      if (!simule) out.push(Object.assign({}, cell, { lignes: avant.concat(ajoutReed, ajout) }));
+      if (!simule) out.push(Object.assign({}, cell, { lignes: aj.lignes }));
     }
   });
   return { cellules: out, stats };
@@ -3126,7 +3440,11 @@ async function rejouerRegles(silencieux){
   if (cellules.length) await bulkPut(cellules);
   if (!silencieux){
     const n = stats.total + stats.reed;
-    toast(n ? n0(n) + " KO documentés automatiquement" : "Aucun KO ne correspond aux règles");
+    toast((n ? n0(n) + " KO documentés automatiquement" : "Aucun KO ne correspond aux règles") +
+      (stats.reprisMain ? " · " + n0(stats.reprisMain) + " saisie" + (stats.reprisMain > 1 ? "s" : "") + " reprise" +
+        (stats.reprisMain > 1 ? "s" : "") : "") +
+      (stats.doubles ? " · " + n0(stats.doubles) + " doublon" + (stats.doubles > 1 ? "s" : "") + " retiré" +
+        (stats.doubles > 1 ? "s" : "") : ""));
   }
   return stats;
 }
@@ -3782,13 +4100,18 @@ function renderAJustifier(){
 function renderCellsTable(){
   const list = Object.values(S.cells).sort((a, b) => b.periode.localeCompare(a.periode) || a.site.localeCompare(b.site) || a.service.localeCompare(b.service));
   const ps = $("#per-sub");
-  if (ps){ const ks = periodKeys(Object.values(S.cells));
-    ps.textContent = list.length ? n0(list.length) + " lignes · " + (ks.length ? perLabel(ks[0]) + " → " + perLabel(ks[ks.length - 1]) : "") : "Rien d'enregistré"; }
+  if (ps){ const ks = periodKeys(Object.values(S.cells)), hp = horsPlancher().length;
+    ps.textContent = list.length
+      ? n0(list.length) + " lignes · " + (ks.length ? perLabel(ks[0]) + " → " + perLabel(ks[ks.length - 1]) : "") +
+        (hp ? " · " + n0(hp) + " hors affichage" : "")
+      : "Rien d'enregistré"; }
+  if (typeof majPlancherHint === "function") majPlancherHint();
   $("#cells-tbl").innerHTML = list.length
     ? '<table><thead><tr><th>Période</th><th>Site</th><th>Service</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Justifiés</th><th class="n">Net</th><th>Source</th><th></th></tr></thead><tbody>' +
       list.map(c => { const st = cellStats(c), br = c.flux ? (c.flux - c.ko) / c.flux : null, ne = c.flux ? (c.flux - c.ko + st.tot) / c.flux : null;
         return '<tr data-cellrow="' + c.id + '"><td class="nowrap"><b>' + perLabel(c.periode) + '</b> <span class="muted" style="font-size:11px">' + weekSpan(c.periode) + "</span>" +
-          (c.demo ? ' <span class="pill demo">exemple</span>' : "") + "</td>" +
+          (c.demo ? ' <span class="pill demo">exemple</span>' : "") +
+          (apresPlancher(c) ? "" : ' <span class="pill" title="Enregistrée et justifiée, mais antérieure à la date de début du tableau de bord">hors affichage</span>') + "</td>" +
           "<td>" + SITES[c.site].l + "</td><td>" + SERVS[c.service].l + "</td>" +
           '<td class="n">' + n0(c.flux) + '</td><td class="n">' + n0(c.ko) + '</td><td class="n">' + pf(br) + "</td>" +
           '<td class="n">' + n0(st.tot) + '</td><td class="n">' + pf(ne) + "</td>" +
@@ -3932,6 +4255,13 @@ function renderRegles(){
     return;
   }
   const cfl = conflitsRegles();
+  /* une règle aveugle reste affichée comme active : le dire sur sa carte */
+  const aveugles = {};
+  const cellsKo = Object.values(S.cells).filter(c => (c.koRefs || []).length);
+  S.regles.filter(r => r.actif).forEach(r => {
+    const n = cellsKo.filter(c => !regleEvaluable(r, c)).length;
+    if (n) aveugles[r.id] = n;
+  });
   const perdu = {}, gagne = {};
   cfl.forEach(c => { perdu[c.b] = (perdu[c.b] || 0) + c.n; (gagne[c.b] = gagne[c.b] || []).push(c.na); });
   host.innerHTML = (cfl.length
@@ -3951,7 +4281,10 @@ function renderRegles(){
         '<div class="rmeta"><span>' + (r.service === "tous" ? "Les deux services" : SERVS[r.service].l) + "</span>" +
         "<span>Compte comme : " + esc(SRC[r.src] || r.src) + "</span>" +
         "<span>" + (CAT[r.cause] && CAT[r.cause].j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span>" +
+        "<span>passe devant une saisie à la main, jamais devant le relevé</span>" +
         (perdu[r.id] ? '<span class="warn-t">' + n0(perdu[r.id]) + " KO pris par " + esc(gagne[r.id].join(", ")) + "</span>" : "") +
+        (aveugles[r.id] ? '<span class="warn-t">illisible sur ' + n0(aveugles[r.id]) + " période" +
+          (aveugles[r.id] > 1 ? "s" : "") + " — colonne absente de l'export</span>" : "") +
         "</div></div>" +
       '<div class="ract"><span class="rimpact" title="sur la plage affichée">' + (n ? n0(n) + " KO" : "—") + "</span>" +
         (S.regles.length > 1
@@ -4465,7 +4798,11 @@ async function applyExport(){
     return {
       id, periode:c.periode, site:c.site, service:c.service, flux:c.flux, ko:c.ko,
       litiges: c.service === "recep" ? exportDraft.litiges : null,
-      note: "Export du " + new Date().toLocaleDateString("fr-FR"),
+      /* La note est un champ que vous pouvez écrire (« Note de source » dans la
+         fiche de période). L'écraser à chaque import effaçait ce que vous y aviez
+         mis ; seule l'étiquette posée par un import précédent se remplace. */
+      note: (ex && ex.note && !/^Export du /.test(ex.note))
+        ? ex.note : "Export du " + new Date().toLocaleDateString("fr-FR"),
       demo: false, koRefs: c.refs, koDates: c.dates, koPostes: c.postes || [], postesOk: true,
       jours: c.jours || {}, koCtx: ctxFin(c.ctx),
       /* La base de calcul des postes recréés vient de SAP, pas de l'export : un
@@ -4482,22 +4819,34 @@ async function applyExport(){
   const st = await rejouerRegles(true);
   $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + out.length + " période(s) enregistrée(s).</b> Le tableau de bord est à jour." +
     (st.reed ? " <b>" + n0(st.reed) + " KO</b> retirés par la règle des postes recréés." : "") +
-    (st.total ? " <b>" + n0(st.total) + " KO</b> documentés par vos règles." : "") + "</div>";
+    (st.total ? " <b>" + n0(st.total) + " KO</b> documentés par vos règles." : "") +
+    (st.reprisMain ? " " + n0(st.reprisMain) + " saisie" + sPl(st.reprisMain) + " à la main reprise" + sPl(st.reprisMain) +
+      " par une règle — la cause d'origine est gardée dans le commentaire." : "") + "</div>";
   toast(out.length + " période(s) enregistrée(s)");
 }
-$("#btn-parse-export").addEventListener("click", () => analyseExport($("#ta-export").value));
+$("#btn-parse-export").addEventListener("click", () => analyseExport(rowsDuChamp("#ta-export") || $("#ta-export").value));
 $("#btn-clear-export").addEventListener("click", () => { $("#ta-export").value = ""; $(EXPORT_OUT).innerHTML = ""; exportDraft = null; });
 /* Un fichier déposé passe par le lecteur universel : .xlsx, .csv, .txt,
    ou un mail enregistré en .htm / .mht dont on extrait le tableau. */
+/* Le champ de texte ne montre qu'un aperçu du fichier : les lignes complètes
+   sont gardées ici, sous la clé du champ. Sans cela, relancer l'analyse depuis
+   le bouton « Analyser » relirait l'aperçu — soixante lignes — au lieu du
+   fichier, et retrancherait en silence tout ce qui vient après. */
+const ROWS_CACHE = {};
+function rowsDuChamp(ta){
+  const c = ROWS_CACHE[ta];
+  return c && c.apercu === $(ta).value ? c.rows : null;
+}
 async function chargeFichier(file, ta, sortie, suite){
   const out = $(sortie);
   if (out) out.innerHTML = '<div class="note" style="margin-top:14px">Lecture de <b>' + esc(file.name) + "</b>…</div>";
   try {
     const rows = await lireFichierRows(file);
     /* le champ ne reçoit qu'un aperçu : les analyseurs travaillent sur les lignes */
-    const apercu = rows.slice(0, 60).map(r => r.join("\t")).join("\n");
-    $(ta).value = apercu + (rows.length > 60
+    const apercu = rows.slice(0, 60).map(r => r.join("\t")).join("\n") + (rows.length > 60
       ? "\n… " + n0(rows.length - 60) + " autres lignes lues depuis " + file.name : "");
+    $(ta).value = apercu;
+    ROWS_CACHE[ta] = { apercu, rows, nom:file.name };
     suite(rows);
   } catch(err){
     if (out) out.innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Fichier illisible.</b> ' +
@@ -4706,22 +5055,45 @@ function analyseReleve(src){
 }
 async function applyReleve(){
   if (!releveDraft || !releveDraft.plan) return;
+  let ecartes = 0, rognes = 0;
   const out = Object.entries(releveDraft.plan).map(([cid, add]) => {
     const c = S.cells[cid]; if (!c) return null;
-    const refs = new Set(add.map(l => String(l.ref)));
-    const kept = (c.lignes || []).filter(l => !(l.src === "releve" && refs.has(String(l.ref))));
-    return Object.assign({}, c, { lignes: kept.concat(add) });
+    const refs = new Set(add.map(l => sansZeros(l.ref)));
+    /* Ce que la ligne de relevé d'avant avait pris la place de. Elle va être
+       refaite ; sans relever cette mention, réimporter le même relevé effacerait
+       la trace de la saisie qu'il avait remplacée au premier passage. */
+    const memo = {};
+    (c.lignes || []).forEach(l => {
+      if (l.src !== "releve") return;
+      const m = String(l.com || "").match(/(?:^| · )remplace : .*$/);
+      if (m) memo[sansZeros(l.ref)] = m[0].replace(/^ · /, "");
+    });
+    add.forEach(l => { const v = memo[sansZeros(l.ref)];
+      if (v) l.com = [l.com, v].filter(Boolean).join(" · "); });
+    /* Un relevé déjà posé sur la même référence est refait, pas empilé. */
+    const kept = (c.lignes || []).filter(l => !(l.src === "releve" && refs.has(sansZeros(l.ref))));
+    /* Puis chaque référence touchée est ramenée dans son budget de KO : le
+       relevé prend la place de ce qu'une règle ou une saisie avait posé sur le
+       même KO, sans jamais justifier une référence deux fois. */
+    const r = ajusteRef(c, kept.concat(add), refs);
+    ecartes += r.ecartes; rognes += r.rognes;
+    return Object.assign({}, c, { lignes: r.lignes });
   }).filter(Boolean);
-  const gain = Object.values(releveDraft.plan).flat().reduce((s, l) => s + l.nb, 0);
+  const gain = out.reduce((s, c) => s + (c.lignes || []).reduce((n, l) =>
+    n + (l.src === "releve" && l.st === "ok" ? poidsLigne(c, l) : 0), 0), 0);
   await bulkPut(out);
   $(RELEVE_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' +
-    n0(gain) + " KO documenté" + sPl(gain) + "</b> sur " + n0(out.length) + " période" + sPl(out.length) + ".</div>";
+    n0(gain) + " KO documenté" + sPl(gain) + "</b> sur " + n0(out.length) + " période" + sPl(out.length) + "." +
+    (ecartes || rognes
+      ? " " + n0(ecartes + rognes) + " justification" + sPl(ecartes + rognes) +
+        " visaient déjà ces KO et cèdent la place au relevé — leur cause est gardée en commentaire."
+      : "") + "</div>";
   toast(n0(gain) + " KO documentés"); releveDraft = null;
 }
-$("#btn-parse-releve").addEventListener("click", analyseReleve);
+$("#btn-parse-releve").addEventListener("click", () => analyseReleve(rowsDuChamp("#ta-releve")));
 $("#file-releve").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
-  chargeFichier(f, "#ta-releve", RELEVE_OUT, () => analyseReleve());
+  chargeFichier(f, "#ta-releve", RELEVE_OUT, analyseReleve);
   e.target.value = "";
 });
 $("#btn-clear-releve").addEventListener("click", () => { $("#ta-releve").value = ""; $(RELEVE_OUT).innerHTML = ""; releveDraft = null; });
@@ -5009,7 +5381,7 @@ async function applySap(){
     "</div>";
   toast(n0(st.reed) + " KO retirés par la règle"); sapDraft = null;
 }
-$("#btn-parse-sap").addEventListener("click", () => analyseSap($("#ta-sap").value));
+$("#btn-parse-sap").addEventListener("click", () => analyseSap(rowsDuChamp("#ta-sap") || $("#ta-sap").value));
 $("#btn-clear-sap").addEventListener("click", () => { $("#ta-sap").value = ""; $("#sap-out").innerHTML = ""; sapDraft = null; });
 $("#file-sap").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
@@ -6210,6 +6582,20 @@ function bindFb(){
     await bulkPut(Object.values(local));
     toast(Object.keys(local).length + " période(s) envoyée(s)");
   });
+  /* Dire, sous le champ, exactement ce que le plancher met de côté. Une donnée
+     qu'on ne voit plus sans savoir pourquoi passe vite pour une donnée perdue. */
+  window.majPlancherHint = function(){
+    const h = $("#opt-plancher-h");
+    if (!h) return;
+    const hs = horsPlancher();
+    if (!S.plancher){ h.textContent = "tout l'historique enregistré est affiché"; return; }
+    const ks = Array.from(new Set(hs.map(c => c.periode))).sort();
+    h.innerHTML = hs.length
+      ? "les semaines d'avant restent enregistrées et justifiées, sans être affichées — <b>" +
+        n0(ks.length) + " semaine" + sPl(ks.length) + "</b> de côté" +
+        (ks.length ? " (" + esc(perLabel(ks[0])) + (ks.length > 1 ? " → " + esc(perLabel(ks[ks.length - 1])) : "") + ")" : "")
+      : "aucune période enregistrée n'est antérieure à cette date";
+  };
   const ci = $("#opt-cible");
   if (ci){
     ci.value = S.cible;
@@ -6218,6 +6604,25 @@ function bindFb(){
       S.cible = v; ci.value = v;
       try { localStorage.setItem(LSCIBLE, String(v)); } catch(e){}
       render(); toast("Cible à " + dec(v, 0) + " %");
+    });
+  }
+  /* Le plancher ne supprime rien : il décide seulement de ce que le tableau de
+     bord montre. Le compte des semaines mises de côté est affiché sous le champ
+     pour qu'on ne se demande jamais où sont passées les données. */
+  const pl = $("#opt-plancher");
+  if (pl){
+    pl.value = S.plancher || "";
+    majPlancherHint();
+    pl.addEventListener("change", () => {
+      const v = /^\d{4}-\d{2}-\d{2}$/.test(pl.value) ? pl.value : "";
+      S.plancher = v; pl.value = v;
+      try {
+        if (v) localStorage.setItem(LSPLANCHER, v);
+        else localStorage.removeItem(LSPLANCHER);
+      } catch(e){}
+      Object.assign(S.ui, { preset:"all", from:null, to:null, d1:null, d2:null });
+      syncSegs(); majPlancherHint(); render();
+      toast(v ? "Tableau de bord à partir du " + frDay(v) : "Tableau de bord sur tout l'historique");
     });
   }
   const bnet = $("#fb-net");
@@ -6819,7 +7224,7 @@ function wiz2(){
   $("#wz-an").addEventListener("click", analyseReleve);
   $("#wz-file").addEventListener("change", ev => {
     const f = ev.target.files[0]; if (!f) return;
-    chargeFichier(f, "#wz-ta", RELEVE_OUT, () => analyseReleve());
+    chargeFichier(f, "#wz-ta", RELEVE_OUT, analyseReleve);
     ev.target.value = "";
   });
   $("#wz-next").addEventListener("click", async () => {
@@ -6863,8 +7268,14 @@ function wiz3(){
   else { S.cells = seedCells(); saveLocal(); }
   chargeReglesLocal();
   setStatus("local", "Enregistré sur ce navigateur");
-  if (!afterLoad()) render();
+  /* Cible et plancher se lisent avant le premier rendu : sinon l'écran s'ouvre
+     sur toute la série puis se recadre sous les yeux. */
   try { const c = parseFloat(localStorage.getItem(LSCIBLE)); if (isFinite(c) && c > 0) S.cible = c; } catch(e){}
+  try {
+    const p = localStorage.getItem(LSPLANCHER);
+    if (p != null) S.plancher = /^\d{4}-\d{2}-\d{2}$/.test(p) ? p : "";
+  } catch(e){}
+  if (!afterLoad()) render();
   connectStore();
 })();
 
