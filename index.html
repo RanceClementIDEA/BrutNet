@@ -141,7 +141,7 @@
               <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span><i class="fneed">donne le brut</i></div>
               <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span><i class="fopt">pièce</i></div>
               <div class="fbox s2"><b>Relevé transcrit</b><span>MG ou Logistiport, distribution ou réception</span><i class="fopt">pièce</i></div>
-              <div class="fbox s2"><b>Export Distri Logistiport</b><span>les lignes KO, la cause écrite à côté par un responsable</span><i class="fopt">pièce</i></div>
+              <div class="fbox s2"><b>Export Terrain</b><span>les lignes KO, la cause écrite à côté par un responsable — distribution ou réception, MG ou Logistiport</span><i class="fopt">pièce</i></div>
               <div class="fbox s3"><b>Vos saisies à la main</b><span>ce que vous qualifiez dans « À justifier »</span><i class="fopt">votre analyse</i></div>
             </div>
             <div class="farr" aria-hidden="true">
@@ -348,15 +348,26 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
       </details>
 
       <details class="panel src" id="pan-cause">
-        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.4" y="2.6" width="15.2" height="14.8" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.4 7.2h15.2M7.6 7.2v10.2" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 11.2h4.6M10.4 13.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><h2>4 · Export Distri Logistiport</h2><span class="sub">L'export et ses lignes KO, la cause écrite à côté par un responsable</span></summary>
+        <summary class="ph"><i class="srci"><svg viewBox="0 0 20 20" width="17" height="17" fill="none" aria-hidden="true"><rect x="2.4" y="2.6" width="15.2" height="14.8" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M2.4 7.2h15.2M7.6 7.2v10.2" stroke="currentColor" stroke-width="1.6"/><path d="M10.4 11.2h4.6M10.4 13.8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></i><h2>4 · Export Terrain</h2><span class="sub">Le fichier rempli par un responsable — n'importe quel tableau, du moment qu'on y lit une référence et une cause</span></summary>
         <div class="pb">
           <div class="drop">
-            <label class="btn pri big" style="cursor:pointer">Ouvrir le fichier…<input type="file" id="file-cause" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden></label>
-            <span class="dropi">l'export tel quel, plus une colonne <code>CAUSE</code></span>
+            <label class="btn pri big" style="cursor:pointer">Ouvrir le fichier…<input type="file" id="file-cause" accept=".xlsx,.xlsm,.xltx,.csv,.tsv,.txt,.html,.htm,.mht,.mhtml,.eml" hidden></label>
+            <span class="dropi">l'export tel quel avec une colonne de cause, un tableau maison, un mail — MG ou Logistiport, distribution ou réception</span>
           </div>
-          <p class="hint" style="margin:0">La référence est l'<code>Identifiant flux début</code>&nbsp;: la cause se pose
-          alors sur le <b>poste exact</b>, pas sur la DT entière. Une cause écrite en clair que l'outil ne connaît pas
-          encore vous est présentée une fois, à traduire — ensuite il s'en souvient.</p>
+          <p class="gp" style="margin:12px 0 4px">Deux colonnes suffisent&nbsp;: <b>de quoi on parle</b>, et <b>pourquoi</b>.
+          Le site et le service ne sont pas à préciser — l'outil les retrouve en confrontant les références aux KO déjà chargés.</p>
+          <div class="gmap">
+            <div><b>La référence</b><span>Identifiant flux début ou fin, <b>DT</b>, <b>BR</b>, n° de commande, Référence, Document, Numéro…
+              Avec l'identifiant complet, la cause se pose sur le <b>poste exact</b> plutôt que sur la DT entière.</span></div>
+            <div><b>Le poste</b><span>Dans l'identifiant, ou dans sa propre colonne&nbsp;: Poste, n° poste, Ligne BR, Item, Position.</span></div>
+            <div><b>La cause</b><span>CAUSE, Motif, Raison, Justification, Explication, Catégorie, Origine, Pourquoi, Analyse, Imputation…
+              <b>ou une colonne sans en-tête</b> remplie de texte&nbsp;: l'outil la reconnaît et vous dit laquelle il a prise.</span></div>
+            <div><b>Le reste, s'il y est</b><span>Commentaire, Observation, Remarque, Note, Précision&nbsp;; une date&nbsp;; un nombre de lignes.
+              Tout est facultatif.</span></div>
+          </div>
+          <p class="hint" style="margin:10px 0 0">Les en-têtes peuvent être ailleurs qu'en première ligne — les douze premières sont examinées.
+          Un classeur à <b>plusieurs onglets</b> est lu en entier, un onglet par service si besoin. Une cause écrite en clair que
+          l'outil ne connaît pas encore vous est présentée une fois, à traduire — ensuite il s'en souvient.</p>
           <div id="cause-out"></div>
         </div>
       </details>
@@ -463,6 +474,26 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
            reste en place, même quand une règle dit mieux, et supprimer la règle ne
            la retire pas — ce n'est pas elle qui l'a posée. De quoi les revoir par
            cause, les reclasser ou les retirer en bloc. -->
+      <!-- Une DT part en « Demande irréalisable » alors que l'exploitation la voit
+           comme un rebut. L'écran donnait la cause, jamais la raison : impossible
+           de savoir si la règle attendue a perdu au classement, si elle ne vise
+           pas cette ligne, si elle est décochée, ou si un relevé tient la place.
+           On tape la référence, l'outil répond. -->
+      <details class="panel" id="pan-pourquoi">
+        <summary class="ph"><h2>Pourquoi cette cause&nbsp;?</h2>
+          <span class="sub">Une DT, un BR — et ce qui a décidé de sa cause, règle par règle</span></summary>
+        <div class="pb">
+          <p class="gp">Tapez une référence. L'outil dit, pour chacun de ses KO&nbsp;: la cause posée,
+          qui l'a posée, et <b>pour chaque règle de votre liste</b> si elle visait ce KO — et sinon,
+          ce qu'elle a lu dans l'export.</p>
+          <div class="qbar" style="padding:0 0 12px;border:0;background:none">
+            <input type="text" id="pq-ref" placeholder="7531272, 90139821…" style="width:220px">
+            <button class="btn pri sm" id="btn-pq">Chercher</button>
+          </div>
+          <div id="pq-out"></div>
+        </div>
+      </details>
+
       <details class="panel" id="pan-mains">
         <summary class="ph"><h2>Vos saisies à la main</h2>
           <span class="sub" id="mains-sub">Les revoir par cause, les reclasser, les retirer</span></summary>
