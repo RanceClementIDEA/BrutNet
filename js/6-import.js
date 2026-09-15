@@ -127,12 +127,12 @@ function openDefs(){ openModal(
   '<div class="ph"><h2>Les trois taux, et pourquoi trois</h2><span class="sub">Ce qu\'il faut pouvoir dire en réunion</span></div>' +
   '<div class="pb"><div class="steps" style="border:1px solid var(--line);border-radius:9px">' +
   [["Brut", "var(--c-brut)", "OK / (OK + KO) sur les flux comptés. Aucun retrait, aucune interprétation. C'est ce que le client subit, et c'est le seul chiffre que personne ne peut discuter."],
-   ["Documenté", "var(--c-expl)", "Le brut, moins les KO dont la justification s'appuie sur une pièce : une date de l'export, une réédition SAP, une ligne du relevé de l'exploitation. Elle se vérifie sans vous."],
-   ["Net", "var(--c-net)", "Le documenté, plus les justifications que vous établissez par votre analyse. C'est ce que l'exploitation maîtrise réellement. Les deux se publient ensemble : le documenté est celui qu'un tiers peut recontrôler seul."],
+   ["Net automatique", "var(--c-expl)", "Le brut, moins les KO que l'outil retire <b>tout seul</b> : ses règles automatiques, les rééditions SAP, les dates lues dans l'export. Personne n'a écrit ces justifications — elles se rejouent à l'identique sur n'importe quel poste, et un tiers les recontrôle sans vous."],
+   ["Net complet", "var(--c-net)", "Le net automatique, plus les justifications posées <b>par une personne</b> : un relevé de l'exploitation qu'on dépose en fichier, ou une saisie à la main dans « À justifier ». C'est ce que l'exploitation maîtrise réellement, et c'est le chiffre qu'on publie — avec le net automatique à côté, pour montrer ce qui tient sans intervention."],
    ["Couverture", "var(--muted)", "La part du volume qui reste jugée. Un net élevé sur une couverture faible est un artefact, pas une performance : cela veut dire qu'on a retiré tellement de flux du jugement que le chiffre ne dit plus grand-chose."]]
   .map(([t, c, d]) => '<div class="step" style="grid-template-columns:12px 1fr"><i class="chip-c" style="background:' + c + ';margin-top:5px"></i>' +
     '<div class="sbody"><h3>' + t + "</h3><p style=\"margin:0\">" + d + "</p></div></div>").join("") +
-  '</div><div class="note" style="margin-top:14px">Publiez toujours les trois ensemble, plus le nombre de KO restant à qualifier. Un net seul se retourne contre celui qui le présente.</div>' +
+  '</div><div class="note" style="margin-top:14px">Publiez toujours les trois ensemble, plus le nombre de KO restant à qualifier. Un net complet seul se retourne contre celui qui le présente : c\'est l\'écart entre le net automatique et le net complet qui montre la part de travail humain.</div>' +
   '<div class="actions"><button class="btn pri" id="dl-close">Fermer</button></div></div>'); }
 let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (S.ui.tab === "dash"){ drawEvo(); drawVol(); } }, 180); });
 
@@ -447,7 +447,7 @@ async function applyExport(){
   const st = await rejouerRegles(true);
   $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + out.length + " période(s) enregistrée(s).</b> Le tableau de bord est à jour." +
     (st.reed ? " <b>" + n0(st.reed) + " KO</b> retirés par la règle des postes recréés." : "") +
-    (st.total ? " <b>" + n0(st.total) + " KO</b> documentés par vos règles." : "") +
+    (st.total ? " <b>" + n0(st.total) + " KO</b> retirés par vos règles — ils comptent dans le net automatique." : "") +
     (st.reprisMain ? " " + n0(st.reprisMain) + " saisie" + sPl(st.reprisMain) + " à la main reprise" + sPl(st.reprisMain) +
       " par une règle — la cause d'origine est gardée dans le commentaire." : "") + "</div>";
   toast(out.length + " période(s) enregistrée(s)");
@@ -935,9 +935,9 @@ function analyseReleve(src){
         esc(ecarts.slice(0, 6).map(t => t.ref + " (relevé " + t.ecart + ", données " + t.ko + ")").join(" · ")) + "</div>"
       : "") +
     (RELEVE_APPLY && koVises
-      ? '<div class="actions"><button class="btn pri" id="btn-apply-releve">Documenter ' + n0(koVises) + " KO</button>" +
-        '<span class="muted" style="font-size:12px">Les DT déjà documentées par un relevé sont remplacées.</span></div>'
-      : RELEVE_APPLY ? '<div class="note" style="border-left-color:var(--warn)">Rien à documenter : aucune DT du relevé ne correspond à un KO chargé.</div>' : "");
+      ? '<div class="actions"><button class="btn pri" id="btn-apply-releve">Justifier ' + n0(koVises) + " KO</button>" +
+        '<span class="muted" style="font-size:12px">Elles comptent dans le net complet. Les DT déjà justifiées par un relevé sont remplacées.</span></div>'
+      : RELEVE_APPLY ? '<div class="note" style="border-left-color:var(--warn)">Rien à justifier : aucune DT du relevé ne correspond à un KO chargé.</div>' : "");
   if (RELEVE_APPLY && koVises) $("#btn-apply-releve").addEventListener("click", applyReleve);
   if (typeof wizReady === "function") wizReady(true);
 }
@@ -1033,12 +1033,12 @@ async function applyReleve(){
     n + (l.src === "releve" && l.st === "ok" ? poidsLigne(c, l) : 0), 0), 0);
   await bulkPut(out);
   $(RELEVE_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' +
-    n0(gain) + " KO documenté" + sPl(gain) + "</b> sur " + n0(out.length) + " période" + sPl(out.length) + "." +
+    n0(gain) + " KO justifié" + sPl(gain) + "</b> sur " + n0(out.length) + " période" + sPl(out.length) + ", au net complet." +
     (ecartes || rognes
       ? " " + n0(ecartes + rognes) + " justification" + sPl(ecartes + rognes) +
         " visaient déjà ces KO et cèdent la place au relevé — leur cause est gardée en commentaire."
       : "") + "</div>";
-  toast(n0(gain) + " KO documentés"); releveDraft = null;
+  toast(n0(gain) + " KO justifiés"); releveDraft = null;
 }
 $("#btn-parse-releve").addEventListener("click", () => analyseReleve(rowsDuChamp("#ta-releve")));
 $("#file-releve").addEventListener("change", e => {
@@ -1191,7 +1191,7 @@ async function deposeTout(fichiers, cible){
         if (releveDraft && g) await applyReleve();
         si.value = memo[0]; sv.value = memo[1];
         if (lib && Object.keys(lib).length) Object.assign(aTraduire, lib);
-        faits.push({ x, n:g, note: n0(g) + " KO documenté" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l,
+        faits.push({ x, n:g, note: n0(g) + " KO justifié" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l,
           muette: mu, colPoste: cp, echos: ec });
       }
     }
@@ -1214,7 +1214,7 @@ async function deposeTout(fichiers, cible){
       (st.reed || st.total || st.reprisMain || st.doubles
         ? '<div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--line)">' +
           [st.reed ? "<b>" + n0(st.reed) + "</b> KO retirés par la règle des postes recréés" : "",
-           st.total ? "<b>" + n0(st.total) + "</b> KO documentés par vos règles" : "",
+           st.total ? "<b>" + n0(st.total) + "</b> KO retirés par vos règles — net automatique" : "",
            st.reprisMain ? n0(st.reprisMain) + " saisie" + sPl(st.reprisMain) + " reprise" + sPl(st.reprisMain) +
              " — la cause d'origine est gardée en commentaire" : "",
            st.doubles ? n0(st.doubles) + " doublon" + sPl(st.doubles) + " retiré" + sPl(st.doubles) : ""
@@ -1648,24 +1648,24 @@ function analyseSap(src){
   OUT.innerHTML =
     '<div class="note" style="margin:16px 0 12px"><b>' + n0(stat.reed) + " poste(s) recréé(s)</b> sur " + n0(stat.lignes) +
       " lignes lues" + (stat.deduits ? ", dont " + n0(stat.deduits) + " sans poste de référence, reconnus au poste de commande" : "") + ". " + n0(res.ko) + " correspondent à un flux en KO chargé dans l'outil, dont <b>" + n0(res.doc) +
-      " à documenter</b> (délai réel depuis la recréation ≤ objectif)." +
+      " à retirer</b> (délai réel depuis la recréation ≤ objectif)." +
       '<div class="muted" style="margin-top:5px">' +
         (res.tard ? n0(res.tard) + " restent en retard réel · " : "") +
         (res.deja ? n0(res.deja) + " déjà enregistrés · " : "") +
         (res.dort ? n0(res.dort) + " gardés en réserve — pas de KO en face aujourd'hui, la règle les posera si l'export en apporte un · " : "") +
         (res.sansPeriode ? n0(res.sansPeriode) + " sur des semaines non chargées · " : "") +
-        (stat.urgSansHeure ? n0(stat.urgSansHeure) + " urgents sans heure — non documentés par prudence · " : "") +
+        (stat.urgSansHeure ? n0(stat.urgSansHeure) + " urgents sans heure — non retirés par prudence · " : "") +
         (stat.sansDate ? n0(stat.sansDate) + " sans date exploitable" : "") +
       "</div></div>" +
     (cellsTouched.length
-      ? '<div class="tw" style="border:1px solid var(--line);border-radius:8px"><table><thead><tr><th>Période</th><th>Site</th><th class="n">Postes documentés</th><th class="n">KO retirés</th><th>Exemple</th></tr></thead><tbody>' +
+      ? '<div class="tw" style="border:1px solid var(--line);border-radius:8px"><table><thead><tr><th>Période</th><th>Site</th><th class="n">Postes reconnus</th><th class="n">KO retirés</th><th>Exemple</th></tr></thead><tbody>' +
         cellsTouched.sort().map(id => { const c = S.cells[id], l = plan[id], e = l[0].it;
           return "<tr><td class=\"nowrap\"><b>" + perLabel(c.periode) + "</b></td><td>" + SITES[c.site].l + "</td>" +
             '<td class="n">' + n0(l.length) + '</td><td class="n">' + n0(l.reduce((s, p) => s + p.n, 0)) + "</td>" +
             '<td class="muted" style="font-size:12px">' + esc(e.key) + " — recréé le " + frDate(e.cre) + ", délai réel " + fmtDelai(e.reel, e.unite) + " pour " + e.obj + (e.unite === "h" ? " h" : " j") + "</td></tr>"; }).join("") +
         "</tbody></table></div>" +
-        (SAP_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-sap">Documenter ' + n0(gain) + " KO</button>" +
-          '<span class="muted" style="font-size:12px">Enregistré en source « automatique » : la pièce est l\'extraction SAP.</span></div>' : "")
+        (SAP_APPLY ? '<div class="actions"><button class="btn pri" id="btn-apply-sap">Retirer ' + n0(gain) + " KO</button>" +
+          '<span class="muted" style="font-size:12px">Enregistré en source « automatique » : l\'outil le lit dans l\'extraction SAP, sans main humaine — cela compte dans le net automatique.</span></div>' : "")
       : "") +
     /* Même sans rien à justifier, il reste quelque chose à enregistrer : la base de
        calcul des postes recréés. Sans ce bouton, les 55 postes encore en retard
@@ -1690,8 +1690,8 @@ function analyseSap(src){
   if (typeof wizReady === "function"){
     wizReady(true);
     const nx = $("#wz-next");
-    if (nx) nx.textContent = cellsTouched.length ? "Documenter " + n0(gain) + " KO et continuer"
-      : nReed ? "Corriger " + n0(nReed) + " base(s) de calcul et continuer" : "Rien à documenter — continuer";
+    if (nx) nx.textContent = cellsTouched.length ? "Retirer " + n0(gain) + " KO et continuer"
+      : nReed ? "Corriger " + n0(nReed) + " base(s) de calcul et continuer" : "Rien à retirer — continuer";
   }
 }
 async function applySap(){
@@ -1820,9 +1820,9 @@ function openFicheKo(cid, ref, n, d){
     '<div class="form" style="margin-top:12px"><div class="f wide"><label for="kf-com">Justification — ce que vous diriez en réunion</label>' +
       '<input type="text" id="kf-com" placeholder="facultatif, sauf pour « Autre »"></div>' +
       '<div class="f wide"><label for="kf-src">Ce que vaut cette justification</label><select id="kf-src">' +
-      '<option value="manuel">Mon analyse — compte dans le net</option>' +
-      '<option value="releve">Déclaré au relevé — appuyé sur une pièce</option>' +
-      '<option value="auto">Lu dans les données ou SAP — appuyé sur une pièce</option></select></div></div>' +
+      '<option value="manuel">Mon analyse — net complet</option>' +
+      '<option value="releve">Déclaré au relevé — net complet</option>' +
+      '<option value="auto">Lu dans les données ou SAP — net automatique</option></select></div></div>' +
     '<div class="actions"><button class="btn pri big" id="kf-save" disabled>Appliquer</button>' +
     '<button class="btn" id="dl-close">Fermer</button></div>' +
     (dejaFait ? '<div class="flab" style="margin-top:16px">Déjà enregistré sur cette référence</div>' +
@@ -1833,7 +1833,7 @@ function openFicheKo(cid, ref, n, d){
         '</span><span class="vl">' + n0(l.nb) + " KO</span></div>").join("") + "</div>" : "") +
     '<div class="flab" style="margin-top:16px">La période</div><div class="fgrid">' +
       f("Flux", n0(c.flux), true) + f("KO", n0(c.ko), true) +
-      f("Brut", pf(brut), true) + f("Net", pf(net), true) + "</div></div>");
+      f("Brut", pf(brut), true) + f("Net complet", pf(net), true) + "</div></div>");
 
   const boxes = () => $$("#kf-postes input");
   const choisis = () => boxes().filter(b => b.checked).map(b => b.value);
@@ -2056,7 +2056,9 @@ function openFiche(cid, lid){
       f("Cause", esc(cat.l)) +
       f("Source", '<span class="pill ' + l.src + '">' + SRC[l.src] + "</span>") +
       f("Effet sur le taux", l.st === "ok"
-        ? (l.src === "manuel" ? "compte dans le net" : "compte dans le documenté")
+        ? (l.src === "auto"
+            ? "compte dans le net automatique, et donc aussi dans le net complet"
+            : "compte dans le net complet seulement — posée par une personne")
         : "aucun — gardée pour la trace") +
     "</div>" +
     (cat.d ? '<div class="note" style="margin-top:14px"><b>Règle appliquée.</b> ' + esc(cat.d) + "</div>" : "") +
@@ -2065,7 +2067,7 @@ function openFiche(cid, lid){
     ctxBloc(c, l.ref, l.postes) +
     '<div class="flab" style="margin-top:16px">La période</div><div class="fgrid">' +
       f("Flux", n0(c.flux), true) + f("KO", n0(c.ko), true) +
-      f("Brut", pf(brut), true) + f("Net", pf(net), true) + "</div>" +
+      f("Brut", pf(brut), true) + f("Net complet", pf(net), true) + "</div>" +
     (c.note ? '<div class="muted" style="font-size:11.5px;margin-top:10px">Source du volume&nbsp;: ' + esc(c.note) + "</div>" : "") +
     '<div class="actions"><button class="btn pri" id="fi-edit">Modifier</button>' +
     '<button class="btn" id="dl-close">Fermer</button>' +
@@ -2178,9 +2180,9 @@ function modalQualify(sel){
     '<div class="wq" style="font-size:15px;margin:18px 0 10px">2 · Dites pourquoi</div><div class="form">' +
     '<div class="f wide"><label for="k-com">Justification — ce que vous diriez en réunion</label><input type="text" id="k-com" placeholder="facultatif, sauf pour « Autre »"></div>' +
     '<div class="f wide"><label for="k-src">Ce que vaut cette justification</label><select id="k-src">' +
-      '<option value="manuel">Mon analyse — compte dans le net</option>' +
-      '<option value="releve">Déclaré au relevé — appuyé sur une pièce</option>' +
-      '<option value="auto">Lu dans les données ou SAP — compte dans le documenté</option></select></div>' +
+      '<option value="manuel">Mon analyse — net complet</option>' +
+      '<option value="releve">Déclaré au relevé — net complet</option>' +
+      '<option value="auto">Lu dans les données ou SAP — net automatique</option></select></div>' +
     '</div><div class="actions"><button class="btn pri big" id="k-save" disabled>Appliquer</button><button class="btn" id="k-cancel">Annuler</button></div></div>');
   let kcat = null;
   wireCauseGrid("k-grid", k => { kcat = k; $("#k-save").disabled = false; });
@@ -2348,12 +2350,14 @@ const csv = rows => "﻿" + rows.map(r => r.map(v => { const s = String(v == nul
 const stamp = () => new Date().toISOString().slice(0, 10);
 $("#btn-exp-json").addEventListener("click", () => offerFile("taux-service-" + stamp() + ".json", JSON.stringify({ v:1, exporte:new Date().toISOString(), cells:Object.values(S.cells) }, null, 1)));
 $("#btn-exp-cells").addEventListener("click", () => {
-  const rows = [["Periode", "Debut", "Site", "Service", "Flux", "KO", "Justifies documentes", "Justifies manuels", "Brut", "Net", "Reste a qualifier", "Source"]];
+  const rows = [["Periode", "Debut", "Site", "Service", "Flux", "KO", "Justifies par l'outil", "Justifies par une personne", "Brut", "Net automatique", "Net complet", "Reste a qualifier", "Source"]];
   Object.values(S.cells).sort((a, b) => a.periode.localeCompare(b.periode)).forEach(c => {
     const st = cellStats(c);
     rows.push([perLabel(c.periode), weekSpan(c.periode), SITES[c.site].l, SERVS[c.service].l, c.flux, c.ko,
-      Math.round(st.doc), Math.round(st.man),
-      dec(c.flux ? (c.flux - c.ko) / c.flux * 100 : 0, 2), dec(c.flux ? (c.flux - c.ko + st.tot) / c.flux * 100 : 0, 2),
+      Math.round(st.aut), Math.round(st.hum),
+      dec(c.flux ? (c.flux - c.ko) / c.flux * 100 : 0, 2),
+      dec(c.flux ? (c.flux - c.ko + st.aut) / c.flux * 100 : 0, 2),
+      dec(c.flux ? (c.flux - c.ko + st.tot) / c.flux * 100 : 0, 2),
       Math.max(0, c.ko - st.tot), c.note]);
   });
   offerFile("periodes-" + stamp() + ".csv", csv(rows));
@@ -2630,8 +2634,8 @@ function analyseAncien(o){
     (hors
       ? '<div class="note" style="margin-bottom:10px"><b>' + n0(hors) + " KO</b> " + (hors > 1 ? "arrivent" : "arrive") +
         " dans une catégorie qui ne retire pas le KO (" + esc(SANS.map(k => CAT[k].l).join(", ")) +
-        ") : la saisie reste visible sur la fiche, le taux net ne bouge pas. Les " + n0(ret) +
-        " autres comptent dans le net.</div>"
+        ") : la saisie reste visible sur la fiche, le taux net complet ne bouge pas. Les " + n0(ret) +
+        " autres comptent dans le net complet.</div>"
       : "") +
     (Object.keys(inconnues).length
       ? '<div class="note" style="margin-bottom:10px;border-left-color:var(--warn)"><b>' +
@@ -2680,7 +2684,7 @@ async function applyAncien(){
   $("#imp-out").innerHTML = '<div class="note" style="margin-top:12px;border-left-color:var(--good)"><b>' +
     (g.n ? n0(g.n) + " justification" + sPl(g.n) + " reprise" + sPl(g.n) : "Reprise faite") + "</b> sur " +
     n0(out.length) + " période" + sPl(out.length) +
-    (g.n ? " — " + n0(g.ret) + " KO " + (g.ret > 1 ? "comptent" : "compte") + " dans le taux net" : "") +
+    (g.n ? " — " + n0(g.ret) + " KO " + (g.ret > 1 ? "comptent" : "compte") + " dans le taux net complet" : "") +
     (g.reporte ? ", et " + n0(g.reporte) + " saisie" + sPl(g.reporte) + " reportée" + sPl(g.reporte) +
       " sur la justification qui couvrait déjà le KO" : "") +
     ". Tout cela se lit sur la fiche de chaque demande et dans les retards qualifiés, " +
@@ -3224,7 +3228,7 @@ async function readFilled(file){
         (res.horsBase ? n0(res.horsBase) + " sur des périodes absentes de l'outil" : "") + "</div>"
       : "") + "</div>" +
     (nCells ? '<div class="actions"><button class="btn pri big" id="btn-xls-apply">Intégrer ces justifications</button>' +
-      '<span class="muted" style="font-size:12px">Enregistrées comme «&nbsp;relevé&nbsp;» — elles comptent dans le documenté.</span></div>'
+      '<span class="muted" style="font-size:12px">Enregistrées comme «&nbsp;relevé&nbsp;» — écrites par une personne, elles comptent dans le net complet.</span></div>'
       : '<div class="note" style="border-left-color:var(--warn)">Aucune ligne exploitable : vérifiez que la colonne <i>Cause</i> a bien été remplie.</div>');
   if (nCells) $("#btn-xls-apply").addEventListener("click", applyFilled);
 }
@@ -3403,9 +3407,9 @@ function modalRegle(id, preset){
     '<div class="flab" style="margin-top:16px">Ce qu\'on en fait</div>' +
     '<div class="form"><div class="f"><label for="rg-cause">Cause posée</label><select id="rg-cause"></select></div>' +
       '<div class="f"><label for="rg-src">Ce que vaut la justification</label><select id="rg-src">' +
-        '<option value="auto"' + (r.src === "auto" ? " selected" : "") + ">Lue dans les données — appuyée sur une pièce</option>" +
-        '<option value="releve"' + (r.src === "releve" ? " selected" : "") + ">Déclarée au relevé — appuyée sur une pièce</option>" +
-        '<option value="manuel"' + (r.src === "manuel" ? " selected" : "") + ">Mon analyse — compte dans le net</option></select></div></div>" +
+        '<option value="auto"' + (r.src === "auto" ? " selected" : "") + ">Lue dans les données — net automatique</option>" +
+        '<option value="releve"' + (r.src === "releve" ? " selected" : "") + ">Déclarée au relevé — net complet</option>" +
+        '<option value="manuel"' + (r.src === "manuel" ? " selected" : "") + ">Mon analyse — net complet</option></select></div></div>" +
     '<div class="note" id="rg-apercu" style="margin-top:16px">Complétez la règle pour voir son effet.</div>' +
     '<div class="actions"><button class="btn pri big" id="rg-save">Enregistrer la règle</button>' +
       '<button class="btn" id="rg-test">Mesurer l\'effet</button>' +
@@ -3497,7 +3501,7 @@ function modalRegle(id, preset){
     if (!(CAT[r.cause] && CAT[r.cause].j)){
       s += " Cette cause ne retire pas le KO : il resterait compté, la ligne servant de trace.";
     } else if (ap > av + 0.004){
-      s += " Le taux net passerait de <b>" + dec(av, 2) + " %</b> à <b>" + dec(ap, 2) +
+      s += " Le taux net complet passerait de <b>" + dec(av, 2) + " %</b> à <b>" + dec(ap, 2) +
         " %</b>, soit <b>+" + dec(ap - av, 2) + " pt</b>.";
       if (dj < e.n){
         const k = e.n - dj;
@@ -3507,7 +3511,7 @@ function modalRegle(id, preset){
                  : "il ne rapporte rien de plus, il change seulement de cause.");
       }
     } else {
-      s += " Le taux net ne bougerait pas : ces KO sont déjà tous couverts par une justification existante. " +
+      s += " Le taux net complet ne bougerait pas : ces KO sont déjà tous couverts par une justification existante. " +
         "La règle ne ferait que leur donner cette cause.";
     }
     box.innerHTML = s;
@@ -3535,7 +3539,7 @@ function modalRegle(id, preset){
     await sauveRegles();
     const st = await rejouerRegles(true);
     closeModal();
-    toast("Règle enregistrée — " + n0(st.total) + " KO documentés au total");
+    toast("Règle enregistrée — " + n0(st.total) + " KO retirés au total");
   });
   majCauses(); dessineCorps(); apercu();
 }
@@ -3543,7 +3547,7 @@ $("#btn-regle-new").addEventListener("click", () => modalRegle(null));
 $("#btn-regles-run").addEventListener("click", async () => {
   if (!S.regles.length){ toast("Aucune règle enregistrée", true); return; }
   const st = await rejouerRegles(false);
-  $("#regles-msg").textContent = n0(st.total) + " KO documentés sur " + n0(st.cellules) + " période(s)";
+  $("#regles-msg").textContent = n0(st.total) + " KO retirés par vos règles sur " + n0(st.cellules) + " période(s)";
 });
 document.addEventListener("click", async e => {
   if (e.target.closest("#btn-go-sap")){
@@ -3651,12 +3655,12 @@ function wizSap(){
     '<div class="wq">L\'extraction SAP des postes BR</div>' +
     '<p class="wh"><b>Suivi_BR</b> sur la date choisie, exporter, puis <i>Ouvrir un fichier…</i> ci-dessous. ' +
     'Extrayez <b>après</b> la période&nbsp;: un poste recréé plus tard n\'y figurerait pas. ' +
-    'C\'est la colonne qui manque à l\'export PowerBI. Quand un litige se résout, SAP <b>recrée le poste BR</b> sous un nouveau numéro&nbsp;: le KPI, lui, continue de compter depuis la première création. L\'outil recalcule le délai réel depuis la recréation et documente les postes qui tiennent l\'objectif. Sans cette étape, ces KO restent comptés comme des retards.</p>' +
+    'C\'est la colonne qui manque à l\'export PowerBI. Quand un litige se résout, SAP <b>recrée le poste BR</b> sous un nouveau numéro&nbsp;: le KPI, lui, continue de compter depuis la première création. L\'outil recalcule le délai réel depuis la recréation et retire les postes qui tiennent l\'objectif. Sans cette étape, ces KO restent comptés comme des retards.</p>' +
     '<textarea id="wz-ta" rows="6" placeholder="Type Magasin&#9;N° BR&#9;N° poste BR&#9;N° Poste Référence&#9;Date de création du poste BR&#9;Date EM&#9;Circuit Court"></textarea>' +
     '<div class="actions"><button class="btn pri" id="wz-an">Analyser l\'extraction</button>' +
     '<label class="btn" style="cursor:pointer">Ouvrir un fichier…<input type="file" id="wz-file" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.htm,.html,.mht,.mhtml,.eml" hidden></label></div>' +
     '<div id="wz-out"></div></div>' +
-    wizFoot("Je n'ai pas l'extraction SAP", "Documenter et continuer", true));
+    wizFoot("Je n'ai pas l'extraction SAP", "Analyser et continuer", true));
   wizCommon();
   $("#wz-an").addEventListener("click", () => analyseSap($("#wz-ta").value));
   $("#wz-file").addEventListener("change", ev => {
@@ -3685,7 +3689,7 @@ function wiz2(){
     '(une conversation de plusieurs jours convient), puis demander à <b>ChatGPT</b> ou <b>Gemini</b> ' +
     'de le transcrire — le prompt complet est dans l\'onglet <b>Import</b>, au bloc du relevé — et ouvrir le ' +
     '<code>.xlsx</code> obtenu ci-dessous. L\'ordre des colonnes n\'a pas d\'importance, elles sont reconnues par ' +
-    'leur nom. L\'outil <b>cherche</b> chaque DT parmi les KO déjà importés et les documente là où ils sont, à leur ' +
+    'leur nom. L\'outil <b>cherche</b> chaque DT parmi les KO déjà importés et les justifie là où ils sont, à leur ' +
     'vraie date&nbsp;: il n\'ajoute jamais une DT que l\'export ne porte pas. Les catégories <i>Urgences</i>, ' +
     '<i>Retard</i> et <i>Non renseignée</i> sont gardées pour la trace mais ne justifient rien.</p>' +
     '<div class="form" style="margin-bottom:11px">' +
@@ -3726,7 +3730,9 @@ function wiz3(){
     wizHead() +
     '<div class="pb" style="padding-top:0">' +
     '<div class="wq">' + (dF > 0 ? n0(dF) + " flux ajoutés" : "Rien ajouté au volume") + (dJ > 0 ? " · " + n0(dJ) + " KO justifiés en plus" : "") + "</div>" +
-    '<p class="wh">Sur ' + esc(rangeLabel()) + ", le taux net est de <b>" + pf(cur.net) + "</b> contre <b>" + pf(cur.brut) + "</b> en brut.</p>" +
+    '<p class="wh">Sur ' + esc(rangeLabel()) + ", le taux net complet est de <b>" + pf(cur.net) + "</b> contre <b>" + pf(cur.brut) + "</b> en brut" +
+      (cur.nauto != null && cur.net != null && Math.abs(cur.net - cur.nauto) > 5e-5
+        ? ", dont <b>" + pf(cur.nauto) + "</b> obtenus par l'outil seul" : "") + ".</p>" +
     '<div class="facts" style="border:1px solid var(--line);border-radius:9px;border-top:1px solid var(--line)">' +
       line("Flux ajoutés", n0(dF)) + line("KO ajoutés", n0(dK)) + line("Justifications ajoutées", n0(dJ)) +
       line("Reste à qualifier", n0(cur.reste)) + "</div>" +

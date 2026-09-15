@@ -698,7 +698,7 @@ async function rejouerRegles(silencieux){
   if (cellules.length) await bulkPut(cellules);
   if (!silencieux){
     const n = stats.total + stats.reed;
-    toast((n ? n0(n) + " KO documentés automatiquement" : "Aucun KO ne correspond aux règles") +
+    toast((n ? n0(n) + " KO retirés automatiquement" : "Aucun KO ne correspond aux règles") +
       (stats.reprisMain ? " · " + n0(stats.reprisMain) + " saisie" + (stats.reprisMain > 1 ? "s" : "") + " reprise" +
         (stats.reprisMain > 1 ? "s" : "") : "") +
       (stats.doubles ? " · " + n0(stats.doubles) + " doublon" + (stats.doubles > 1 ? "s" : "") + " retiré" +

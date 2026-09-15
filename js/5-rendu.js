@@ -46,8 +46,8 @@ function drawEvo(){
   const keys = rangeKeys();
   evoData = keys.map(k => { const a = agg(cs.filter(c => pkey(c) === k)); a.key = k; return a; });
   $("#evo-sub").textContent = keys.length
-    ? "Brut, documenté et net — " + rangeLabel()
-    : "Brut, documenté et net période par période";
+    ? "Brut, net automatique et net complet — " + rangeLabel()
+    : "Brut, net automatique et net complet période par période";
   if (!keys.length){ $("#evo-legend").innerHTML = ""; wrap.innerHTML = '<div class="empty"><b>Aucune période dans la plage</b>Élargissez la plage, ou enregistrez une période dans l\'onglet Saisie.</div>'; return; }
   if (keys.length === 1){
     $("#evo-legend").innerHTML = "";
@@ -66,7 +66,7 @@ function drawEvo(){
   const x = i => n === 1 ? m.l + iw / 2 : m.l + iw * i / (n - 1);
   const y = v => m.t + ih - (v * 100 - lo) / (hi - lo) * ih;
 
-  let s = '<svg ' + SVGNS + ' viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Évolution des taux brut, documenté et net">';
+  let s = '<svg ' + SVGNS + ' viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Évolution des taux brut, net automatique et net complet">';
   for (let i = 0; i <= 4; i++){
     const v = lo + (hi - lo) * i / 4, yy = m.t + ih - i / 4 * ih;
     s += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '" stroke="var(--grid)" stroke-width="1"/>';
@@ -90,17 +90,17 @@ function drawEvo(){
     o += svgText(x(n - 1) + 9, y(get(lastD)), dec(get(lastD) * 100, 1), { dom:"middle", size:11, mono:true, w:500, fill:col });
     return o;
   };
-  const fondu = evoData.every(d => d.net != null && d.docu != null && Math.abs(d.net - d.docu) < 5e-5);
+  const fondu = evoData.every(d => d.net != null && d.nauto != null && Math.abs(d.net - d.nauto) < 5e-5);
   s += line(d => d.brut, "var(--c-brut)");
-  if (!fondu) s += line(d => d.docu, "var(--c-expl)");
+  if (!fondu) s += line(d => d.nauto, "var(--c-expl)");
   s += line(d => d.net,  "var(--c-net)");
   $("#evo-legend").innerHTML =
     '<span><i style="background:var(--c-brut)"></i>Brut</span>' +
     (fondu
-      ? '<span><i style="background:linear-gradient(90deg,var(--c-expl) 50%,var(--c-net) 50%)"></i>Documenté et net confondus</span>'
-      : '<span><i style="background:var(--c-expl)"></i>Documenté</span><span><i style="background:var(--c-net)"></i>Net</span>') +
-    '<span class="muted">La bande grisée mesure l\'écart brut → net.' +
-    (fondu ? " Toutes les justifications s’appuient ici sur une pièce." : "") + "</span>";
+      ? '<span><i style="background:linear-gradient(90deg,var(--c-expl) 50%,var(--c-net) 50%)"></i>Net automatique et net complet confondus</span>'
+      : '<span><i style="background:var(--c-expl)"></i>Net automatique</span><span><i style="background:var(--c-net)"></i>Net complet</span>') +
+    '<span class="muted">La bande grisée mesure l\'écart brut → net complet.' +
+    (fondu ? " Aucune justification humaine ici : tout vient des règles de l’outil." : "") + "</span>";
   evoData.forEach((d, i) => {
     const step = n > 14 ? Math.ceil(n / 10) : 1;
     if (i % step === 0 || i === n - 1)
@@ -121,8 +121,8 @@ function drawEvo(){
     cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", "1");
     tip.innerHTML = '<div class="tt">' + esc(perLong(d.key)) + "</div>" +
       '<div class="tr"><span>Brut</span><b>' + pf(d.brut) + "</b></div>" +
-      '<div class="tr"><span>Documenté</span><b>' + pf(d.docu) + "</b></div>" +
-      '<div class="tr"><span>Net</span><b>' + pf(d.net) + "</b></div>" +
+      '<div class="tr"><span>Net automatique</span><b>' + pf(d.nauto) + "</b></div>" +
+      '<div class="tr"><span>Net complet</span><b>' + pf(d.net) + "</b></div>" +
       '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px"><span>Flux · KO</span><b>' + n0(d.flux) + " · " + n0(d.ko) + "</b></div>" +
       '<div class="tr"><span>KO justifiés</span><b>' + n0(d.jtot) + "</b></div>";
     tip.style.opacity = "1";
@@ -282,11 +282,11 @@ function drawVol(){
       '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px">' +
         '<span><i class="tk" style="background:var(--c-expl)"></i>Retirés</span><b>' + n0(ret) + "</b></div>" +
       (d.jtot > 0.5
-        ? '<div class="tr sm"><span>dont sur pièce</span><b>' + n0(d.jdoc) + "</b></div>" +
-          '<div class="tr sm"><span>par votre analyse</span><b>' + n0(d.jtot - d.jdoc) + "</b></div>"
+        ? '<div class="tr sm"><span>dont par l’outil</span><b>' + n0(d.jauto) + "</b></div>" +
+          '<div class="tr sm"><span>par une personne</span><b>' + n0(d.jtot - d.jauto) + "</b></div>"
         : "") +
       '<div class="tr"><span><i class="tk" style="background:var(--c-brut)"></i>Restants</span><b>' + n0(res) + "</b></div>" +
-      '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px"><span>Brut → net</span><b>' +
+      '<div class="tr" style="margin-top:5px;border-top:1px solid var(--line);padding-top:5px"><span>Brut → net complet</span><b>' +
         pf(d.brut) + " → " + pf(d.net) + "</b></div>";
     tip.style.opacity = "1";
     const cx = ev ? (ev.clientX - r.left) : (rs.left - r.left + xc(i) / sc);
@@ -407,15 +407,18 @@ function renderDash(){
 
   const t1 = jauge("Taux brut", a.brut, "var(--c-brut)",
     n0(a.flux) + " flux · <b>" + n0(a.ko) + " KO</b> comptés en retard", rangeLabel(), "var(--c-brut-f)");
-  const t2 = jauge("Taux net", a.net, "var(--c-net)",
+  const t2 = jauge("Taux net complet", a.net, "var(--c-net)",
     "<b>" + ptf(a.net - a.brut) + "</b> d'écart expliqué · " + n0(a.jtot) + " KO justifiés" +
-    (a.jtot - a.jdoc < 0.5
-      ? ", tous appuyés sur une pièce"
-      : " — " + n0(a.jdoc) + " sur pièce, " + n0(a.jtot - a.jdoc) + " par votre analyse"),
+    (a.jtot - a.jauto < 0.5
+      ? ", tous posés par l'outil"
+      : " — " + n0(a.jauto) + " par l'outil, " + n0(a.jtot - a.jauto) + " par une personne") +
+    (a.nauto != null && a.net != null && Math.abs(a.net - a.nauto) > 5e-5
+      ? ' · <span style="color:var(--c-expl-t)">net automatique <b>' + pf(a.nauto) + "</b></span>"
+      : ""),
     n0(a.reste) + " restent", "var(--c-net-f)");
 
   /* ---- les causes, en barres ---- */
-  const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man }))
+  const cats = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.aut + v.hum }))
     .filter(r => r.n > 0.5).sort((x, y) => y.n - x.n).slice(0, 6);
   const maxC = cats.length ? cats[0].n : 1;
   const t3 = '<div class="wt"><h3><i class="chip-c" style="background:var(--c-expl)"></i>Retards expliqués' +
@@ -427,7 +430,7 @@ function renderDash(){
           '<span class="hbt"><i style="width:' + Math.max(2, c.n / maxC * 100).toFixed(1) + '%"></i></span></div>').join("") + "</div>"
       : '<div class="wempty">Aucune cause enregistrée sur cette plage.</div>') +
     '<div class="bcta"><button class="btn sm" data-tabgo="qualif">Voir le registre</button>' +
-      ' <button class="btn sm" id="btn-defs">Brut, documenté, net&nbsp;?</button></div></div>';
+      ' <button class="btn sm" id="btn-defs">Les trois taux&nbsp;?</button></div></div>';
 
   /* ---- rangée de tuiles : un périmètre chacune ---- */
   const actif = (si, sv) => S.ui.site === si && S.ui.serv === sv;
@@ -470,28 +473,29 @@ function triReg(x, y){
 }
 function renderQualifies(){
   const cs = selCells(), a = agg(cs);
-  const rows = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.doc + v.man, doc: v.doc, man: v.man }))
+  const rows = Object.entries(a.cat).map(([k, v]) => ({ k, l: CAT[k] ? CAT[k].l : k, n: v.aut + v.hum, aut: v.aut, hum: v.hum }))
     .filter(r => r.n > 0.0001).sort((x, y) => y.n - x.n);
   const mx = rows.length ? rows[0].n : 1;
   $("#causes-sub").textContent = a.jtot ? n0(a.jtot) + " KO retirés · " + ptf(a.net - a.brut) + " de taux" : "";
   $("#causes").innerHTML = rows.length
     ? rows.map(r => {
         const pts = r.n / (a.flux || 1) * 100;
-        /* La barre montre la part sur pièce et la part d'analyse au lieu de teindre
-           toute la cause selon sa majorité : à 51 % contre 49 % l'ancienne version
-           basculait d'une couleur à l'autre sans que rien n'ait vraiment changé. */
-        const wd = (r.doc / mx * 100).toFixed(1), wm = (r.man / mx * 100).toFixed(1);
+        /* La barre montre la part posée par l'outil et la part posée par une
+           personne au lieu de teindre toute la cause selon sa majorité : à 51 %
+           contre 49 % l'ancienne version basculait d'une couleur à l'autre sans
+           que rien n'ait vraiment changé. */
+        const wd = (r.aut / mx * 100).toFixed(1), wm = (r.hum / mx * 100).toFixed(1);
         return '<div style="display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;margin-bottom:11px">' +
           '<div style="font-size:13px;display:flex;align-items:center;gap:7px"><i class="chip-c" style="background:var(--c-expl)"></i>' + esc(r.l) + "</div>" +
           '<div class="ref nowrap">' + n0(r.n) + " KO · +" + dec(pts, 2) + " pt</div>" +
           '<div class="cbar">' +
-            (r.doc > 0.05 ? '<i class="piece" style="width:' + wd + '%"></i>' : "") +
-            (r.man > 0.05 ? '<i class="analyse" style="width:' + wm + '%"></i>' : "") +
+            (r.aut > 0.05 ? '<i class="pauto" style="width:' + wd + '%"></i>' : "") +
+            (r.hum > 0.05 ? '<i class="phum" style="width:' + wm + '%"></i>' : "") +
           "</div></div>";
       }).join("") +
-      '<div class="ckey"><span><i class="piece"></i>appuyé sur une pièce</span>' +
-      '<span><i class="analyse"></i>établi par votre analyse</span></div>'
-    : '<div class="empty"><b>Rien de retiré pour l\'instant</b>Le net est égal au brut sur ce périmètre.</div>';
+      '<div class="ckey"><span><i class="pauto"></i>posé par l\'outil — net automatique</span>' +
+      '<span><i class="phum"></i>posé par une personne — net complet</span></div>'
+    : '<div class="empty"><b>Rien de retiré pour l\'instant</b>Le net complet est égal au brut sur ce périmètre.</div>';
 
   const flat = [];
   /* L'opérateur est lu une fois par ligne : il sert à la fois à la recherche,
@@ -680,7 +684,7 @@ function renderCellsTable(){
       : "Rien d'enregistré"; }
   if (typeof majPlancherHint === "function") majPlancherHint();
   $("#cells-tbl").innerHTML = list.length
-    ? '<table><thead><tr><th>Période</th><th>Site</th><th>Service</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Justifiés</th><th class="n">Net</th><th>Source</th><th></th></tr></thead><tbody>' +
+    ? '<table><thead><tr><th>Période</th><th>Site</th><th>Service</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Justifiés</th><th class="n">Net complet</th><th>Source</th><th></th></tr></thead><tbody>' +
       list.map(c => { const st = cellStats(c), br = c.flux ? (c.flux - c.ko) / c.flux : null, ne = c.flux ? (c.flux - c.ko + st.tot) / c.flux : null;
         return '<tr data-cellrow="' + c.id + '"><td class="nowrap"><b>' + perLabel(c.periode) + '</b> <span class="muted" style="font-size:11px">' + weekSpan(c.periode) + "</span>" +
           (c.demo ? ' <span class="pill demo">exemple</span>' : "") +
@@ -1007,7 +1011,7 @@ function renderDonnees(){
       .map(([k, v]) => '<div class="fact"><span class="k">' + k + '</span><span class="v">' + v + "</span></div>").join("") + "</div>";
 
   renderFb();
-  $("#ref-tbl").innerHTML = '<table><thead><tr><th>Périmètre</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Net</th><th>Reprise</th></tr></thead><tbody>' +
+  $("#ref-tbl").innerHTML = '<table><thead><tr><th>Périmètre</th><th class="n">Flux</th><th class="n">KO</th><th class="n">Brut</th><th class="n">Net complet</th><th>Reprise</th></tr></thead><tbody>' +
     REFERENCE.map(r => {
       const a = agg(Object.values(S.cells).filter(c => c.service === r.s && (r.z === "tous" || c.site === r.z)));
       let pill = '<span class="pill rejet">non chargée</span>';
@@ -1016,7 +1020,7 @@ function renderDonnees(){
            Le net, lui, monte dès qu'on justifie un retard de plus — un net
            au-dessus de la consolidation n'est pas un écart, c'est du travail fait. */
         const db = Math.abs(a.brut - r.brut) * 100, dn = (a.net - r.net) * 100, df = a.flux - r.flux;
-        const tt = "Recalculé : " + n0(a.flux) + " flux · brut " + pf(a.brut) + " · net " + pf(a.net);
+        const tt = "Recalculé : " + n0(a.flux) + " flux · brut " + pf(a.brut) + " · net complet " + pf(a.net);
         pill = df
           ? '<span class="pill demo" title="' + tt + '">' + (df > 0 ? "+" : "−") + n0(Math.abs(df)) + " flux</span>"
           : db >= 0.06

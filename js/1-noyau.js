@@ -75,9 +75,8 @@ const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
    une saisie les choisir.
 
    Le champ qui compte est `j` : une cause qui justifie retire le KO du net, une
-   cause qui ne justifie pas le documente sans l'effacer. C'est la seule
-   question à laquelle il faut répondre en la créant, et elle est posée en
-   clair. */
+   cause qui ne justifie pas le nomme sans l'effacer. C'est la seule question à
+   laquelle il faut répondre en la créant, et elle est posée en clair. */
 const CAT_MIENNES = new Set();
 function cleCause(lib){
   const b = CAT_ALIAS.norm(lib).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 24) || "cause";
@@ -259,7 +258,7 @@ function joursOuvresSigne(a, b){
    export sur une copie d'il y a trois versions, et on obtient les chiffres
    d'il y a trois versions. Le numéro est écrit à l'assemblage ; il s'affiche
    dans les réglages et au survol du titre. */
-const VERSION = "v73";
+const VERSION = "v74";
 const VERSION_DATE = "15/09/2026";
 
 /* ---------------------------- état ---------------------------- */
@@ -907,41 +906,57 @@ function seedCells(){
   return m;
 }
 
-/* ---------------------------- calcul ---------------------------- */
+/* ---------------------------- calcul ----------------------------
+   Deux familles de justifications, et une seule frontière entre elles :
+   la machine, ou une personne.
+
+     auto    l'outil l'a posée seul — une règle automatique, une réédition SAP,
+             une date lue dans l'export. Personne n'a écrit cette ligne.
+     releve  une personne l'a écrite, dans un fichier : le relevé de
+             l'exploitation, l'export terrain. On dépose le fichier, mais la
+             cause vient d'une main humaine.
+     manuel  une personne l'a écrite ici même, dans « À justifier ».
+
+   D'où les deux taux au-dessus du brut :
+     NET AUTOMATIQUE  le brut moins `auto` seul — ce que l'outil fait sans vous
+     NET COMPLET      plus `releve` et `manuel` — le travail de qualification,
+                      par fichier ou à la main. C'est le chiffre qu'on publie. */
 function cellStats(c){
-  let d = 0, m = 0; const buck = {};
+  let a = 0, h = 0; const buck = {};
   for (const l of c.lignes){
     if (l.st !== "ok") continue;
     const n = Math.max(0, +l.nb || 0);
     if (!n) continue;
-    const g = l.src === "manuel" ? "man" : "doc";
-    if (g === "man") m += n; else d += n;
-    (buck[l.cat] = buck[l.cat] || {doc:0, man:0})[g] += n;
+    const g = l.src === "auto" ? "aut" : "hum";
+    if (g === "aut") a += n; else h += n;
+    (buck[l.cat] = buck[l.cat] || {aut:0, hum:0})[g] += n;
   }
-  const od = Math.min(d, c.ko), om = Math.min(m, Math.max(0, c.ko - od));
-  const fd = d > 0 ? od / d : 0, fm = m > 0 ? om / m : 0;
+  /* Le plafond du KO se remplit d'abord par l'automatique : autrement le net
+     automatique pourrait passer devant le net complet, ce qui n'a aucun sens. */
+  const oa = Math.min(a, c.ko), oh = Math.min(h, Math.max(0, c.ko - oa));
+  const fa = a > 0 ? oa / a : 0, fh = h > 0 ? oh / h : 0;
   const cat = {};
-  for (const k in buck) cat[k] = { doc: buck[k].doc * fd, man: buck[k].man * fm };
-  return { raw:d + m, doc:od, man:om, tot:od + om, over:(d + m) > c.ko, cat };
+  for (const k in buck) cat[k] = { aut: buck[k].aut * fa, hum: buck[k].hum * fh };
+  return { raw:a + h, aut:oa, hum:oh, tot:oa + oh, over:(a + h) > c.ko, cat };
 }
 function agg(cells){
-  let flux = 0, ko = 0, jd = 0, jm = 0, rawJ = 0;
+  let flux = 0, ko = 0, ja = 0, jh = 0, rawJ = 0;
   const cat = {}; const over = [];
   for (const c of cells){
     const st = cellStats(c);
-    flux += c.flux; ko += c.ko; jd += st.doc; jm += st.man; rawJ += st.raw;
+    flux += c.flux; ko += c.ko; ja += st.aut; jh += st.hum; rawJ += st.raw;
     if (st.over) over.push(c);
-    for (const k in st.cat){ (cat[k] = cat[k] || {doc:0, man:0}); cat[k].doc += st.cat[k].doc; cat[k].man += st.cat[k].man; }
+    for (const k in st.cat){ (cat[k] = cat[k] || {aut:0, hum:0}); cat[k].aut += st.cat[k].aut; cat[k].hum += st.cat[k].hum; }
   }
-  const ok = flux - ko, jt = jd + jm;
+  const ok = flux - ko, jt = ja + jh;
   return {
-    n: cells.length, flux, ko, ok, jdoc: jd, jman: jm, jtot: jt, rawJ,
+    n: cells.length, flux, ko, ok, jauto: ja, jhum: jh, jtot: jt, rawJ,
     reste: Math.max(0, ko - jt), over, cat,
-    brut: flux ? ok / flux : null,
-    docu: flux ? (ok + jd) / flux : null,
-    net:  flux ? (ok + jt) / flux : null,
-    couv: flux ? (flux - jt) / flux : null,
-    expl: ko ? jt / ko : null
+    brut:  flux ? ok / flux : null,
+    nauto: flux ? (ok + ja) / flux : null,
+    net:   flux ? (ok + jt) / flux : null,
+    couv:  flux ? (flux - jt) / flux : null,
+    expl:  ko ? jt / ko : null
   };
 }
 /* ------------------- une plage de dates, un seul périmètre -------------------
@@ -1509,9 +1524,10 @@ function controls(){
             "Relancez « Rejouer sur tout l'historique » dans les règles." });
       }
     });
-  if (a.jtot > 0 && a.jman / a.jtot > 0.5 && (a.net - a.brut) > 0.005)
-    raw.push({ k:"warn", t:"L'écart repose surtout sur du déclaratif", tag: dec(a.jman / a.jtot * 100, 0) + " % des KO retirés",
-      why:"Publiez le net avec le documenté, sinon l'écart ne se défend pas." });
+  if (a.jtot > 0 && a.jhum / a.jtot > 0.5 && (a.net - a.brut) > 0.005)
+    raw.push({ k:"warn", t:"L'écart repose surtout sur du déclaratif", tag: dec(a.jhum / a.jtot * 100, 0) + " % des KO retirés",
+      why:"Plus de la moitié des KO retirés viennent d'une main humaine — un relevé ou une saisie — et non d'une règle de l'outil. " +
+        "Publiez le net complet avec le net automatique à côté, sinon l'écart ne se défend pas." });
   /* La seule chose qui fasse encore diverger deux mailles sur la même plage :
      une semaine sans détail au jour n'a pas sa place dans une vue au jour, et
      elle en sort. Le total change donc en passant à la maille Jour — on dit
