@@ -862,3 +862,28 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:18px 0}
   .view:not(.on){display:none!important}
 }
 #print-head{display:none}
+
+/* ---------- pourquoi cette cause ? ----------
+   Un verdict par règle, dans l'ordre de la liste. L'icône porte le sens, la
+   couleur le confirme : on lit la colonne de gauche sans lire les phrases. */
+.pqbloc{border:1px solid var(--line);border-radius:10px;background:var(--surface-2);padding:14px 16px;margin-bottom:12px}
+.pqh{font-family:var(--f-disp);font-weight:600;font-size:13.5px;margin-bottom:3px}
+.pqh .muted{font-weight:400;font-family:var(--f-body);font-size:12px}
+.pqcause{font-size:13px;color:var(--ink-2);line-height:1.6;padding-bottom:10px;margin-bottom:9px;border-bottom:1px solid var(--line)}
+.pqcause b{color:var(--ink)}
+.pqlist{display:flex;flex-direction:column;gap:6px}
+.pqr{display:grid;grid-template-columns:20px minmax(0,auto) 1fr;gap:4px 10px;align-items:baseline;font-size:12.5px;line-height:1.55}
+.pqr i{font-style:normal;font-weight:700;text-align:center}
+.pqr b{font-family:var(--f-disp);font-size:12.5px;white-space:nowrap}
+.pqr span{color:var(--ink-2);min-width:0}
+.pqr span b{font-family:var(--f-body);color:var(--ink);white-space:normal}
+.pq-ok i{color:var(--good-ink)} .pq-ok b{color:var(--ink)}
+.pq-no i{color:var(--muted)} .pq-no b{color:var(--muted)} .pq-no span{color:var(--muted)}
+.pq-perd i{color:var(--warn-ink)} .pq-perd b{color:var(--ink)}
+.pqfix{margin-top:11px;padding:9px 12px;background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.6;color:var(--ink-2)}
+.pqfix b{color:var(--ink)}
+@media (max-width:640px){
+  .pqr{grid-template-columns:20px 1fr}
+  .pqr span{grid-column:2/-1}
+}
