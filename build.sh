@@ -35,7 +35,22 @@ else
   echo "node absent — contrôle de syntaxe sauté"
 fi
 
-# 2. le fichier unique, complet ---------------------------------------------
+# 2. le numero de version, ecrit dans le noyau -------------------------------
+#    Il se lit dans les reglages : on sait alors si la page ouverte est la bonne.
+VER=$(cat VERSION 2>/dev/null || echo "dev")
+DAT=$(date +%d/%m/%Y)
+python3 - "$RACINE" "$VER" "$DAT" <<'TAG'
+import sys, os, re
+r, ver, dat = sys.argv[1], sys.argv[2], sys.argv[3]
+q = os.path.join(r, "js/1-noyau.js")
+t = open(q, encoding="utf-8").read()
+t = re.sub(r'const VERSION = "[^"]*";', 'const VERSION = "%s";' % ver, t, count=1)
+t = re.sub(r'const VERSION_DATE = "[^"]*";', 'const VERSION_DATE = "%s";' % dat, t, count=1)
+open(q, "w", encoding="utf-8").write(t)
+TAG
+echo "version : $VER du $DAT"
+
+# 3. le fichier unique, complet ---------------------------------------------
 #    Le CSS et les six scripts sont posés en clair à la place de leurs balises.
 python3 - "$RACINE" <<'PY'
 import sys, os, re
@@ -62,7 +77,7 @@ assert 'script src="js/' not in plein, "script non incorporé"
 
 open(os.path.join(r, "dist/brut-vers-net.html"), "w", encoding="utf-8").write(plein)
 
-# 3. la forme artefact : le squelette en moins ------------------------------
+#    la forme artefact : le squelette en moins
 i = plein.find("<title>")
 j = plein.rfind("</body>")
 art = plein[i:j]
