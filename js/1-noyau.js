@@ -259,7 +259,7 @@ function joursOuvresSigne(a, b){
    export sur une copie d'il y a trois versions, et on obtient les chiffres
    d'il y a trois versions. Le numéro est écrit à l'assemblage ; il s'affiche
    dans les réglages et au survol du titre. */
-const VERSION = "v72";
+const VERSION = "v73";
 const VERSION_DATE = "15/09/2026";
 
 /* ---------------------------- état ---------------------------- */

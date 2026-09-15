@@ -349,8 +349,16 @@ function demiCercle(val, lo, col, lbl, fond){
       'font-family="var(--f-mono)" font-size="11">100</text></svg>';
 }
 
+/* Les quatre vignettes montrent TOUS les périmètres, même quand le filtre du
+   haut n'en garde qu'un : c'est leur raison d'être, on compare d'un coup d'œil.
+   Mais elles doivent respecter le plancher d'affichage comme tout le reste —
+   elles seules appelaient `effCells()` au lieu de `scopeCells()`, et comptaient
+   donc les semaines d'avant la date de départ. Avec un plancher au 13/07, la
+   jauge principale lisait 25 493 flux et les quatre vignettes en totalisaient
+   33 122 : 7 629 flux et 790 KO de plus, venus de semaines que personne
+   n'affichait. */
 function perimAgg(){
-  const out = [], eff = effCells();
+  const out = [], eff = effCells().filter(apresPlancher);
   Object.keys(SITES).forEach(si => Object.keys(SERVS).forEach(sv => {
     const list = eff.filter(c => c.site === si && c.service === sv && dansPlage(c));
     out.push({ si, sv, l: SITES[si].l + " · " + (sv === "distri" ? "Distribution" : "Réception"), a: agg(list) });
