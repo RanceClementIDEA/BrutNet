@@ -3391,24 +3391,39 @@ function passerRegles(cells, regles, simule, conflits){
        Sans cela, supprimer une règle effaçait pour de bon le travail de
        quelqu'un, et les KO qu'elle couvrait ressortaient sans aucune cause.
        Une ligne gardée faute de pouvoir la rejuger garde la sienne au chaud. */
-    const rendues = [], dejaRendu = new Set();
+    const rendu = {};
     (cell.lignes || []).forEach(l => {
       if (!l.regle || l.regle === REGLE_REED || !l.rep || gel[l.regle]) return;
       let r = null; try { r = JSON.parse(l.rep); } catch(e){ return; }
       if (!r || !r.c || !CAT[r.c]) return;
-      /* Une saisie nommant dix postes est reprise par dix lignes de règle, qui
-         portent toutes la même copie : sans cette clé on la rendait dix fois, et
-         le budget de sa référence explosait — les règles se retrouvaient alors
-         bloquées par un fantôme qu'on venait de créer. */
-      const cle = r.i || [String(r.r || l.ref), (r.p || []).join("."), r.c, r.n, r.s].join("|");
-      if (dejaRendu.has(cle)) return;
-      dejaRendu.add(cle);
-      rendues.push({ id: String(r.i || uid()), ref: String(r.r || l.ref),
-        postes: Array.isArray(r.p) ? r.p.map(String) : [],
-        cat: r.c, nb: Math.max(0, +r.n || 0), src: SRC[r.s] ? r.s : "manuel",
-        com: String(r.m || ""), d: r.d || l.d || "", st: r.t === "rejet" ? "rejet" : "ok" });
+      /* Chaque ligne de règle emporte SA part. On les regroupe par saisie
+         d'origine et on additionne : dix lignes pour une saisie de dix postes
+         redonnent la saisie entière, et six lignes prises sur une saisie de dix
+         ne redonnent que six — les quatre autres sont encore visibles. */
+      const k = r.i || [String(r.r || l.ref), r.c, r.s].join("|");
+      const g = rendu[k] || (rendu[k] = { i: r.i || "", ref: String(r.r || l.ref), cat: r.c,
+        src: SRC[r.s] ? r.s : "manuel", com: String(r.m || ""), d: r.d || l.d || "",
+        st: r.t === "rejet" ? "rejet" : "ok", n: 0, p: [], pose: false });
+      g.n += Math.max(0, +r.n || 0);
+      if (!r.q) (Array.isArray(r.p) ? r.p : []).forEach(x => {
+        const s = String(x); if (s && g.p.indexOf(s) < 0) g.p.push(s); });
     });
-    const avant = (cell.lignes || []).concat(rendues).filter(l => {
+    /* Une saisie seulement rognée est encore là : on lui rend sa part au lieu
+       d'en créer une seconde à côté. */
+    const source = (cell.lignes || []).map(l => {
+      const g = (!l.regle && l.id && rendu[l.id]) ? rendu[l.id] : null;
+      if (!g || g.n <= 0) return l;
+      g.pose = true;
+      return Object.assign({}, l, { nb: Math.max(0, +l.nb || 0) + g.n,
+        postes: (l.postes || []).concat(g.p.filter(x => (l.postes || []).indexOf(x) < 0)) });
+    });
+    Object.keys(rendu).forEach(k => {
+      const g = rendu[k];
+      if (g.pose || g.n <= 0) return;
+      source.push({ id: g.i || uid(), ref: g.ref, postes: g.p, cat: g.cat, nb: g.n,
+        src: g.src, com: g.com, d: g.d, st: g.st });
+    });
+    const avant = source.filter(l => {
       if (l.regle){
         if (l.regle === REGLE_REED) return false;      /* refaite depuis `reed` */
         if (gel[l.regle]){
@@ -3487,7 +3502,7 @@ function passerRegles(cells, regles, simule, conflits){
        que la hiérarchie ne marche pas. On note donc ce qui la retient. */
     const tenuPar = {};
     const srcDe = l => l.regle === REGLE_REED ? "reedition"
-      : l.regle ? "regle" : (l.src === "releve" ? "releve" : "manuel");
+      : l.regle ? "regle" : (l.src === "releve" ? "releve" : "manuel");   /* manuel = toute saisie reprenable */
     const noteTenu = l => {
       const s = srcDe(l);
       const ps = (l.postes || []).map(String).filter(Boolean);
@@ -3525,35 +3540,56 @@ function passerRegles(cells, regles, simule, conflits){
        le commentaire : rien n'est perdu. Une saisie n'est reprise que si TOUS ses
        postes le sont — sinon la ligne resterait à cheval, et le même KO serait
        justifié deux fois. */
+    /* ---- ce qu'une règle a le droit de reprendre ----
+       Tout ce qui n'est ni une règle ni un relevé. Le relevé est une déclaration
+       de l'exploitation, il ne se reprend pas. Une ligne « automatique » SANS
+       règle, elle, est une orpheline — un vieil import, une reprise d'historique :
+       plus rien ne l'adosse, et une règle vivante qui lit les colonnes de
+       l'export dit mieux. Tant qu'on ne reprenait que `manuel`, ces lignes-là
+       étaient increvables, et invisibles par-dessus le marché. */
+    const reprenable = l => !l.regle && l.st === "ok" && l.src !== "releve";
     const mains = {};
     avant.forEach(l => {
-      if (l.regle || l.src !== "manuel" || l.st !== "ok") return;
+      if (!reprenable(l)) return;
       (l.postes || []).map(String).filter(Boolean).forEach(p => { mains[sansZeros(l.ref) + "|" + p] = l; });
     });
     /* ---- une saisie posée en quantité cède aussi la place ----
-       « Passe devant une saisie à la main » était vrai poste par poste, et faux
-       pour une saisie posée en quantité : elle ne nomme aucun poste, consommait
-       le budget de sa référence, et la règle passait son tour quel que soit son
-       rang dans la liste. On remontait la règle, rien ne bougeait. La quantité
-       se traite donc comme le poste : la saisie cède ses places, et elle ne
-       disparaît que si les règles les reprennent TOUTES — sinon la reprise est
-       annulée et la saisie reste entière. Deux saisies en quantité sur la même
-       référence : on n'y touche pas, il n'y a pas de partage sûr. */
+       Elle ne nomme aucun poste : elle consommait le budget de sa référence, et
+       la règle passait son tour quel que soit son rang. On remontait la règle,
+       rien ne bougeait.
+
+       Une quantité, ça se coupe — `ajusteRef` le fait déjà pour le plafond. On
+       ne joue donc plus au tout-ou-rien : les règles prennent ce qu'elles
+       visent, et les saisies gardent le reste des places de la référence. Cela
+       règle du même coup les deux cas qui restaient bloqués : deux saisies sur
+       la même référence, et une saisie annonçant plus de KO que la référence
+       n'en porte. */
     const mainsQte = {};
     avant.forEach(l => {
-      if (l.regle || l.src !== "manuel" || l.st !== "ok") return;
+      if (!reprenable(l)) return;
       if ((l.postes || []).map(String).filter(Boolean).length) return;
+      const n = Math.max(0, +l.nb || 0);
+      if (!n) return;
       const rn = sansZeros(l.ref);
-      if (rn in mainsQte){ mainsQte[rn] = null; return; }
-      const nb = Math.max(0, +l.nb || 0);
-      mainsQte[rn] = nb ? { l, nb, reste: nb, cede: 0, pris: 0 } : null;
+      const g = mainsQte[rn] || (mainsQte[rn] = { ls: [], brut: 0, reste: 0, cede: 0, pris: 0 });
+      g.ls.push({ l, n });
+      g.brut += n;
+    });
+    /* Ce qu'elles annoncent au-delà des KO de la référence ne tient pas debout :
+       on borne au budget réel, sinon elles bloqueraient des places qui n'existent
+       pas. Le brut sert quand même à retrancher leur part du budget commun —
+       sans quoi leur surplus passerait pour une pièce, et bloquerait les règles
+       à la place d'un relevé imaginaire. */
+    Object.keys(mainsQte).forEach(rn => {
+      const g = mainsQte[rn];
+      g.reste = Math.min(g.brut, budgetRef(cell, rn));
     });
     /* Le budget en quantité, séparé : ce qu'une règle n'a pas le droit de
-       reprendre — relevé, réédition, règle illisible — et la saisie qu'elle peut. */
+       reprendre — relevé, réédition, règle illisible — et les saisies qu'elle peut. */
     const resteFixe = {};
     Object.keys(reste).forEach(rn => {
-      const m = mainsQte[rn];
-      resteFixe[rn] = Math.max(0, reste[rn] - (m ? m.nb : 0));
+      const g = mainsQte[rn];
+      resteFixe[rn] = Math.max(0, reste[rn] - (g ? g.brut : 0));
     });
     const prises = new Map();          /* ligne manuelle -> postes que les règles reprennent */
     (cell.koRefs || []).forEach((refBrut, i) => {
@@ -3579,6 +3615,7 @@ function passerRegles(cells, regles, simule, conflits){
           return; }
         const mq = mainsQte[rn];
         if (mq && mq.reste > 0){ mq.reste--; mq.cede++; cedeIci = true; }
+        else if (mq && mq.cede > 0){ /* toutes ses places sont cédées : rien à retenir */ }
       }
       /* Une seule cause par KO : c'est la première règle de la liste qui la pose.
          Les suivantes qui visaient le même KO sont notées — deux règles qui se
@@ -3607,7 +3644,7 @@ function passerRegles(cells, regles, simule, conflits){
           prises.get(main).add(poste);
         } else if (cedeIci){
           const mq = mainsQte[rn];
-          ligne._main = mq.l; mq.pris++;
+          ligne._qte = mq; mq.pris += w;
         }
         ajout.push(ligne);
       }
@@ -3620,39 +3657,55 @@ function passerRegles(cells, regles, simule, conflits){
       const tous = (l.postes || []).map(String).filter(Boolean);
       if (tous.length && tous.every(p => postes.has(p))) lachees.add(l);
     });
-    /* La saisie en quantité ne part que si toute sa quantité a été cédée ET que
-       chaque place cédée a trouvé une règle. Une place cédée pour rien — aucune
-       règle ne visait ce KO — suffit à tout annuler : sinon le KO sortirait sans
-       justification du tout. */
+    /* Les saisies en quantité gardent ce que les règles n'ont pas pris : sur une
+       référence de dix KO dont six partent au rebut, la règle en prend six et la
+       saisie garde quatre. C'est ce partage qui manquait — et sans lui les dix
+       restaient sur l'ancienne cause. */
+    const rognees = new Map();
     Object.keys(mainsQte).forEach(rn => {
-      const m = mainsQte[rn];
-      if (m && m.reste === 0 && m.cede > 0 && m.pris === m.cede) lachees.add(m.l);
+      const g = mainsQte[rn];
+      if (!g || g.pris <= 0) return;
+      let libre = Math.max(0, budgetRef(cell, rn) - g.pris);
+      g.ls.forEach(x => {
+        const garde = Math.min(x.n, libre);
+        libre -= garde;
+        if (garde <= 0) lachees.add(x.l);
+        else if (garde < x.n) rognees.set(x.l, garde);
+      });
     });
     const ajoutNet = ajout.filter(l => {
-      if (!l._main) return true;
-      if (!lachees.has(l._main)){                            /* reprise abandonnée */
+      /* Une reprise au poste est tout ou rien : un poste ne se coupe pas en deux.
+         Une reprise en quantité, elle, a toujours lieu — la saisie garde le
+         reste des places, elle ne perd que ce que la règle a pris. */
+      const c = l._main || (l._qte ? l._qte.ls[0] && l._qte.ls[0].l : null);
+      if (!c) return true;
+      if (l._main && !lachees.has(l._main)){                  /* reprise abandonnée */
         /* Le compteur de la règle sera plus bas : l'écran doit dire pourquoi,
            sinon on cherche des KO qui ont disparu sans un mot. */
         const t = stats.tenus[l.regle] || (stats.tenus[l.regle] = {});
         t.manuel = (t.manuel || 0) + (+l.nb || 0);
         return false;
       }
-      const c = l._main;
       /* la mention relevée sur la ligne d'avant est remplacée par celle-ci, qui
          décrit la saisie que ce passage-ci reprend — on n'empile pas les deux */
       l.com = String(l.com || "").replace(/ · remplace la saisie .*$/, "") +
         " · remplace la saisie « " + (CAT[c.cat] ? CAT[c.cat].l : c.cat) + " »" +
         (c.com ? " (" + String(c.com).slice(0, 80) + ")" : "");
       /* La saisie voyage avec la ligne qui l'a reprise : c'est ce qui permet de
-         la rendre intacte si la règle est retirée un jour. */
-      l.rep = JSON.stringify({ i: c.id || "", r: String(c.ref), p: (c.postes || []).map(String),
-        c: c.cat, n: Math.max(0, +c.nb || 0), s: c.src || "manuel",
+         la rendre intacte si la règle est retirée un jour. Chaque ligne n'emporte
+         que SA part — en les additionnant on retrouve la saisie entière, et une
+         saisie seulement rognée ne se voit pas rendre plus qu'elle n'a cédé. */
+      const enQte = !!l._qte;
+      l.rep = JSON.stringify({ i: c.id || "", r: String(c.ref), q: enQte ? 1 : 0,
+        p: enQte ? [] : (l.postes || []).map(String),
+        c: c.cat, n: Math.max(0, +l.nb || 0), s: c.src || "manuel",
         m: String(c.com || "").slice(0, 200), d: c.d || "", t: c.st === "rejet" ? "rejet" : "ok" });
-      delete l._main;
+      delete l._main; delete l._qte;
       return true;
     });
-    ajout.forEach(l => { delete l._main; });
-    const avantNet = avant.filter(l => !lachees.has(l));
+    ajout.forEach(l => { delete l._main; delete l._qte; });
+    const avantNet = avant.filter(l => !lachees.has(l))
+      .map(l => rognees.has(l) ? Object.assign({}, l, { nb: rognees.get(l) }) : l);
     stats.reprisMain += lachees.size;
     const avaitDesRegles = (cell.lignes || []).some(l => l.regle);
     /* Dernier garde-fou, après tous les chemins. Une référence peut être visée
@@ -4678,11 +4731,15 @@ function mainsParCause(){
   const par = {};
   const vus = {};
   selCells().forEach(c0 => { const c = realCell(c0) || c0; vus[c.id] = c; });
+  /* Toute ligne qui n'est ni une règle ni un relevé. Une ligne « automatique »
+     sans règle est une orpheline d'un vieil import : elle se comporte comme une
+     saisie, elle doit donc se voir et se défaire comme une saisie — tant qu'on
+     ne listait que `manuel`, elle était introuvable. */
   Object.values(vus).forEach(c => (c.lignes || []).forEach(l => {
-    if (l.regle || l.src !== "manuel") return;
-    const g = par[l.cat] || (par[l.cat] = { cat:l.cat, lignes:0, ko:0, refs:new Set(), ids:[] });
+    if (l.regle || l.src === "releve") return;
+    const g = par[l.cat] || (par[l.cat] = { cat:l.cat, lignes:0, ko:0, refs:new Set(), srcs:new Set() });
     g.lignes++; g.ko += Math.max(0, +l.nb || 0); g.refs.add(sansZeros(l.ref));
-    g.ids.push(c.id + " " + l.id);
+    g.srcs.add(l.src === "manuel" ? "manuel" : "orpheline");
   }));
   return Object.values(par).sort((a, b) => b.ko - a.ko);
 }
@@ -4706,7 +4763,10 @@ function renderMains(){
         " · " + n0(g.refs.size) + " référence" + (g.refs.size > 1 ? "s" : "") + "</div>" +
       '<div class="rmeta"><span>' +
         (c && c.j ? "retire les KO du décompte" : "gardée pour la trace — le KO reste compté") + "</span>" +
-        "<span>une règle peut la reprendre</span></div></div>" +
+        "<span>une règle peut la reprendre</span>" +
+        (g.srcs.has("orpheline")
+          ? '<span class="warn-t">dont des lignes « automatique » sans règle — un vieil import</span>' : "") +
+        "</div></div>" +
       '<div class="ract"><button class="btn sm" data-mainmv="' + esc(g.cat) + '">Changer la cause</button>' +
       '<button class="btn sm danger" data-maindel="' + esc(g.cat) + '">Retirer</button></div></div>';
   }).join("") + "</div>";
@@ -5529,7 +5589,7 @@ async function retireMains(cat, vers){
     if (vers){
       const anc = CAT[cat] ? CAT[cat].l : cat;
       lignes = (c.lignes || []).map(l => {
-        if (l.regle || l.src !== "manuel" || l.cat !== cat) return l;
+        if (l.regle || l.src === "releve" || l.cat !== cat) return l;
         n++;
         return Object.assign({}, l, { cat: vers,
           st: CAT[vers] && CAT[vers].j ? "ok" : "rejet",
@@ -5538,7 +5598,7 @@ async function retireMains(cat, vers){
       });
     } else {
       lignes = (c.lignes || []).filter(l => {
-        const vise = !l.regle && l.src === "manuel" && l.cat === cat;
+        const vise = !l.regle && l.src !== "releve" && l.cat === cat;
         if (vise) n++;
         return !vise;
       });
