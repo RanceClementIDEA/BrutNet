@@ -276,7 +276,9 @@ async function xlsxUneFeuille(buf, files, key){
       const j = bloc.search(debRow);
       if (j >= 0) rows.push(ligneCellules(bloc.slice(j), shared, compte));
       buffer = buffer.slice(i + bloc.slice(i).length + (buffer.slice(i).match(finRow) || [""])[0].length);
-      if (rows.length >= LIM_LIGNES){ try { await reader.cancel(); } catch(err){} fini = true; break; }
+      /* Tronquer sans le dire, c'est livrer des semaines incomplètes qui passent
+         ensuite pour une baisse de volume. */
+      if (rows.length >= LIM_LIGNES){ rows.tronque = true; try { await reader.cancel(); } catch(err){} fini = true; break; }
     }
     if (buffer.length > 4e6) buffer = buffer.slice(-2e6);   /* garde-fou */
   }
@@ -285,6 +287,7 @@ async function xlsxUneFeuille(buf, files, key){
   /* Sans référence de cellule, une cellule vide omise décale tout ce qui suit :
      l'appelant doit le savoir avant de faire confiance aux colonnes. */
   utiles.sansReperes = compte.sansRef > 0 && compte.avecRef === 0;
+  if (rows.tronque) utiles.tronque = true;
   return utiles;
 }
 

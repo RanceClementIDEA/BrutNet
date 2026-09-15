@@ -56,7 +56,13 @@ const CATS = [
   {k:"fraction",     l:"Réception fractionnée",  p:"recep",  s:"manuel", j:false, d:"Livraison arrivée en plusieurs fois — à trancher avant de conclure."},
   {k:"traitement",   l:"Retard de traitement",   p:"recep",  s:"manuel", j:false, d:"Le retard vient du traitement interne : il reste compté."},
   {k:"urgences",     l:"Urgences",               p:"tous",   s:"releve", j:false},
-  {k:"retard",       l:"Retard",                 p:"tous",   s:"releve", j:false},
+  /* « C'est un vrai retard, on l'assume. » La cause existait sous le nom
+     « Retard », trop discret pour qu'on la trouve : on la cherchait sans savoir
+     qu'elle était là, et les « RETARD » des relevés tombaient en « Non
+     renseignée ». Elle ne retire rien du décompte — c'est tout son intérêt :
+     dire qu'on a regardé, et que le KPI a raison. */
+  {k:"retard",       l:"Vrai retard — assumé",   p:"tous",   s:"releve", j:false,
+     d:"Le retard est réel et reconnu : le KO reste compté. À utiliser pour fermer une ligne plutôt que la laisser sans cause."},
   {k:"nr",           l:"Non renseignée",         p:"tous",   s:"releve", j:false}
 ];
 const CAT = Object.fromEntries(CATS.map(c => [c.k, c]));
@@ -124,6 +130,11 @@ const CAT_ALIAS = (() => {
     "documents ou identification manquants":"docs", "document manquant":"docs",
     "attente d arbitrage achats ou fournisseur":"arbitrage", "arbitrage":"arbitrage",
     "reception fractionnee a trancher":"fraction", "retard d exploitation":"retard",
+    /* tout ce qu'on écrit pour dire « oui, c'est un vrai retard » */
+    "vrai retard":"retard", "vrais retards":"retard", "retard reel":"retard", "retard confirme":"retard",
+    "retard assume":"retard", "retard avere":"retard", "retard justifie":"retard", "vrai":"retard",
+    "retard exploitation":"retard", "retard interne":"retard", "notre retard":"retard",
+    "retard de notre fait":"retard", "imputable":"retard", "retard imputable":"retard",
     "litige de stock":"litiges",
     /* le rebut, tel qu'un relevé l'écrit : c'est le flux déchets */
     "rebut":"dechets", "rebuts":"dechets", "mise au rebut":"dechets", "dechet":"dechets"
@@ -241,6 +252,15 @@ function joursOuvresSigne(a, b){
   if (da.getTime() === db.getTime()) return 0;
   return da.getTime() < db.getTime() ? joursOuvres(da, db) : -joursOuvres(db, da);
 }
+
+/* ---- quelle version ai-je sous les yeux ? ----
+   Question posée devant un chiffre qui ne bouge pas, et à laquelle l'outil ne
+   savait pas répondre : le navigateur garde la page en cache, on redépose son
+   export sur une copie d'il y a trois versions, et on obtient les chiffres
+   d'il y a trois versions. Le numéro est écrit à l'assemblage ; il s'affiche
+   dans les réglages et au survol du titre. */
+const VERSION = "v72";
+const VERSION_DATE = "15/09/2026";
 
 /* ---------------------------- état ---------------------------- */
 /* Le tableau de bord commence le lundi 13 juillet 2026 — début de la S29. Les
@@ -594,8 +614,15 @@ function ctxValeurs(colonne, max){
 }
 
 /* ---------------------------- stockage ---------------------------- */
+/* ---- « Enregistré sur ce navigateur » doit être vrai ----
+   Le quota d'un navigateur tourne autour de 5 Mo ; le contexte colonnaire gardé
+   avec chaque KO pèse lourd, et quelques mois d'imports le dépassent. L'échec
+   était avalé en silence, et l'écran affichait quand même « Enregistré » : au
+   rechargement suivant, tout le travail depuis le dernier succès avait disparu
+   sans qu'un mot l'ait annoncé. On rend l'échec, et l'appelant le dit. */
 function saveLocal(){
-  try { localStorage.setItem(LSKEY, JSON.stringify({ v:1, cells:Object.values(S.cells) })); } catch(e){}
+  try { localStorage.setItem(LSKEY, JSON.stringify({ v:1, cells:Object.values(S.cells) })); return true; }
+  catch(e){ S.localPlein = true; return false; }
 }
 function loadLocal(){
   try {
@@ -620,8 +647,25 @@ function mergeSnapshot(distant){
     const d = distant[id], l = local[id];
     out[id] = (l && l.maj && d.maj && l.maj > d.maj) ? l : d;
   }
-  if (S.pending || S.writeErr)
-    for (const id in local) if (!out[id]) out[id] = local[id];
+  /* ---- une période que la base n'a pas encore vue n'est jamais jetée ----
+     Ce report ne valait qu'« en vol ou en échec ». Or au tout premier instantané
+     après connexion, rien n'est en vol : une semaine importée en mode navigateur
+     disparaissait de la mémoire ET du navigateur — `saveLocal` réécrivait aussitôt
+     la copie amputée. Le semis initial ne rattrapait rien : il ne se déclenche que
+     sur une base entièrement vide, et un simple document `__regles` posé par un
+     collègue suffisait à la faire paraître pleine.
+     Une période locale absente du distant est donc gardée, toujours ; c'est à
+     l'écriture de la faire remonter, pas à la lecture de la faire disparaître. */
+  const aPousser = [];
+  for (const id in local) if (!out[id]){ out[id] = local[id]; aPousser.push(local[id]); }
+  return remonte(out, aPousser);
+}
+/* Les périodes gardées faute d'être en base y sont poussées, sans bloquer la
+   lecture : la fusion rend son résultat tout de suite, l'écriture suit. */
+function remonte(out, list){
+  if (list && list.length && typeof remoteSet === "function" && S.backend !== "local"){
+    setTimeout(() => { list.forEach(c => { try { remoteSet(c); } catch(e){} }); }, 0);
+  }
   return out;
 }
 function setStatus(kind, txt){
@@ -672,10 +716,21 @@ function fbDiag(code){
         "c'est qu'un autre champ est en cause — signalez-le, il se corrige au niveau du code." };
   return null;
 }
+/* Le message du bandeau quand rien ne part en base : il dit la vérité, y compris
+   quand le navigateur a refusé d'écrire. */
+function statutLocal(){
+  if (S.localPlein){
+    setStatus("local", "Mémoire du navigateur pleine — rien n'est enregistré");
+    if (!S.ditPlein){ S.ditPlein = true;
+      toast("Le navigateur refuse d'enregistrer : sa mémoire est pleine. Exportez la sauvegarde JSON depuis les réglages, puis connectez la base partagée.", true); }
+    return;
+  }
+  setStatus("local", "Enregistré sur ce navigateur");
+}
 async function putCell(c){
   const n = normCell(c); n.maj = new Date().toISOString();
   S.cells[n.id] = n; saveLocal();
-  if (S.backend === "local"){ setStatus("local", "Enregistré sur ce navigateur"); }
+  if (S.backend === "local"){ statutLocal(); }
   else {
     S.pending++; setStatus("busy", "Enregistrement…");
     try { await remoteSet(n); S.writeErr = null; setStatus("ok", "Enregistré dans la base"); }
@@ -700,7 +755,7 @@ async function bulkPut(list){
       S.cells[n.id] = n; return n; });
   if (!aEcrire.length){ render(); return; }
   saveLocal();
-  if (S.backend === "local"){ setStatus("local", "Enregistré sur ce navigateur"); }
+  if (S.backend === "local"){ statutLocal(); }
   else {
     S.pending++; setStatus("busy", "Enregistrement…");
     let ko = 0, premiere = null;
@@ -987,9 +1042,45 @@ function dayCells(c){
     const d = (c.koDates || [])[i];
     if (parJour[d]){ parJour[d].refs.push(r); parJour[d].postes.push((c.koPostes || [])[i] || ""); }
   });
+  /* ---- une justification pèse le poids du jour, pas celui de la semaine ----
+     Une ligne posée sur un poste vaut, sur la semaine, tous les flux que ce
+     poste porte ; une ligne posée en quantité vaut son compte annoncé. Les
+     recopier telles quelles sur un seul jour faisait déborder ce jour-là — MG
+     distribution au 07/09 affichait « 26 justifications pour 23 KO », et le
+     surplus, plafonné, disparaissait du net : les mêmes saisies rendaient trois
+     justifications de moins en maille Jour qu'en maille Semaine.
+     Chaque ligne est donc répartie sur les jours où ses KO tombent vraiment. */
   (c.lignes || []).forEach(l => {
-    const d = parJour[l.d] ? l.d : keys[0];   /* sans date : rattachée au premier jour */
-    parJour[d].lignes.push(l);
+    const ps = (l.postes || []).map(String).filter(Boolean);
+    const k = sansZeros(l.ref);
+    const par = {};
+    let tot = 0;
+    (c.koRefs || []).forEach((r, i) => {
+      if (sansZeros(r) !== k) return;
+      const d = (c.koDates || [])[i];
+      if (!parJour[d]) return;
+      if (ps.length && ps.indexOf(String((c.koPostes || [])[i] || "")) < 0) return;
+      par[d] = (par[d] || 0) + 1; tot++;
+    });
+    if (!tot){                                 /* aucun KO daté à couvrir */
+      parJour[parJour[l.d] ? l.d : keys[0]].lignes.push(l);
+      return;
+    }
+    const jours = Object.keys(par).sort((a, b) => par[b] - par[a]);
+    if (ps.length){
+      /* au poste : chaque jour reçoit exactement les flux qui y tombent */
+      jours.forEach(d => parJour[d].lignes.push(Object.assign({}, l, { nb: par[d] })));
+      return;
+    }
+    /* en quantité : le compte annoncé se répartit au prorata des KO du jour,
+       et le reste va au jour le plus chargé — jamais au-delà du total saisi. */
+    const n = Math.max(0, +l.nb || 0);
+    let reste = n;
+    jours.forEach((d, i) => {
+      const part = i === jours.length - 1 ? reste : Math.min(reste, Math.floor(n * par[d] / tot));
+      reste -= part;
+      if (part > 0) parJour[d].lignes.push(Object.assign({}, l, { nb: part }));
+    });
   });
   return keys.map(d => ({
     id: c.id + "@" + d, periode: d, jour: d, parent: c.id,

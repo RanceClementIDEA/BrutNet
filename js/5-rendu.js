@@ -992,7 +992,8 @@ function renderDonnees(){
   $("#store-state").innerHTML =
     '<div class="note" style="margin-bottom:14px">' + back + "</div>" +
     '<div class="facts" style="border-radius:8px;border:1px solid var(--line);border-top:1px solid var(--line)">' +
-    [["Mode", BACKEND_LBL[S.backend] || S.backend], ["Périodes", n0(cells.length)], ["Justifications", n0(nl)],
+    [["Version", VERSION + " · " + VERSION_DATE],
+     ["Mode", BACKEND_LBL[S.backend] || S.backend], ["Périodes", n0(cells.length)], ["Justifications", n0(nl)],
      ["Dernière écriture", maj ? new Date(maj).toLocaleString("fr-FR", {dateStyle:"short", timeStyle:"short"}) : "—"],
      ["Jeu d'exemple", cells.some(c => c.demo) ? "présent" : "retiré"]]
       .map(([k, v]) => '<div class="fact"><span class="k">' + k + '</span><span class="v">' + v + "</span></div>").join("") + "</div>";

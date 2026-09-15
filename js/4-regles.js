@@ -683,6 +683,12 @@ async function sauveRegles(){
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+    /* Le mode REST manquait ici. C'est pourtant CELUI d'un poste d'entreprise
+       où gstatic.com est bloqué : les règles vivaient en mémoire, jamais en
+       base — et le rafraîchissement REST, une minute plus tard, les remplaçait
+       par celles de la base. On remontait une règle, elle redescendait toute
+       seule, et rien ne l'expliquait. */
+    else if (S.backend === "rest") await restSet(DOC_REGLES, doc);
   } catch(e){ toast("Règles enregistrées sur ce navigateur seulement", true); }
 }
 /* Rejoue toutes les règles sur les périodes enregistrées. */

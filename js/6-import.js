@@ -260,7 +260,7 @@ function analyseExport(src){
     $(EXPORT_OUT).innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--crit)"><b>Colonnes introuvables.</b> Il faut au minimum <code>Identifiant flux début</code>, <code>Code aire</code>, <code>Résultat</code> et une <code>Date fin</code>. En-têtes lus : ' + esc(rows[0].join(" · ")) + "</div>";
     return;
   }
-  const acc = {}, rej = { aire:0, kpi:0, date:0, res:0, litige:0, litigeKo:0, ident:0, decale:0 };
+  const acc = {}, rej = { aire:0, kpi:0, date:0, res:0, litige:0, litigeKo:0, ident:0, decale:0, plafond:0 };
   /* Un classeur sain donne à chaque cellule sa référence (A1, B1…). Quand elles
      en sont toutes dépourvues, une cellule vide omise décale silencieusement
      toute la fin de la ligne : mieux vaut s'arrêter que publier des chiffres faux. */
@@ -324,6 +324,11 @@ function analyseExport(src){
     if (ko){
       cell.ko++; j.k++;
       const rp = splitRefPoste(ident, service);
+      /* Au-delà du plafond, le KO comptait toujours au brut mais n'avait plus ni
+         référence ni contexte : introuvable dans « À justifier », invisible pour
+         les règles, et crédité comme qualifié par le compteur d'onglet. Il est
+         désormais compté à part, et dit. */
+      if (rp.ref && cell.refs.length >= LIMREF) rej.plafond++;
       if (rp.ref && cell.refs.length < LIMREF){
         cell.refs.push(rp.ref); cell.dates.push(isoDay(d)); cell.postes.push(rp.poste);
         ctxPush(cell.ctx, r, colIndex);          /* le contexte suit le KO, index par index */
@@ -359,10 +364,14 @@ function analyseExport(src){
   if (rej.kpi) warn.push(n0(rej.kpi) + " sans KPI reconnu");
   if (rej.date) warn.push(n0(rej.date) + " sans date de fin exploitable");
   if (rej.decale) warn.push(n0(rej.decale) + " lignes au nombre de colonnes inattendu");
+  if (rej.plafond) warn.push(n0(rej.plafond) + " KO au-delà du plafond de " + n0(LIMREF) +
+    " par période : comptés au brut, mais non qualifiables");
   if (rej.res) warn.push(n0(rej.res) + " au résultat illisible");
   $(EXPORT_OUT).innerHTML =
     '<div class="note" style="margin:16px 0 12px">' +
       "<b>" + n0(list.reduce((s, c) => s + c.flux, 0)) + " flux retenus</b> sur " + n0(rows.length - 1) + " lignes collées." +
+      (rows.tronque ? ' <b style="color:var(--crit)">Le fichier a été tronqué à la lecture</b> — il dépasse ' +
+        "la taille que l'outil lit d'un coup. Les dernières semaines sont incomplètes : réexportez par tranches." : "") +
       (rej.litige
         ? ' <b>' + n0(rej.litige) + " flux réception exclus</b> car en litige (convention métier)."
         : (ci.litige < 0 && list.some(c => c.service === "recep")
@@ -624,6 +633,12 @@ async function sauveCats(){
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+    /* Le mode REST manquait ici. C'est pourtant CELUI d'un poste d'entreprise
+       où gstatic.com est bloqué : les règles vivaient en mémoire, jamais en
+       base — et le rafraîchissement REST, une minute plus tard, les remplaçait
+       par celles de la base. On remontait une règle, elle redescendait toute
+       seule, et rien ne l'expliquait. */
+    else if (S.backend === "rest") await restSet(DOC_REGLES, doc);
   } catch(e){}
 }
 /* ---- retirer ou reclasser les saisies à la main d'une cause ----
@@ -655,7 +670,11 @@ async function retireMains(cat, vers){
         return !vise;
       });
     }
-    if (vers ? n : lignes.length !== avant) touchees.push(Object.assign({}, c, { lignes }));
+    /* `n` est un cumul : s'en servir ici réécrivait toutes les périodes du
+       périmètre dès qu'UNE ligne avait bougé, avec un horodatage neuf qui pèse
+       ensuite dans l'arbitrage des instantanés. On compare la période à
+       elle-même. */
+    if (vers ? lignes.some((l, i) => l !== (c.lignes || [])[i]) : lignes.length !== avant) touchees.push(Object.assign({}, c, { lignes }));
   });
   if (!touchees.length){ toast("Rien à changer"); return; }
   await bulkPut(touchees);
@@ -725,6 +744,12 @@ async function sauveCauses(){
   try {
     if (S.backend === "db" && S.db) await S.db.doc(FB_COLLECTION + "/" + DOC_REGLES).set(doc);
     else if (S.backend === "firebase" && S.fb) await S.fb.m.setDoc(S.fb.m.doc(S.fb.db, FB_COLLECTION, DOC_REGLES), doc);
+    /* Le mode REST manquait ici. C'est pourtant CELUI d'un poste d'entreprise
+       où gstatic.com est bloqué : les règles vivaient en mémoire, jamais en
+       base — et le rafraîchissement REST, une minute plus tard, les remplaçait
+       par celles de la base. On remontait une règle, elle redescendait toute
+       seule, et rien ne l'expliquait. */
+    else if (S.backend === "rest") await restSet(DOC_REGLES, doc);
   } catch(e){}
 }
 /* Les KO chargés, indexés par référence, pour un site et un service donnés.
@@ -1126,8 +1151,19 @@ async function deposeTout(fichiers, cible){
           return ex && ex.flux && c.flux < ex.flux; }).length;
         /* applyExport vide exportDraft : ce qu'on veut dire du fichier se relève avant. */
         const sansId = exportDraft.rej.ident, lit = exportDraft.rej.litige, litKo = exportDraft.rej.litigeKo;
+        /* ---- ce que cet import a réellement changé ----
+           « 44 périodes enregistrées » ne distingue pas un import qui corrige
+           de un import qui repose exactement les mêmes chiffres. Devant un
+           tableau de bord qui ne bouge pas, c'est pourtant LA question. */
+        const bouge = exportDraft.list.map(x => {
+          const ex = S.cells[cellId(x.periode, x.site, x.service)];
+          if (!ex) return { x, neuf:true };
+          return (ex.flux !== x.flux || ex.ko !== x.ko)
+            ? { x, df: x.flux - ex.flux, dk: x.ko - ex.ko } : null;
+        }).filter(Boolean);
         await applyExport();
-        faits.push({ x, n, note: n0(n) + " période" + sPl(n) + " enregistrée" + sPl(n), baisses, sansId, lit, litKo });
+        faits.push({ x, n, note: n0(n) + " période" + sPl(n) + " enregistrée" + sPl(n),
+          baisses, sansId, lit, litKo, bouge });
       } else if (x.type === "sap"){
         sapDraft = null; analyseSap(x.rows);
         if (!sapDraft){ faits.push({ x, ko:"aucun poste BR exploitable" }); continue; }
@@ -1190,6 +1226,32 @@ async function deposeTout(fichiers, cible){
        lignes sans identifiant (comptées, mais introuvables dans « À justifier »)
        et les réceptions en litige (écartées, quand PowerBI les compte). Les
        taire, c'est laisser chercher. */
+    /* Ce que l'import a changé, ou n'a pas changé. */
+    (function(){
+      const b = faits.reduce((a, f) => a.concat(f.bouge || []), []);
+      const tot = faits.reduce((a, f) => a + (f.n || 0), 0);
+      if (!faits.some(f => f.bouge)) return "";
+      if (!b.length) return '<div class="note" style="margin-top:10px;border-left-color:var(--warn)">' +
+        "<b>Aucun chiffre n'a changé.</b> Les " + n0(tot) + " période" + sPl(tot) +
+        " de ce fichier portaient déjà exactement ces volumes." +
+        '<div class="muted" style="margin-top:5px">C\'est normal si vous redéposez le même export. ' +
+        "Si vous attendiez une correction, vérifiez le <b>numéro de version</b> en bas de l'onglet " +
+        "Réglages — une page laissée ouverte garde l'ancienne version en mémoire, et il faut la recharger " +
+        "(Ctrl+Maj+R) avant de redéposer.</div></div>";
+      const neuves = b.filter(x => x.neuf).length, maj = b.length - neuves;
+      return '<div class="note" style="margin-top:10px;border-left-color:var(--good)"><b>' +
+        (maj ? n0(maj) + " période" + sPl(maj) + " corrigée" + sPl(maj) : "") +
+        (maj && neuves ? " · " : "") +
+        (neuves ? n0(neuves) + " nouvelle" + sPl(neuves) : "") + ".</b>" +
+        (maj ? '<div class="muted" style="margin-top:5px">' +
+          b.filter(x => !x.neuf).slice(0, 6).map(x => esc(perLabel(x.x.periode) + " " +
+            SITES[x.x.site].l + "/" + (x.x.service === "distri" ? "D" : "R")) + " : " +
+            (x.df ? (x.df > 0 ? "+" : "") + n0(x.df) + " flux" : "") +
+            (x.df && x.dk ? ", " : "") +
+            (x.dk ? (x.dk > 0 ? "+" : "") + n0(x.dk) + " KO" : "")).join(" · ") +
+          (maj > 6 ? " · +" + n0(maj - 6) + " autre" + sPl(maj - 6) : "") + "</div>" : "") +
+        "</div>";
+    })() +
     /* Ce que l'outil a lu sans qu'on le lui dise : la colonne de cause quand elle
        n'a pas d'en-tête, la colonne de poste quand elle en a une. */
     (function(){
@@ -1350,6 +1412,11 @@ document.addEventListener("change", e => {
 /* Le quatrième type de fichier — l'export et sa colonne CAUSE — passe par le
    même chemin que le dépôt du haut : c'est la reconnaissance qui décide, pas le
    champ où on l'a posé. Seul le compte rendu s'affiche dans son propre bloc. */
+/* Le numéro de version au survol du titre : quand un chiffre ne bouge pas, la
+   première chose à écarter est une page restée en cache. */
+(function(){ const b = $("#brand-t");
+  if (b) b.title = "Brut vers Net " + VERSION + " — assemblé le " + VERSION_DATE +
+    "\nSi un chiffre ne bouge pas après un import, vérifiez d'abord ce numéro."; })();
 const fc = $("#file-cause");
 if (fc) fc.addEventListener("change", e => {
   const f = Array.from(e.target.files || []);
@@ -2997,7 +3064,7 @@ function bindFb(){
     if (S.fbUnsub){ try { S.fbUnsub(); } catch(e){} S.fbUnsub = null; }
     clearInterval(restTimer);
     S.fb = null; S.backend = "local"; S.fbError = "";
-    setStatus("local", "Enregistré sur ce navigateur");
+    statutLocal();
     $("#fb-out").innerHTML = "";
     toast("Configuration oubliée sur ce navigateur"); render();
   });
@@ -3165,6 +3232,10 @@ async function applyFilled(){
   if (!xlsDraft) return;
   const out = Object.entries(xlsDraft.plan).map(([cid, items]) => {
     const c = S.cells[cid];
+    /* La période a pu disparaître entre l'analyse et le clic — supprimée, ou
+       retirée par un instantané de la base. Sans cette garde, la suite lève une
+       erreur : plus rien n'est intégré, et aucun message ne le dit. */
+    if (!c) return null;
     /* les lignes au poste ne remplacent que leur poste ; celles sans poste
        remplacent la qualification par quantité de la même référence */
     const vises = {}, refsSansPoste = [];
@@ -3179,7 +3250,7 @@ async function applyFilled(){
       return refsSansPoste.indexOf(r) < 0;
     };
     return Object.assign({}, c, { lignes: c.lignes.filter(gard).concat(add) });
-  });
+  }).filter(Boolean);
   const gain = Object.values(xlsDraft.plan).reduce((s, l) => s + l.filter(x => CAT[x.cat].j).reduce((t, x) => t + x.nb, 0), 0);
   await bulkPut(out);
   $("#xls-in-out").innerHTML = '<div class="note" style="margin-top:14px;border-left-color:var(--good)"><b>' + n0(gain) +
@@ -3682,7 +3753,7 @@ function wiz3(){
   else { S.cells = seedCells(); saveLocal(); }
   chargeReglesLocal();
   chargeCausesLocal();
-  setStatus("local", "Enregistré sur ce navigateur");
+  statutLocal();
   /* Cible et plancher se lisent avant le premier rendu : sinon l'écran s'ouvre
      sur toute la série puis se recadre sous les yeux. */
   try { const c = parseFloat(localStorage.getItem(LSCIBLE)); if (isFinite(c) && c > 0) S.cible = c; } catch(e){}
