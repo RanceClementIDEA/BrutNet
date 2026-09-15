@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Suivi du taux de service : passage du taux brut au taux net, MG et Logistiport, distribution et réception.">
+<meta name="description" content="Suivi du taux de service : du taux brut au net automatique puis au net complet, MG et Logistiport, distribution et réception.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231c5cab'/%3E%3Cpath d='M6 23V9' stroke='white' stroke-width='2.6' stroke-linecap='round' fill='none'/%3E%3Cpath d='M6 21h6v-4h6v-4h6V9' stroke='white' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round' fill='none'/%3E%3Cpath d='M6 23h20' stroke='white' stroke-width='2.6' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <title>Brut vers Net</title>
@@ -139,10 +139,10 @@
             <div class="fcol">
               <div class="fcap">Vos fichiers</div>
               <div class="fbox s1"><b>Export PowerBI</b><span>tous les flux, OK et KO</span><i class="fneed">donne le brut</i></div>
-              <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span><i class="fopt">pièce</i></div>
-              <div class="fbox s2"><b>Relevé transcrit</b><span>MG ou Logistiport, distribution ou réception</span><i class="fopt">pièce</i></div>
-              <div class="fbox s2"><b>Export Terrain</b><span>les lignes KO, la cause écrite à côté par un responsable — distribution ou réception, MG ou Logistiport</span><i class="fopt">pièce</i></div>
-              <div class="fbox s3"><b>Vos saisies à la main</b><span>ce que vous qualifiez dans « À justifier »</span><i class="fopt">votre analyse</i></div>
+              <div class="fbox s2"><b>Extraction SAP</b><span>postes BR recréés après litige</span><i class="fopt">l'outil seul</i></div>
+              <div class="fbox s3"><b>Relevé transcrit</b><span>MG ou Logistiport, distribution ou réception</span><i class="fopt">écrit par une personne</i></div>
+              <div class="fbox s3"><b>Export Terrain</b><span>les lignes KO, la cause écrite à côté par un responsable — distribution ou réception, MG ou Logistiport</span><i class="fopt">écrit par une personne</i></div>
+              <div class="fbox s3"><b>Vos saisies à la main</b><span>ce que vous qualifiez dans « À justifier »</span><i class="fopt">écrit par une personne</i></div>
             </div>
             <div class="farr" aria-hidden="true">
               <svg viewBox="0 0 40 120" width="40" height="120"><path d="M2 60h30" stroke="var(--line-2)" stroke-width="2" fill="none"/><path d="M28 54l8 6-8 6" stroke="var(--line-2)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -150,8 +150,8 @@
             <div class="fcol">
               <div class="fcap">Les trois taux</div>
               <div class="fbox out"><i class="chip-c" style="background:var(--c-brut)"></i><b>Brut</b><span>ce que le client subit — l'export seul</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--c-expl)"></i><b>Documenté</b><span>+ SAP et les relevés : justifié, pièce à l'appui</span></div>
-              <div class="fbox out"><i class="chip-c" style="background:var(--c-net)"></i><b>Net</b><span>+ vos saisies à la main : c'est le chiffre qu'on publie</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-expl)"></i><b>Net automatique</b><span>+ ce que l'outil retire seul : ses règles et les rééditions SAP</span></div>
+              <div class="fbox out"><i class="chip-c" style="background:var(--c-net)"></i><b>Net complet</b><span>+ ce qu'une personne justifie : le relevé, ou vos saisies — c'est le chiffre qu'on publie</span></div>
             </div>
           </div>
         </div>
@@ -236,7 +236,7 @@
               <div class="gmap">
                 <div><b>N° Poste Référence</b><span>rempli → poste recréé, à traiter</span></div>
                 <div><b>Circuit Court</b><span>rempli → objectif 3 h<br>vide → objectif 2 j ouvrés</span></div>
-                <div><b>Ce que ça pèse</b><span>150 KO documentés sur la période — sans cette étape, la réception MG tombe de 97,4 % à 94,7 %</span></div>
+                <div><b>Ce que ça pèse</b><span>150 KO retirés sur la période — sans cette étape, la réception MG tombe de 97,4 % à 94,7 %</span></div>
               </div>
               <div class="pit"><b>Le piège.</b> Le fichier SAP a une date d'extraction&nbsp;: les postes recréés après elle sont invisibles. Extrayez SAP <i>après</i> la période, pas pendant.</div>
         </div>
@@ -532,7 +532,7 @@ Contrôle 3 — sur le fil : nombre de mails « Retard du » trouvés, nombre de
           <div class="ph"><h2>Sauvegardes</h2><span class="sub">Où vivent les saisies</span></div>
           <div class="pb">
             <div class="form" style="margin-bottom:14px">
-              <div class="f"><label for="opt-cible">Cible de taux net</label>
+              <div class="f"><label for="opt-cible">Cible de taux net complet</label>
                 <input type="number" id="opt-cible" min="50" max="100" step="0.5" style="width:110px">
                 <span class="hint">fixe le plancher des demi-cercles du tableau de bord</span></div>
               <div class="f"><label for="opt-plancher">Le tableau de bord commence le</label>

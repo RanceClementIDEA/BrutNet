@@ -1,8 +1,18 @@
 # Brut vers Net — suivi du taux de service
 
 Magasin Général et Logistiport, distribution et réception. L'outil part du taux
-**brut** tel que le KPI le calcule, retire ce qui est **documenté** par une pièce,
-puis ce que **votre analyse** établit, et affiche les trois niveaux côte à côte.
+**brut** tel que le KPI le calcule, retire d'abord ce que l'outil justifie tout
+seul — c'est le **net automatique** — puis ce qu'une personne justifie, au relevé
+ou à la main — c'est le **net complet**. Les trois niveaux s'affichent côte à côte.
+
+| niveau | ce qu'il retire | qui l'a posé |
+|---|---|---|
+| **Brut** | rien | le KPI |
+| **Net automatique** | les règles de l'outil, les rééditions SAP, les dates lues dans l'export | l'outil, seul |
+| **Net complet** | en plus : le relevé de l'exploitation, l'export terrain, vos saisies | une personne |
+
+La frontière est là, et nulle part ailleurs : `src === "auto"` fait le net
+automatique, `releve` et `manuel` font le net complet.
 
 ---
 
