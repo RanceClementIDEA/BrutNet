@@ -19,8 +19,8 @@
   --c-brut:var(--s2); --c-brut-t:var(--s2-t); --c-brut-f:var(--s2-soft);
   --c-expl:var(--s3); --c-expl-t:var(--s3-t); --c-expl-f:var(--s3-soft);
   --c-net:var(--s1);  --c-net-t:var(--s1-t);  --c-net-f:var(--s1-soft);
-  /* « établi par votre analyse » : même vert, moins plein */
-  --c-analyse:color-mix(in srgb, var(--s3) 45%, var(--surface));
+  /* « posé par une personne » : même vert, moins plein */
+  --c-humain:color-mix(in srgb, var(--s3) 45%, var(--surface));
   --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
   --good-ink:#046504; --warn-ink:#8a5c00; --crit-ink:#a12525;
   --grid:#e4e9ee; --axis:#c3ccd4;
@@ -171,18 +171,18 @@ textarea{width:100%;font-family:var(--f-mono);font-size:12px;line-height:1.55;re
 .hb .hbv{font-family:var(--f-mono);font-size:12.5px;color:var(--ink);font-weight:600}
 .hb .hbt{grid-column:1/-1;height:6px;border-radius:4px;background:var(--c-expl-f)}
 .hb .hbt i{display:block;height:100%;border-radius:4px;background:var(--c-expl)}
-/* Barre des causes : la part appuyée sur une pièce, puis celle établie par
-   votre analyse — même vert, le plein contre le tramé. Un écart de 2 px en
-   couleur de fond sépare les deux, sans trait. */
+/* Barre des causes : la part que l'outil a posée seul, puis celle qu'une
+   personne a posée — relevé ou saisie. Même vert, le plein contre le tramé.
+   Un écart de 2 px en couleur de fond sépare les deux, sans trait. */
 .cbar{grid-column:1/-1;display:flex;gap:2px;height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden}
 .cbar i{display:block;height:100%;border-radius:4px}
-.cbar .piece{background:var(--c-expl)}
-.cbar .analyse{background:var(--c-analyse)}
+.cbar .pauto{background:var(--c-expl)}
+.cbar .phum{background:var(--c-humain)}
 .ckey{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:11.5px;color:var(--muted);margin-top:12px}
 .ckey span{display:inline-flex;align-items:center;gap:6px}
 .ckey i{width:11px;height:8px;border-radius:2px;flex:none}
-.ckey .piece{background:var(--c-expl)}
-.ckey .analyse{background:var(--c-analyse)}
+.ckey .pauto{background:var(--c-expl)}
+.ckey .phum{background:var(--c-humain)}
 .hb:hover .hbl{color:var(--ink)}
 .wt .bcta{padding-top:12px}
 .wempty{color:var(--muted);font-size:12.5px;padding:14px 0}
@@ -267,7 +267,7 @@ body.simple .adv{display:none!important}
 .lbar{display:flex;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line-2);gap:2px;background:var(--line-2)}
 .lbar .lseg{display:grid;place-items:center;min-width:2px}
 .lbar .ok{background:var(--good)}
-.lbar .d1{background:var(--c-expl)} .lbar .d2{background:var(--c-analyse)}
+.lbar .d1{background:var(--c-expl)} .lbar .d2{background:var(--c-humain)}
 .lbar .rest{background:var(--surface-3)}
 .lbar .ok span{font-size:11.5px;color:#fff;font-weight:600;font-family:var(--f-disp)}
 .lkey{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-size:12px;color:var(--ink-2)}
@@ -730,8 +730,10 @@ th.n{font-family:var(--f-disp)}
 .pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;font-family:var(--f-disp);letter-spacing:.02em;border:1px solid transparent;white-space:nowrap}
 /* Automatique et Relevé s'appuient sur une pièce, Manuel sur votre analyse :
    même vert — ce sont deux justifications — le plein contre le contour. */
-.pill.auto,.pill.releve{background:var(--c-expl-f);color:var(--c-expl-t);border-color:color-mix(in srgb,var(--s3) 34%,transparent)}
-.pill.manuel{background:transparent;color:var(--c-expl-t);border-color:var(--c-expl);border-style:dashed}
+/* Plein = l'outil l'a posée seul (net automatique) ; tramé = une personne
+   l'a écrite, au relevé ou à la main (net complet). */
+.pill.auto{background:var(--c-expl-f);color:var(--c-expl-t);border-color:color-mix(in srgb,var(--s3) 34%,transparent)}
+.pill.releve,.pill.manuel{background:transparent;color:var(--c-expl-t);border-color:var(--c-expl);border-style:dashed}
 .pill.rejet{background:var(--surface-3);color:var(--muted);border-color:var(--line-2)}
 /* ---------- règles automatiques ---------- */
 .rlist{display:flex;flex-direction:column;gap:10px}
