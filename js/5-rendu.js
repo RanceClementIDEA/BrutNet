@@ -1098,7 +1098,7 @@ function render(){
     $("#rail").style.display = (S.ui.tab === "reglages" || S.ui.tab === "import") ? "none" : "";
     if (S.ui.tab === "dash") renderDash();
     if (S.ui.tab === "justif") renderAJustifier();
-    if (S.ui.tab === "qualif"){ renderQualifies(); renderMains(); }
+    if (S.ui.tab === "qualif"){ renderQualifies(); renderMains(); renderPourquoi(); }
     if (S.ui.tab === "import"){ renderCellsTable(); renderRegles(); renderMesCauses(); }
     if (S.ui.tab === "reglages") renderDonnees();
     renderCounts();
@@ -1154,4 +1154,92 @@ function renderCounts(){
      précise le sous-ensemble réellement retiré, sous son titre. */
   $("#cnt-aj").textContent = n0(aj);
   $("#cnt-justif").textContent = n0(Math.max(0, ko - aj));
+}
+
+/* ====================== « Pourquoi cette cause ? » ======================
+   Le panneau qui répond à la question posée devant l'écran : cette DT est en
+   irréalisable, elle devrait être en rebut — qu'est-ce qui a décidé ?
+   On regroupe les KO qui ont la même histoire : une DT de quarante postes tous
+   traités pareil tient en une ligne, et le cas isolé ressort. */
+function renderPourquoi(){
+  const host = $("#pq-out"); if (!host) return;
+  const saisi = ($("#pq-ref") || {}).value || "";
+  if (!String(saisi).trim()){ host.innerHTML = ""; return; }
+  const d = diagRef(saisi);
+  if (!d || !d.ko.length){
+    host.innerHTML = '<div class="note" style="border-left-color:var(--warn)"><b>Aucun KO sur cette référence</b> ' +
+      "dans la plage et le périmètre affichés. Élargissez la période, ou remettez site et service sur «&nbsp;Tous&nbsp;»." +
+      "</div>";
+    return;
+  }
+  /* même cause, même règle gagnante, même verdict pour chaque règle → une ligne */
+  const groupes = new Map();
+  d.ko.forEach(k => {
+    const cle = [k.per, k.site, k.service, k.ligne ? k.ligne.cat : "",
+      k.ligne ? (k.ligne.regle || "") + "/" + k.ligne.src : "",
+      k.vues.map(v => v ? v.k + ":" + v.t : "ok").join("|")].join("§");
+    const g = groupes.get(cle) || { n:0, postes:[], k };
+    g.n++; if (k.poste) g.postes.push(k.poste);
+    groupes.set(cle, g);
+  });
+
+  const nomRegle = id => (S.regles.find(r => r.id === id) || {}).nom || "";
+  const blocs = Array.from(groupes.values()).sort((a, b) => b.n - a.n).map(g => {
+    const k = g.k, l = k.ligne;
+    const posePar = !l
+      ? '<span class="warn-t">aucune cause — ce KO est encore à justifier</span>'
+      : l.regle === REGLE_REED
+        ? "la règle de l'outil <b>Litige BR réédité</b>"
+        : l.regle
+          ? "la règle <b>" + esc(nomRegle(l.regle) || "supprimée") + "</b>"
+          : l.src === "releve"
+            ? "<b>le relevé de l'exploitation</b>" + (l.d ? " du " + esc(dayLabel(l.d)) : "")
+            : "<b>une saisie à la main</b>" + (l.d ? " du " + esc(dayLabel(l.d)) : "");
+    const lignes = d.regles.map(({ rang, r }) => {
+      const v = k.vues[rang - 1];
+      const gagnante = l && l.regle === r.id;
+      const ic = gagnante ? "✔" : v ? "✗" : "·";
+      const cls = gagnante ? "pq-ok" : v ? "pq-no" : "pq-perd";
+      const dit = gagnante ? "c'est elle qui pose la cause"
+        : v ? esc(v.t)
+        : l && !l.regle && l.src === "releve"
+          ? "elle vise ce KO, mais <b>un relevé le tient</b> — une règle ne reprend pas un relevé"
+          : "elle vise ce KO aussi, mais elle est <b>plus bas dans la liste</b>";
+      return '<div class="pqr ' + cls + '"><i>' + ic + "</i><b>" + n0(rang) + ". " + esc(r.nom) + "</b>" +
+        "<span>" + dit + "</span></div>";
+    }).join("");
+    /* le conseil, quand il y en a un : une règle qui vise mais qui perd au rang */
+    const perdantes = d.regles.filter(({ rang, r }) =>
+      !k.vues[rang - 1] && !(l && l.regle === r.id));
+    /* Formulé au conditionnel : quand l'ordre est déjà le bon, un conseil qui
+       pousse à le changer est un piège. C'est à vous de dire quelle cause vous
+       attendiez — l'outil dit seulement comment l'obtenir. */
+    const conseil = (l && !l.regle && l.src === "releve" && perdantes.length)
+      ? "Le relevé prime sur toutes les règles&nbsp;: c'est l'exploitation qui a dit la cause, l'outil ne la reprend pas. " +
+        "Si c'est « " + esc(perdantes[0].r.nom) + " » que vous attendiez, il faut retirer cette ligne de relevé " +
+        "— dans <b>Vos saisies à la main</b> ci-dessous, ou sur la ligne elle-même."
+      : (l && l.regle && perdantes.length)
+        ? "Si c'est « " + esc(perdantes[0].r.nom) + " » que vous attendiez, remontez-la au-dessus de « " +
+          esc(nomRegle(l.regle)) + " » dans <b>Vos règles automatiques</b>, onglet Import."
+        : (l && !l.regle && l.src !== "releve" && perdantes.length)
+          ? "Une saisie à la main ne cède la place qu'à une règle qui la vise&nbsp;: « " +
+            esc(perdantes[0].r.nom) + " » la reprendra au prochain <b>Rejouer sur tout l'historique</b>."
+          : "";
+    const postes = g.postes.length
+      ? " · poste" + sPl(g.postes.length) + " " + esc(g.postes.slice(0, 8).sort(cmpPoste).join(", ")) +
+        (g.postes.length > 8 ? " +" + n0(g.postes.length - 8) : "")
+      : "";
+    return '<div class="pqbloc">' +
+      '<div class="pqh"><b>' + n0(g.n) + " KO</b> · " + esc(perLabel(k.per)) + " · " +
+        esc(SITES[k.site].l) + " · " + esc(SERVS[k.service].l) + '<span class="muted">' + postes + "</span></div>" +
+      '<div class="pqcause">Cause&nbsp;: <b>' + (l ? esc(CAT[l.cat] ? CAT[l.cat].l : l.cat) : "—") +
+        "</b> — posée par " + posePar + "</div>" +
+      '<div class="pqlist">' + (lignes || '<div class="muted">Aucune règle enregistrée.</div>') + "</div>" +
+      (conseil ? '<div class="pqfix">' + conseil + "</div>" : "") +
+      "</div>";
+  }).join("");
+
+  host.innerHTML = '<div class="note" style="margin-bottom:12px"><b>' + esc(d.ref) + "</b> — " +
+    n0(d.ko.length) + " KO sur la plage affichée, " + n0(groupes.size) + " cas distinct" + sPl(groupes.size) +
+    ".</div>" + blocs;
 }

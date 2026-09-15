@@ -700,3 +700,67 @@ async function rejouerRegles(silencieux){
   }
   return stats;
 }
+
+/* ====================== pourquoi cette cause, et pas l'autre ? ======================
+   Une DT part en « Demande irréalisable » alors que l'exploitation la voit comme
+   un rebut. Sur l'écran, la cause s'affiche — jamais la raison. Impossible de
+   savoir si la règle du rebut a perdu au classement, si elle ne vise pas cette
+   ligne, si elle est décochée, ou si un relevé tient la place et qu'aucune règle
+   n'a le droit d'y toucher. On regardait un chiffre en devinant.
+   Ces deux fonctions répondent, KO par KO, sur la référence qu'on leur donne. */
+
+/* Pourquoi cette règle ne vise-t-elle pas ce KO ? En clair, avec la valeur lue. */
+function pourquoiPas(r, cell, i){
+  if (!r.actif) return { k:"off", t:"règle décochée" };
+  if (r.service && r.service !== "tous" && r.service !== cell.service)
+    return { k:"serv", t:"ne concerne que " + (r.service === "distri" ? "la distribution" : "la réception") };
+  if (!regleEvaluable(r, cell))
+    return { k:"lire", t:"colonne absente de cet import : " +
+      colsRequises(r).filter(c => !((cell.koCtx || {}).c || []).includes(c)).join(", ") };
+  if (r.type === "liste")
+    return { k:"liste", t:"cette référence n'est pas dans sa liste" };
+  if (r.type === "dates"){
+    const e = ecartJours(cell, i, r.dateA, r.dateB, r.ouvres !== false);
+    if (e == null) return { k:"date", t:"une des deux dates manque sur ce KO" };
+    const lbl = (OPS_ECART.find(o => o.k === r.opD) || {}).l || r.opD;
+    return { k:"ecart", t:"écart de " + n0(e) + " " + (r.ouvres !== false ? "jour(s) ouvré(s)" : "jour(s)") +
+      " entre " + r.dateA + " et " + r.dateB + " — la règle attend " + lbl + " " + n0(+r.nD || 0) };
+  }
+  /* type colonne : on nomme la première condition qui tombe, avec ce qu'on a lu */
+  for (const c of (r.conds || [])){
+    if (condVraie(c, cell, i)) continue;
+    const lu = ctxVal(cell, i, c.col);
+    const op = (OPS_COL.find(o => o.k === c.op) || {}).l || c.op;
+    return { k:"cond", t: c.col + " = " + (lu ? "« " + lu + " »" : "(vide)") +
+      " — la règle attend « " + op + " " + (c.val || "") + " »" };
+  }
+  return { k:"?", t:"condition non remplie" };
+}
+
+/* Tout ce qu'on peut dire d'une référence sur la plage affichée. */
+function diagRef(saisi){
+  const cible = sansZeros(String(saisi || "").trim());
+  if (!cible) return null;
+  const out = { ref: cible, ko: [], periodes: [], regles: S.regles.map((r, n) => ({ rang: n + 1, r })) };
+  selCells().map(c => realCell(c) || c)
+    .filter((c, i, l) => l.findIndex(x => x.id === c.id) === i)
+    .forEach(cell => {
+      (cell.koRefs || []).forEach((r, i) => {
+        if (sansZeros(r) !== cible) return;
+        const poste = String((cell.koPostes || [])[i] || "");
+        /* la justification qui couvre ce KO : par poste, sinon en quantité sur la référence */
+        const ligne = (cell.lignes || []).find(l => l.st === "ok" && sansZeros(l.ref) === cible &&
+            (l.postes || []).map(String).includes(poste))
+          || (cell.lignes || []).find(l => l.st === "ok" && sansZeros(l.ref) === cible && !(l.postes || []).length);
+        out.ko.push({
+          cell, i, poste, date: (cell.koDates || [])[i] || "",
+          per: cell.periode, site: cell.site, service: cell.service,
+          ligne: ligne || null,
+          vues: S.regles.map(x => regleVise(x, cell, i, r) ? null : pourquoiPas(x, cell, i))
+        });
+      });
+      if ((cell.koRefs || []).some(r => sansZeros(r) === cible))
+        out.periodes.push({ per: cell.periode, site: cell.site, service: cell.service });
+    });
+  return out;
+}

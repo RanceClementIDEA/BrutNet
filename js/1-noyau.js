@@ -935,8 +935,16 @@ function effCells(){
        justifications avec elle. */
     if (!auJour() && !coupee(c)){ out.push(c); return; }
     const d = dayCells(c);
-    if (d) out.push.apply(out, d);
-    else if (S.ui.maille !== "jour") out.push(c);   /* semaine gardée entière, et signalée */
+    if (d){ out.push.apply(out, d); return; }
+    if (!auJour()){ out.push(c); return; }          /* semaine gardée entière, et signalée */
+    /* ---- une semaine sans détail au jour, en maille Jour ----
+       On la jetait. Le total affiché perdait alors ses flux sans le dire : la
+       même semaine donnait un chiffre à la maille Semaine et un autre à la
+       maille Jour, et l'écart n'était expliqué nulle part. On la garde, posée
+       sur son lundi : le total reste juste, et la barre anormalement haute dit
+       d'elle-même que le détail manque. */
+    const sp = spanOf(c);
+    out.push(Object.assign({}, c, { jour: sp[0], span: sp, grosJour: true }));
   });
   return out;
 }
@@ -1016,6 +1024,9 @@ function periodKeys(cells){
 }
 /* Bornes d'une période, en dates, pour croiser avec une plage libre. */
 function spanOf(c){
+  /* Une semaine posée sur son lundi faute de détail au jour garde les bornes de
+     la semaine : elle couvre bien sept jours, quel que soit le jour qui la porte. */
+  if (c.span) return c.span;
   if (c.jour) return [c.jour, c.jour];
   const a = weekMonday(c.periode), b = new Date(a); b.setUTCDate(a.getUTCDate() + 6);
   return [ymd(a), ymd(b)];
@@ -1418,8 +1429,9 @@ function controls(){
   if (sd.length) raw.push({ k:"warn", t:"Semaines sans détail au jour",
     tag: n0(sd.length) + (sd.length > 1 ? " périodes" : " période") + " · " +
       n0(sd.reduce((s, c) => s + (c.flux || 0), 0)) + " flux",
-    why: "Elles sont écartées de la maille Jour : leur export a été chargé avant que l'outil compte les flux par date. "
-      + "C'est pourquoi le total baisse en passant au jour. Réimportez ces semaines, ou revenez en maille Semaine." });
+    why: "Leur export a été chargé avant que l'outil compte les flux par date : impossible de les répartir. "
+      + "Elles sont <b>comptées en entier sur leur lundi</b> — le total est juste, mais la courbe au jour y fait une marche. "
+      + "Un réimport de ces semaines la lisserait." });
   const byCouple = {};
   scopeCells().forEach(c => { const k = c.site + "|" + c.service; (byCouple[k] = byCouple[k] || []).push(c); });
   Object.entries(byCouple).forEach(([k, list]) => {

@@ -222,8 +222,31 @@ function ligneCellules(xml, shared, compte){
   for (let i = 0; i < cells.length; i++) if (cells[i] === undefined) cells[i] = "";
   return cells;
 }
+/* ---- un classeur peut porter plusieurs feuilles ----
+   Une feuille de garde devant les données, un onglet par service, un export
+   collé à côté d'un récapitulatif : on lisait la première feuille et on
+   déclarait le fichier illisible. `xlsxRead` rend désormais la première feuille
+   EXPLOITABLE, et `xlsxFeuilles` les rend toutes, pour les traiter chacune. */
 async function xlsxRead(buf){
+  const fs = await xlsxFeuilles(buf);
+  if (!fs.length) throw new Error("Le classeur ne contient aucune ligne lisible.");
+  /* la première qui a au moins un en-tête et une ligne : une feuille de garde
+     n'en a qu'une, elle ne doit pas masquer les données qui suivent */
+  return fs.find(f => f.length >= 2) || fs[0];
+}
+async function xlsxFeuilles(buf){
   const files = zipIndex(buf);
+  const cles = Object.keys(files).filter(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k))
+    .sort((a, b) => (parseInt(a.replace(/\D+/g, ""), 10) || 0) - (parseInt(b.replace(/\D+/g, ""), 10) || 0));
+  if (!cles.length) throw new Error("Aucune feuille trouvée dans le classeur.");
+  const out = [];
+  for (const k of cles.slice(0, 12)){
+    try { const r = await xlsxUneFeuille(buf, files, k); if (r && r.length) out.push(r); }
+    catch(e){ /* une feuille illisible n'empêche pas de lire les autres */ }
+  }
+  return out;
+}
+async function xlsxUneFeuille(buf, files, key){
   const dec = new TextDecoder();
   const shared = [];
   if (files["xl/sharedStrings.xml"]){
@@ -235,8 +258,6 @@ async function xlsxRead(buf){
       shared.push(xmlText(ts.map(t => t.replace(/<[^>]+>/g, "")).join("")));
     }
   }
-  const key = Object.keys(files).find(k => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
-  if (!key) throw new Error("Aucune feuille trouvée dans le classeur.");
   const e = files[key];
   const rows = [];
   const finRow = new RegExp("</" + T("row") + ">");
@@ -370,4 +391,47 @@ async function lireFichierRows(file){
     return rows;
   }
   return parseTable(await file.text());
+}
+
+/* ---- tous les tableaux d'un fichier, pas seulement le premier ----
+   Un classeur a des onglets, un mail peut porter deux tableaux à la suite. On
+   les rend tous, nommés, et l'appelant reconnaît chacun pour lui-même. */
+async function lireFichierJeux(file){
+  const nom = (file.name || "").toLowerCase();
+  if (/\.(xlsx|xlsm|xltx)$/.test(nom)){
+    const fs = await xlsxFeuilles(await file.arrayBuffer());
+    if (!fs.length) throw new Error("Le classeur ne contient aucune ligne lisible.");
+    return fs.map((rows, i) => ({ nom: "feuille " + (i + 1), rows }));
+  }
+  if (/\.(mht|mhtml|eml)$/.test(nom)){
+    const html = mhtHtml(await file.arrayBuffer());
+    const jeux = html ? htmlTablesTous(html) : null;
+    if (jeux && jeux.length) return jeux;
+    if (html && /<img/i.test(html))
+      throw new Error("Ce mail ne contient pas de tableau : le relevé y est une capture d'image, que l'outil ne sait pas lire. Demandez l'envoi du tableau lui-même, ou d'un fichier joint.");
+    throw new Error("Aucun tableau trouvé dans ce mail.");
+  }
+  if (/\.(html?|htm)$/.test(nom)){
+    const jeux = htmlTablesTous(await file.text());
+    if (!jeux || !jeux.length) throw new Error("Aucun tableau trouvé dans cette page.");
+    return jeux;
+  }
+  const rows = parseTable(await file.text());
+  return rows && rows.length ? [{ nom:"", rows }] : [];
+}
+/* Chaque <table> de la page, séparément — `htmlTables` les recolle en un seul
+   jeu, ce qui convient au relevé d'un mail mais noie deux tableaux distincts. */
+function htmlTablesTous(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll("table").forEach((tb, i) => {
+    const lignes = [];
+    tb.querySelectorAll("tr").forEach(tr => {
+      const cs = Array.from(tr.querySelectorAll("th,td"))
+        .map(td => (td.textContent || "").replace(/\s+/g, " ").trim());
+      if (cs.some(x => x !== "")) lignes.push(cs);
+    });
+    if (lignes.length >= 2) out.push({ nom: "tableau " + (i + 1), rows: lignes });
+  });
+  return out;
 }

@@ -61,6 +61,15 @@ $("#btn-reset").addEventListener("click", () => {
   syncSegs(); render(); toast("Filtres réinitialisés");
 });
 $("#q-search").addEventListener("input", e => { S.ui.q = e.target.value; render(); });
+/* « Pourquoi cette cause ? » — la recherche se lance à la touche Entrée comme au
+   bouton : on tape une DT, on valide, on a la réponse. Le panneau s'ouvre tout
+   seul, sans quoi on chercherait ce qui vient de s'écrire sous un titre replié. */
+(function(){
+  const go = () => { const d = $("#pan-pourquoi"); if (d) d.open = true; renderPourquoi(); };
+  const btn = $("#btn-pq"); if (btn) btn.addEventListener("click", go);
+  const inp = $("#pq-ref");
+  if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); go(); } });
+})();
 $("#aj-search").addEventListener("input", e => { S.ui.ajq = e.target.value; S.ui.qshow = 40; render(); });
 /* Clic sur un en-tête : même colonne → on inverse le sens, sinon on l'adopte. */
 document.addEventListener("click", e => {
@@ -498,6 +507,11 @@ let releveDraft = null;
 function refPosteReleve(raw, service){
   const s = String(raw == null ? "" : raw).trim().replace(/^n[°o]\s*/i, "");
   if (RE_IDENT.test(s)) return splitRefPoste(s, service || "distri");
+  /* La réception nomme ses lignes « BR-poste » : deux segments, là où la
+     distribution en a trois. Sans ce cas, tout un fichier de réception se posait
+     sur le BR entier au lieu du poste — dix-huit postes justifiés d'un bloc par
+     la première cause venue, et le détail perdu. */
+  if (/^\d{5,}-\d{2,}$/.test(s)) return splitRefPoste(s, "recep");
   const m = s.match(/\d{4,}/);
   return { ref: m ? sansZeros(m[0]) : sansZeros(s), poste:"" };
 }
@@ -506,28 +520,78 @@ function refReleve(raw){ return refPosteReleve(raw, "distri").ref; }
    tableur porte ses libellés ; se fier à l'ordre des colonnes revient à lire la
    date à la place de la DT. Rend null si aucun en-tête n'est trouvé — on repasse
    alors au format libre « n° ; cause ; commentaire ». */
+/* ---- les colonnes que les gens écrivent vraiment ----
+   Un fichier venu du terrain n'a pas de format. Chacun nomme sa colonne comme il
+   la dit : CAUSE, Motif, Justification, Pourquoi, Explication ; DT, BR, n° de
+   commande, Référence. Le fichier du chef d'exploitation MG en portait même une
+   SANS AUCUN EN-TÊTE, coincée entre « Identifiant flux fin » et « Calcul » : la
+   cause était là, l'outil ne la voyait pas, et disait « aucune colonne de cause »
+   à quelqu'un qui venait de passer une heure à les écrire.
+   D'où cette reconnaissance large, et le repli sur une colonne muette quand rien
+   d'autre ne se présente — repli annoncé, jamais silencieux. */
+const REL_VEUT = {
+  /* La référence d'un KO : le numéro de DT ou de BR quand le fichier est saisi à
+     la main, l'identifiant de flux quand il est bâti sur l'export lui-même. */
+  ref:  h => /identifiant( de)? flux( debut| fin)?/.test(h) ||
+             /^(identifiant|ident|id flux)$/.test(h) ||
+             (/(^|\b)(n ?[°o] ?)?(dt|dts|br|brs|bon de reception|demande|demandes|commande|commandes|reference|references|ref|refs|document|numero|num)(\b|$)/.test(h)
+              && !/date/.test(h)),
+  /* Le poste, quand il vit dans sa propre colonne plutôt que collé à la référence. */
+  poste: h => /(^|\b)(n ?[°o] ?)?(poste|postes|ligne br|item|position)(\b|$)/.test(h)
+              && !/(date|creation|reference)/.test(h),
+  /* La cause : tout ce qu'on a vu écrire pour dire « pourquoi ». */
+  cat:  h => /(categorie|categories|cause|causes|motif|motifs|raison|raisons|justification|justifications|explication|explications|type de retard|origine|pourquoi|analyse|imputation)/.test(h),
+  /* Le commentaire, sans attraper une colonne de résultat : « Statut/Résultat »
+     contient « statut » et vaut « KO » — recopié en commentaire, il remplaçait
+     la cause écrite par le responsable. */
+  com:  h => /(commentaire|commentaires|observation|observations|remarque|remarques|precision|precisions|detail|details|note|notes)/.test(h) ||
+             (/statut/.test(h) && !/(resultat|litige|douane|qualite|avancement)/.test(h)),
+  date: h => /(date rapport|date du releve|date releve|date jour|date de la ligne|^date$|^jour$)/.test(h),
+  nb:   h => /(nb ligne|nombre de ligne|nb ko|nombre de ko|ko a justifier|lignes en retard|quantite|^lignes$|^nb$|^qte$)/.test(h)
+};
+/* Les colonnes d'un export PowerBI qui portent du texte mais ne sont jamais une
+   cause : sans cette liste, le repli sur colonne muette prendrait « Calcul »
+   (« Livraison à date ») ou « KPI » (« Réception ») pour une justification. */
+const REL_JAMAIS_CAUSE = /^(kpi|code kpi|calcul|unite de mesure|resultat|statut resultat|statut|business unit|business units|centre organisationnel|client|activite|sous activite|type de flux|code aire|code objet|volumetrie flux|objectif|valeur kpi|priorite|emplacement|gare|nom fournisseur|id collaborateur|anticipation|regroupement anticipation|statut douane|statut litige|statut qualite|annee|mois|semaine|identifiant|nombre de flux)/;
+/* Une colonne sans en-tête qui porte du texte libre : c'est une cause écrite à
+   la main dans le fichier de l'export. On ne la retient que si elle en a l'air —
+   du texte, pas des nombres, pas des dates, pas des identifiants. */
+function colonneMuette(lignes, deb, pris){
+  const fin = Math.min(lignes.length, deb + 200);
+  const larg = lignes.slice(deb, fin).reduce((m, r) => Math.max(m, r.length), 0);
+  let best = null;
+  for (let j = 0; j < larg; j++){
+    if (pris.indexOf(j) >= 0) continue;
+    const h = normLbl(lignes[deb] ? lignes[deb][j] : "");
+    /* en-tête vide, ou en-tête qui ne veut rien dire — jamais un libellé connu */
+    if (h && (REL_JAMAIS_CAUSE.test(h) || h.length > 2)) continue;
+    let n = 0, car = 0, mots = 0;
+    for (let i = deb + 1; i < fin; i++){
+      const v = String((lignes[i] || [])[j] == null ? "" : (lignes[i] || [])[j]).trim();
+      if (!v) continue;
+      if (RE_IDENT.test(v)) return null;                       /* une colonne d'identifiants */
+      if (/^-?[\d\s.,]+$/.test(v)) continue;                   /* un nombre */
+      if (/^\d{4}-\d{2}-\d{2}/.test(v) || /^\d{2}\/\d{2}\/\d{4}/.test(v)) continue;  /* une date */
+      n++; car += v.length;
+      if (/[ \n]/.test(v)) mots++;
+    }
+    /* au moins trois lignes remplies, et du vrai texte : ni codes, ni « OK » */
+    if (n < 3 || car / n < 4 || mots < 1) continue;
+    if (!best || car > best.car) best = { j, n, car };
+  }
+  return best;
+}
 function releveCols(lignes){
-  const veut = {
-    /* La référence d'un KO, sous les deux formes rencontrées : le numéro de DT
-       quand le relevé est saisi à la main, l'identifiant de flux quand il est
-       bâti sur l'export lui-même — ce que fait un responsable qui ajoute une
-       colonne « CAUSE » à côté des lignes KO. */
-    ref:  h => /identifiant flux( debut)?/.test(h) ||
-               (/(^|\b)(n ?[°o] ?)?(dt|dts|demande|demandes|reference|references)(\b|$)/.test(h) && !/date/.test(h)),
-    cat:  h => /(categorie|cause|motif|type de retard)/.test(h),
-    /* Le commentaire, sans attraper une colonne de résultat : « Statut/Résultat »
-       contient « statut » et vaut « KO » — recopié en commentaire, il remplaçait
-       la cause écrite par le responsable. */
-    com:  h => /(commentaire|observation|remarque)/.test(h) ||
-               (/statut/.test(h) && !/(resultat|litige|douane|qualite|avancement)/.test(h)),
-    date: h => /(date rapport|date du releve|date releve|date jour|^date$|^jour$)/.test(h),
-    nb:   h => /(nb ligne|nombre de ligne|nb ko|ko a justifier|lignes en retard|^lignes$|^nb$)/.test(h)
-  };
   for (let i = 0; i < Math.min(lignes.length, 12); i++){
-    const h = lignes[i].map(x => normLbl(x));
+    const h = (lignes[i] || []).map(x => normLbl(x));
     const ci = {};
-    for (const k in veut){ const j = h.findIndex(veut[k]); if (j >= 0) ci[k] = j; }
-    if (ci.ref != null && ci.cat != null) return { ligne:i, ci };
+    for (const k in REL_VEUT){ const j = h.findIndex(REL_VEUT[k]); if (j >= 0) ci[k] = j; }
+    if (ci.ref == null) continue;
+    if (ci.cat != null) return { ligne:i, ci };
+    /* La référence est là, la cause n'a pas de nom : on cherche la colonne muette. */
+    const pris = Object.keys(ci).map(k => ci[k]);
+    const m = colonneMuette(lignes, i, pris);
+    if (m){ ci.cat = m.j; return { ligne:i, ci, muette:m }; }
   }
   return null;
 }
@@ -695,8 +759,15 @@ function analyseReleve(src){
   const lues = [];
   let inconnues = 0;
   const libelles = {};        /* les causes écrites en clair que l'outil ne sait pas encore lire */
-  const prendre = (ref, catRaw, com, dateRaw, nbRaw) => {
-    const rp = refPosteReleve(ref, service), r = rp.ref, po = rp.poste;
+  /* Le poste peut vivre dans sa propre colonne — « DT 7553086 · poste 1 » sur
+     deux colonnes plutôt que dans un identifiant collé. On le prend là où il est. */
+  const prendre = (ref, catRaw, com, dateRaw, nbRaw, posteRaw) => {
+    const rp = refPosteReleve(ref, service), r = rp.ref;
+    let po = rp.poste;
+    if (!po && posteRaw != null){
+      const p = String(posteRaw).trim().replace(/^(poste|ligne|item)\s*/i, "");
+      if (p && /^[\w.-]+$/.test(p)) po = sansZeros(p);
+    }
     if (!/^\d/.test(r)) return;
     const brutCat = String(catRaw == null ? "" : catRaw).trim();
     let ck = causeConnue(brutCat);
@@ -716,7 +787,8 @@ function analyseReleve(src){
     for (let i = tete.ligne + 1; i < lignes.length; i++){
       const l = lignes[i];
       prendre(l[c.ref], l[c.cat], c.com != null ? l[c.com] : "",
-        c.date != null ? l[c.date] : "", c.nb != null ? l[c.nb] : "");
+        c.date != null ? l[c.date] : "", c.nb != null ? l[c.nb] : "",
+        c.poste != null ? l[c.poste] : null);
     }
   } else {
     lignes.forEach(l => prendre(l[0], l[1], l[2], "", ""));
@@ -784,7 +856,9 @@ function analyseReleve(src){
       cells:Object.keys(parCell), ecart: g.nb && g.nb !== Object.values(parCell).reduce((s, p) => s + p.n, 0) ? g.nb : 0 });
   });
 
-  releveDraft = { plan, site, service, libelles, rows: brut || null };
+  releveDraft = { plan, site, service, libelles, rows: brut || null,
+    muette: (tete && tete.muette) || null, colPoste: (tete && tete.ci.poste != null) ? tete.ci.poste : null,
+    echos: echosReleve(lues, site, service) };
   const nCell = Object.keys(plan).length;
   const justifs = Object.values(plan).flat();
   const ok = justifs.filter(l => l.st === "ok").reduce((s, l) => s + l.nb, 0);
@@ -802,6 +876,18 @@ function analyseReleve(src){
     ", soit <b>" + n0(koVises) + " KO</b> — " + n0(ok) + " justifié" + sPl(ok) + ", " + n0(rejet) + " écarté" + sPl(rejet) + "." +
     (inconnues ? " " + n0(inconnues) + " catégorie(s) non reconnue(s), classées « Non renseignée »." : "") +
     (tete ? "" : ' <span class="muted">Lu au format libre : aucun en-tête reconnu.</span>') +
+    /* Deviner une colonne à la place de quelqu'un, c'est utile ; le faire sans
+       le dire, c'est lui faire signer un chiffre qu'il n'a pas vu naître. */
+    (tete && tete.muette
+      ? '<div class="muted" style="margin-top:5px"><b>La colonne ' + n0(tete.muette.j + 1) +
+        " de ce fichier n'a pas d'en-tête</b> — elle porte du texte sur " + n0(tete.muette.n) +
+        " ligne" + sPl(tete.muette.n) + ", c'est elle qui a été lue comme cause. " +
+        "Un mot dans sa cellule d'en-tête (<code>CAUSE</code>) lèverait le doute.</div>"
+      : "") +
+    (tete && tete.ci.poste != null
+      ? '<div class="muted" style="margin-top:5px">Le poste a été lu dans sa propre colonne (' +
+        n0(tete.ci.poste + 1) + ") : les causes se posent poste par poste.</div>"
+      : "") +
     '<div class="muted" style="margin-top:5px">' +
       Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([k, v]) => (CAT[k] ? CAT[k].l : k) + " " + n0(v)).join(" · ") +
     "</div>" +
@@ -998,12 +1084,20 @@ async function deposeTout(fichiers, cible){
   const bloc = t => { out.innerHTML = '<div class="note" style="margin-top:14px">' + t + "</div>"; };
   bloc("Lecture de " + n0(liste.length) + " fichier" + sPl(liste.length) + "…");
   /* 1. lire et reconnaître */
+  /* ---- un fichier peut porter plusieurs tableaux ----
+     Un classeur avec un onglet Distribution et un onglet Réception, un mail avec
+     deux tableaux à la suite : chacun est reconnu et traité pour lui-même, au
+     lieu de ne lire que le premier et de jeter le reste en silence. */
   const lus = [];
   for (const f of liste){
-    let rows = null, err = "";
-    try { rows = await lireFichierRows(f); }
+    let jeux = null, err = "";
+    try { jeux = await lireFichierJeux(f); }
     catch(e){ err = (e && e.message) || "illisible"; }
-    lus.push({ f, rows, err, type: rows ? reconnait(rows) : null });
+    if (!jeux || !jeux.length){ lus.push({ f, rows:null, err: err || "illisible", type:null }); continue; }
+    const pris = jeux.map(j => ({ j, type: reconnait(j.rows) })).filter(x => x.type);
+    if (!pris.length){ lus.push({ f, rows: jeux[0].rows, err, type:null }); continue; }
+    pris.forEach(x => lus.push({ f, rows: x.j.rows, err:"", type: x.type,
+      part: pris.length > 1 ? x.j.nom : "" }));
   }
   const connus = lus.filter(x => x.type).sort((a, b) => DEPOT_ORDRE[a.type] - DEPOT_ORDRE[b.type]);
   const inconnus = lus.filter(x => !x.type);
@@ -1052,10 +1146,17 @@ async function deposeTout(fichiers, cible){
         releveDraft = null; analyseReleve(x.rows);
         const g = releveDraft ? Object.values(releveDraft.plan).flat().reduce((s, l) => s + l.nb, 0) : 0;
         const lib = releveDraft ? releveDraft.libelles : null;
+        /* ce que l'outil a dû deviner du fichier : relevé avant que applyReleve
+           ne vide le brouillon, et redit dans le compte rendu — deviner à la
+           place de quelqu'un se dit, sinon c'est un chiffre tombé du ciel. */
+        const mu = releveDraft ? releveDraft.muette : null;
+        const cp = releveDraft ? releveDraft.colPoste : null;
+        const ec = releveDraft ? (releveDraft.echos || []) : [];
         if (releveDraft && g) await applyReleve();
         si.value = memo[0]; sv.value = memo[1];
         if (lib && Object.keys(lib).length) Object.assign(aTraduire, lib);
-        faits.push({ x, n:g, note: n0(g) + " KO documenté" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l });
+        faits.push({ x, n:g, note: n0(g) + " KO documenté" + sPl(g) + " sur " + SITES[c.si].l + " · " + SERVS[c.sv].l,
+          muette: mu, colPoste: cp, echos: ec });
       }
     }
   } finally {
@@ -1070,7 +1171,8 @@ async function deposeTout(fichiers, cible){
       '<div style="margin-top:7px">' + faits.map(f =>
         '<div class="dline">' +
         '<span class="pill ' + (f.ko ? "rejet" : "auto") + '">' + esc(DEPOT_LBL[f.x.type]) + "</span>" +
-        '<span class="dnom muted trunc">' + esc(f.x.f.name) + "</span>" +
+        '<span class="dnom muted trunc">' + esc(f.x.f.name) +
+          (f.x.part ? " · " + esc(f.x.part) : "") + "</span>" +
         '<span class="dres">' + (f.ko ? '<span class="warn-t">' + esc(f.ko) + "</span>" : esc(f.note)) + "</span></div>").join("") +
       "</div>" +
       (st.reed || st.total || st.reprisMain || st.doubles
@@ -1088,6 +1190,23 @@ async function deposeTout(fichiers, cible){
        lignes sans identifiant (comptées, mais introuvables dans « À justifier »)
        et les réceptions en litige (écartées, quand PowerBI les compte). Les
        taire, c'est laisser chercher. */
+    /* Ce que l'outil a lu sans qu'on le lui dise : la colonne de cause quand elle
+       n'a pas d'en-tête, la colonne de poste quand elle en a une. */
+    (function(){
+      const g = faits.filter(f => f.muette || f.colPoste != null);
+      if (!g.length) return "";
+      return '<div class="note" style="margin-top:10px"><b>Colonnes devinées.</b><div class="muted" style="margin-top:5px">' +
+        g.map(f => esc(f.x.f.name) + (f.x.part ? " · " + esc(f.x.part) : "") + " — " +
+          (f.muette
+            ? "la colonne <b>" + n0(f.muette.j + 1) + "</b> n'a pas d'en-tête, elle porte du texte sur " +
+              n0(f.muette.n) + " ligne" + sPl(f.muette.n) + " : lue comme <b>cause</b>. " +
+              "Un mot dans sa cellule d'en-tête (<code>CAUSE</code>) lèverait le doute."
+            : "") +
+          (f.colPoste != null
+            ? (f.muette ? " " : "") + "le <b>poste</b> a été lu dans la colonne " + n0(f.colPoste + 1) + "."
+            : "")).join("<br>") +
+        "</div></div>";
+    })() +
     (function(){
       const si = faits.reduce((s, f) => s + (f.sansId || 0), 0);
       const lt = faits.reduce((s, f) => s + (f.lit || 0), 0);
@@ -1112,7 +1231,13 @@ async function deposeTout(fichiers, cible){
      seule chose qu'il reste à décider : on la pose sous le compte rendu, et
      traduire relance l'analyse du relevé sans redemander le fichier. */
   const idTrad = (cible || "#depot-out").replace("#", "") + "-trad";
-  out.insertAdjacentHTML("beforeend", '<div id="' + idTrad + '"></div>');
+  const idEcho = (cible || "#depot-out").replace("#", "") + "-echo";
+  out.insertAdjacentHTML("beforeend", '<div id="' + idTrad + '"></div><div id="' + idEcho + '"></div>');
+  /* La revue vient APRÈS la traduction : aligner sur un récit encore illisible
+     poserait « Non renseignée » sur tout le bon, et le rejeu du relevé effacerait
+     l'alignement au passage suivant. */
+  const tousEchos = faits.reduce((a, f) => a.concat(f.echos || []), []);
+  renderEchos("#" + idEcho, tousEchos);
   renderCauses("#" + idTrad, aTraduire, async () => {
     await rejoueReleve();
     const el = $("#" + idTrad);
@@ -1121,6 +1246,9 @@ async function deposeTout(fichiers, cible){
     if (el) el.insertAdjacentHTML("afterbegin",
       '<div class="note" style="margin-top:10px;border-left-color:var(--good)">Relevé rejoué — <b>' +
       n0(n) + "</b> ligne" + sPl(n) + " de relevé justifie" + (n > 1 ? "nt" : "") + " maintenant.</div>");
+    /* la revue se relit sur l'état d'après : les causes qu'on vient de nommer y
+       apparaissent, et « Aligner » a enfin quelque chose à poser */
+    renderEchos("#" + idEcho, tousEchos);
     render();
   });
   toast(faits.filter(f => !f.ko).length + " fichier(s) intégré(s)");
@@ -1183,8 +1311,8 @@ const MAJ_PAS = [
   { v:"rel", t:"Relevé transcrit", g:["Copier le <b>prompt</b> du bloc 3",
       "Le coller avec les mails de retard",
       "Récupérer le <code>.xlsx</code>"] },
-  { v:"log", t:"Export Distri Logistiport", g:["Le fichier du responsable, <b>colonne CAUSE</b> remplie",
-      "Le prendre <b>tel quel</b>"] }
+  { v:"log", t:"Export Terrain", g:["Le fichier du responsable, avec <b>une colonne de cause</b>",
+      "Le prendre <b>tel quel</b> — n'importe quel tableau"] }
 ];
 function openMaj(){
   openModal(
@@ -3599,4 +3727,117 @@ async function connectStore(){
   }
   const cfg = fbConfig();
   if (cfg) await connectFirebase(cfg);
+}
+
+/* ================== un récit, des rappels ==================
+   Qui remplit un tableau écrit l'histoire une fois, puis met « faux retard » sur
+   les lignes suivantes du même bon. Le fichier réception de MG le fait huit fois :
+   le BR 0090142342 porte dix-huit postes, un récit à la première ligne et
+   dix-sept « faux retard » derrière. Ce ne sont pas dix-sept incidents, c'est un
+   seul — et l'outil, lui, rangeait le récit d'un côté et dix-sept « Non
+   renseignée » de l'autre.
+   Il les regroupe désormais, et propose d'aligner. JAMAIS tout seul : sur le BR
+   0090142527 le récit ne décrit qu'un poste, les trois autres sont des lignes
+   pour référence — hériter y serait faux. C'est à la lecture de trancher. */
+const ECHO_COURT = /^(faux retard|pas de retard|ligne pour ref(erence)?|ligne pour ref(erence)? ?\/? ?pas de retard|je verifie|je verifie pour celui ci|retour a suivre|rien|neant|na|ras)$/;
+function echoMaigre(t){
+  const n = normLbl(t);
+  return !n || n.length <= 3 || ECHO_COURT.test(n);
+}
+function echosReleve(lues, site, service){
+  const par = {};
+  lues.forEach(l => { (par[l.ref] = par[l.ref] || []).push(l); });
+  const out = [];
+  Object.keys(par).forEach(ref => {
+    const v = par[ref];
+    if (v.length < 2) return;
+    /* le récit : la ligne la plus longue qui ne soit pas une mention courte */
+    let tete = null;
+    v.forEach(l => { const t = String(l.com || "").trim();
+      if (!t || echoMaigre(t)) return;
+      if (!tete || t.length > String(tete.com).trim().length) tete = l; });
+    if (!tete) return;
+    const suite = v.filter(l => l !== tete && echoMaigre(l.com));
+    if (!suite.length) return;
+    out.push({ ref, site, service, tete, suite,
+      postes: suite.map(l => l.poste).filter(Boolean),
+      mots: Array.from(new Set(suite.map(l => String(l.com || "").trim() || "(vide)"))) });
+  });
+  return out.sort((a, b) => b.suite.length - a.suite.length);
+}
+/* Poser la cause et les mots de la ligne de tête sur les postes des rappels. */
+/* La cause de la ligne de tête TELLE QU'ELLE EST MAINTENANT : entre la lecture
+   du fichier et le clic, le récit a pu être traduit. Prendre la valeur figée au
+   moment de l'analyse posait « Non renseignée » sur tout le bon juste après
+   qu'on venait de la nommer. */
+function teteActuelle(g){
+  const po = String(g.tete.poste || "");
+  let vu = null;
+  Object.values(S.cells).forEach(c => {
+    if (c.site !== g.site || c.service !== g.service) return;
+    (c.lignes || []).forEach(l => {
+      if (l.src !== "releve" || sansZeros(l.ref) !== sansZeros(g.ref)) return;
+      const ps = (l.postes || []).map(String);
+      if (po ? ps.indexOf(po) < 0 : ps.length) return;
+      if (!vu || String(l.com || "").length > String(vu.com || "").length) vu = l;
+    });
+  });
+  return vu || g.tete;
+}
+async function alignerEcho(g){
+  const t = teteActuelle(g);
+  const touche = [];
+  const cible = new Set(g.postes.map(String));
+  Object.values(S.cells).forEach(c => {
+    if (c.site !== g.site || c.service !== g.service) return;
+    let bouge = false;
+    const lignes = (c.lignes || []).map(l => {
+      if (l.src !== "releve" || sansZeros(l.ref) !== sansZeros(g.ref)) return l;
+      const ps = (l.postes || []).map(String);
+      if (!ps.length || !ps.some(x => cible.has(x))) return l;
+      bouge = true;
+      return Object.assign({}, l, { cat: t.cat, st: CAT[t.cat] && CAT[t.cat].j ? "ok" : "rejet",
+        com: String(t.com || "").slice(0, 300) });
+    });
+    if (bouge) touche.push(Object.assign({}, c, { lignes }));
+  });
+  if (touche.length) await bulkPut(touche);
+  return touche.length;
+}
+/* La revue, posée sous le compte rendu d'import. Un bloc par référence, le récit
+   en clair, les postes qu'il couvrirait, et un bouton pour chacun. */
+function renderEchos(cible, echos, apres){
+  const host = $(cible); if (!host) return;
+  if (!echos || !echos.length){ host.innerHTML = ""; return; }
+  const nL = echos.reduce((s, g) => s + g.suite.length, 0);
+  host.innerHTML = '<div class="note" style="margin-top:12px;border-left-color:var(--warn)">' +
+    "<b>" + n0(echos.length) + " référence" + sPl(echos.length) + " portent un récit sur une ligne et une mention courte sur les autres</b> — " +
+    n0(nL) + " ligne" + sPl(nL) + " au total. " +
+    "Le plus souvent c'est la même histoire écrite une fois&nbsp;; parfois non. " +
+    '<b>Rien n\'est appliqué tant que vous ne le dites pas.</b>' +
+    '<div class="muted" style="margin-top:5px">Si le récit n\'est pas encore une cause que l\'outil connaît, ' +
+    "traduisez-le d'abord ci-dessus&nbsp;: aligner sur «&nbsp;Non renseignée&nbsp;» ne dirait rien de plus.</div></div>" +
+    '<div class="mlist" style="margin-top:10px">' + echos.map((g, i) =>
+      '<div class="mcard fixe"><div class="mmain"><b>' + esc(g.ref) + "</b> " +
+        '<span class="muted">' + esc(SITES[g.site].l + " · " + SERVS[g.service].l) + "</span>" +
+        '<div class="rcond">' + esc(String(g.tete.com || CAT[g.tete.cat] && CAT[g.tete.cat].l || "").slice(0, 260)) +
+          ' <span class="muted">— poste ' + esc(g.tete.poste || "?") + "</span></div>" +
+        '<div class="rmeta"><span>' + n0(g.suite.length) + " autre" + sPl(g.suite.length) + " poste" + sPl(g.suite.length) +
+          " : " + esc(g.mots.slice(0, 3).map(m => "« " + m + " »").join(", ")) + "</span>" +
+          "<span>postes " + esc(g.postes.slice(0, 10).sort(cmpPoste).join(", ")) +
+          (g.postes.length > 10 ? " +" + n0(g.postes.length - 10) : "") + "</span>" +
+          "<span>cause posée : " + (function(){ const t = teteActuelle(g);
+            return esc(CAT[t.cat] ? CAT[t.cat].l : t.cat); })() + "</span>" +
+        "</div></div>" +
+      '<div class="ract"><button class="btn sm pri" data-echo="' + i + '">Aligner les ' + n0(g.suite.length) + "</button></div></div>").join("") +
+    "</div>";
+  host.querySelectorAll("[data-echo]").forEach(btn => btn.addEventListener("click", async () => {
+    const g = echos[+btn.dataset.echo];
+    btn.disabled = true; btn.textContent = "…";
+    const n = await alignerEcho(g);
+    btn.textContent = n ? "Aligné" : "rien à aligner";
+    await rejouerRegles(true);
+    render();
+    if (typeof apres === "function") apres();
+  }));
 }
